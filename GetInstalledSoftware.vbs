@@ -72,6 +72,60 @@ Function CurrentDateTime2SqlFormat()
         ":" & Number2Digits(DatePart("n", Now())) & _
         ":" & Number2Digits(DatePart("s", Now()))
 End Function
+Function CleanStringStartEnd(strFullStringToClean, strStartCleanSubString, strEndCleanSubString)
+    intStartCleanPosition = InStr(1, strFullStringToClean, strStartCleanSubString, vbTextCompare)
+    intEndCleanPosition = InStr(1, strFullStringToClean, strEndCleanSubString, vbTextCompare)
+    If ((intStartCleanPosition > 0) And (intEndCleanPosition > 0)) Then
+        strCleanedString = Trim(Replace(Left(strFullStringToClean, (intStartCleanPosition - 1)) & " " & Right(strFullStringToClean, (Len(strFullStringToClean) - intEndCleanPosition)), "  ", " "))
+        strCleanedString = CleanStringStartEnd(strCleanedString, strStartCleanSubString, strEndCleanSubString) ' to ensure if more then 1 occurence of identifiers is being taken care of
+    Else
+        strCleanedString = strFullStringToClean
+    End If
+    CleanStringStartEnd = strCleanedString
+End Function
+Function CleanStringWithBlacklistArray(strFullStringToClean, aryBlackList, strStringToReplaceWith)
+    strCleanedString = strFullStringToClean
+    For Each strBlackListPiece In aryBlackList 
+        strCleanedString = Replace(Replace(strCleanedString, strBlackListPiece, strStringToReplaceWith), "  ", " ")
+    Next
+    CleanStringWithBlacklistArray = Trim(strCleanedString)
+End Function
+Function InArray(Haystack, GivenArray)
+	Dim bReturn
+	bReturn = False
+	For Each elmnt In GivenArray
+		If cStr(Haystack) = elmnt Then 
+			bReturn = True
+		End If
+	Next
+	InArray = bReturn
+End Function
+Function CleanStringOfNumericPiece(strFullStringToClean)
+    ' break entire string into pieces with space as separator
+    aryFullStringToClean = Split(strFullStringToClean, " ")
+    strCleanedString = ""
+    For Each strCurrentPiece In aryFullStringToClean 
+        ' if strCurrentPiece is whitelisted as not to be removed
+        If (InArray(strCurrentPiece, Array("360", "365"))) Then
+            bolCurrentPieceToKeep = True
+        Else
+            intFirstCharacterCodeOfCurrentPiece = Asc(Left(strCurrentPiece, 1))
+            intLastCharacterCodeOfCurrentPiece = Asc(Right(strCurrentPiece, 1))
+            bolCurrentPieceToKeep = True
+            ' test if 1st character is numeric
+            If ((intFirstCharacterCodeOfCurrentPiece >= Asc("0")) And (intFirstCharacterCodeOfCurrentPiece <= Asc("9"))) Then
+                ' test if last character is numeric
+                If ((intLastCharacterCodeOfCurrentPiece >= Asc("0")) And (intLastCharacterCodeOfCurrentPiece <= Asc("9"))) Then
+                    bolCurrentPieceToKeep = False
+                End If
+            End If
+        End If
+        If (bolCurrentPieceToKeep) Then
+            strCleanedString = Trim(strCleanedString & " " & strCurrentPiece)
+        End If
+    Next
+    CleanStringOfNumericPiece = strCleanedString
+End Function
 Function checkSoftware(strComputer, bolWriteHeader, strKey) 
     Const HKLM = &H80000002 'HKEY_LOCAL_MACHINE 
     strEntryDisplayName = "DisplayName" 
@@ -90,12 +144,14 @@ Function checkSoftware(strComputer, bolWriteHeader, strKey)
             strFieldSeparator  & "HostName" & _
             strFieldSeparator  & "Publisher" & _
             strFieldSeparator  & "Software" & _
+            strFieldSeparator  & "Software name cleaned" & _
             strFieldSeparator & "Install Location" & _
             strFieldSeparator & "Installation Date" & _
             strFieldSeparator & "Size [bytes]" & _
             strFieldSeparator & "Version (major.minor)" & _
             strFieldSeparator & "Full Version Cleaned" & _
             strFieldSeparator & "URL Info About" & _
+            strFieldSeparator & "Registry Key Trunk" & _
             strFieldSeparator & "Registry SubKey"
     End If
     objReg.EnumKey HKLM, strKey, arrSubkeys 
@@ -116,6 +172,14 @@ Function checkSoftware(strComputer, bolWriteHeader, strKey)
             If intReturnP <> 0 Then
                 strPublisher = "_unknown publisher_"
             End If
+            strSoftwareNameCleaned = CleanStringStartEnd(strDisplayName, " (", ")")
+            aryBlackListToClean = Array("(x86_x64)", "_WHQL", "_X64", "_X86", "64-bit", "beta", "en-us", "for x64", "for x86", "SP1", "SP2", "SP3", "Update", "version", "VS2005", "x64", "x86")
+            strSoftwareNameCleaned = CleanStringWithBlacklistArray(strSoftwareNameCleaned, aryBlackListToClean, "")
+            aryBlackListToReplaceWithSpace = Array(" -")
+            strSoftwareNameCleaned = CleanStringWithBlacklistArray(strSoftwareNameCleaned, aryBlackListToReplaceWithSpace, " ")
+            aryBlackListToReplaceWithOriginal = Array("(R)")
+            strSoftwareNameCleaned = CleanStringWithBlacklistArray(strSoftwareNameCleaned, aryBlackListToReplaceWithOriginal, Chr(174))
+            strSoftwareNameCleaned = CleanStringOfNumericPiece(strSoftwareNameCleaned)
             If (intReturnL <> 0) Or (Len(Trim(strInstallLocation)) = 0) Then
                 strInstallLocation = "_unknown install location_"
             End If
@@ -162,16 +226,19 @@ Function checkSoftware(strComputer, bolWriteHeader, strKey)
                     strURLInfoAbout = Left(strURLInfoAbout, (Len(strURLInfoAbout) - 1))
                 End If
             End If
+            strSubkeyPieces = Split(strKey, "\")
             ReportFile.writeline CurrentDateTime2SqlFormat() & _ 
                 strFieldSeparator & strComputer & _
                 strFieldSeparator & strPublisher & _
                 strFieldSeparator & strDisplayName & _
+                strFieldSeparator & strSoftwareNameCleaned & _
                 strFieldSeparator & strInstallLocation  & _
                 strFieldSeparator & strDateYMD  & _
                 strFieldSeparator & strSizeInBytes & _
                 strFieldSeparator & strDisplayVersion & _
                 strFieldSeparator & strDisplayVersionCleaned & _
                 strFieldSeparator & strURLInfoAbout & _
+                strFieldSeparator & strSubkeyPieces(1) & _
                 strFieldSeparator & strSubkey
         End If 
     Next 
