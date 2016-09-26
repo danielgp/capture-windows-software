@@ -126,6 +126,38 @@ Function CleanStringOfNumericPiece(strFullStringToClean)
     Next
     CleanStringOfNumericPiece = strCleanedString
 End Function
+Function CleanStringBeforeOrAfterNumber(strFullStringToClean, strBeforeOrAfter, aryBlackList, strStringToReplaceWith)
+    ' break entire string into pieces with space as separator
+    aryFullStringToClean = Split(strFullStringToClean, " ")
+    strCleanedString = ""
+	intPieceCounter = 0
+	intLastPieceNumber = UBound(aryFullStringToClean)
+    For Each strBlackListPiece In aryBlackList 
+		For Each strCurrentPiece In aryFullStringToClean 
+			' last piece does not need any cleaning as cannot be followed by a numbers or anything else
+			If (intPieceCounter = intLastPieceNumber) Then
+				bolCurrentPieceToKeep = True
+			Else
+				bolCurrentPieceToKeep = True
+				Select Case strBeforeOrAfter
+					Case "After"
+						If ((strCurrentPiece = strBlackListPiece) And IsNumeric(aryFullStringToClean((intPieceCounter + 1)))) Then
+							bolCurrentPieceToKeep = False
+						End If
+					Case "Before"
+						If ((strCurrentPiece = strBlackListPiece) And IsNumeric(aryFullStringToClean((intPieceCounter - 1)))) Then
+							bolCurrentPieceToKeep = False
+						End If
+				End Select
+			End If
+			If (bolCurrentPieceToKeep) Then
+				strCleanedString = Trim(strCleanedString & " " & strCurrentPiece)
+			End If
+			intPieceCounter = intPieceCounter + 1
+		Next
+    Next
+    CleanStringBeforeOrAfterNumber = strCleanedString
+End Function
 Function checkSoftware(strComputer, bolWriteHeader, strKey) 
     Const HKLM = &H80000002 'HKEY_LOCAL_MACHINE 
     strEntryDisplayName = "DisplayName" 
@@ -173,7 +205,11 @@ Function checkSoftware(strComputer, bolWriteHeader, strKey)
                 strPublisher = "_unknown publisher_"
             End If
             strSoftwareNameCleaned = CleanStringStartEnd(strDisplayName, " (", ")")
-            aryBlackListToClean = Array("(x86_x64)", "_WHQL", "_X64", "_X86", "64-bit", "beta", "en-us", "for x64", "for x86", "SP1", "SP2", "SP3", "Update", "version", "VS2005", "x64", "x86")
+            aryBlackListToRemoveBetweenNumbers = Array("Update") ' to properly clean "Java <No> Update <No>" software name
+            strSoftwareNameCleaned = CleanStringBeforeNumber(strSoftwareNameCleaned, "Before", aryBlackListToRemoveBetweenNumbers, "")
+            aryBlackListToRemoveBetweenNumbers = Array("R2") ' to properly clean "Microsoft SQL Server <No> R2 Native Client" software name
+            strSoftwareNameCleaned = CleanStringBeforeNumber(strSoftwareNameCleaned, "After", aryBlackListToRemoveBetweenNumbers, "")
+            aryBlackListToClean = Array("(x86_x64)", "(x64)", "(x86)", "_WHQL", "_X64", "_X86", "64-bit", "beta", "en-us", "for x64", "for x86", "SP1", "SP2", "SP3", "version", "VS2005", "x64", "x86")
             strSoftwareNameCleaned = CleanStringWithBlacklistArray(strSoftwareNameCleaned, aryBlackListToClean, "")
             aryBlackListToReplaceWithSpace = Array(" -")
             strSoftwareNameCleaned = CleanStringWithBlacklistArray(strSoftwareNameCleaned, aryBlackListToReplaceWithSpace, " ")
