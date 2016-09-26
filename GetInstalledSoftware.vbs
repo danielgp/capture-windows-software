@@ -105,7 +105,7 @@ Function CleanStringOfNumericPiece(strFullStringToClean)
     aryFullStringToClean = Split(strFullStringToClean, " ")
     strCleanedString = ""
     For Each strCurrentPiece In aryFullStringToClean 
-        ' if strCurrentPiece is whitelisted as not to be removed
+        ' if strCurrentPiece is whitelisted, does not to be removed
         If (InArray(strCurrentPiece, Array("360", "365"))) Then
             bolCurrentPieceToKeep = True
         Else
