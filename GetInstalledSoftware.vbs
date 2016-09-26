@@ -163,7 +163,7 @@ Function checkSoftware(strComputer, bolWriteHeader, strKey)
         If strDisplayName <> "" Then 
             intReturnP = objReg.GetStringValue(HKLM, strKey & strSubkey, strEntryPublisher, strPublisher) 
             intReturnL = objReg.GetStringValue(HKLM, strKey & strSubkey, strEntryInstallLocation, strInstallLocation) 
-            objReg.GetStringValue HKLM, strKey & strSubkey, strEntryInstallDate, strInstallDate 
+            intReturnD = objReg.GetStringValue(HKLM, strKey & strSubkey, strEntryInstallDate, strInstallDate) 
             objReg.GetDWORDValue HKLM, strKey & strSubkey, strEntryVersionMajor, intValueVersionMajor 
             objReg.GetDWORDValue HKLM, strKey & strSubkey, strEntryVersionMinor, intValueVersionMinor 
             objReg.GetDWORDValue HKLM, strKey & strSubkey, strEntryEstimatedSize, intEstimatedSize 
@@ -183,7 +183,7 @@ Function checkSoftware(strComputer, bolWriteHeader, strKey)
             If (intReturnL <> 0) Or (Len(Trim(strInstallLocation)) = 0) Then
                 strInstallLocation = "_unknown install location_"
             End If
-            If strInstallDate > 0 Then 
+            If (intReturnD <> 0) Then 
                 strDateYMD = Mid(strInstallDate, 1, 4) & _
                     "-" & Mid(strInstallDate, 5, 2) & _
                     "-" & Mid(strInstallDate, 7, 2)
