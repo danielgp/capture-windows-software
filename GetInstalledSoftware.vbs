@@ -26,7 +26,7 @@ Const ForAppending = 8
 Const strFieldSeparator = ";" 
 Const strVersionPrefix = "v" 
 Const strResultFileName = "WindowsSoftwareList" 
-Const strResultFileType = ".csv" 
+Const strResultFileType = ".csv" ' .sql for MySQL insert constructions
 Set objFSO = CreateObject("Scripting.FileSystemObject")
 Set WshShell = WScript.CreateObject("WScript.Shell") 
 strCurDir = WshShell.CurrentDirectory
@@ -38,7 +38,7 @@ End If
 Set ReportFile = objFSO.OpenTextFile(strCurDir & "\" & strResultFileName & strResultFileType, ForAppending, True) 
 Set objNetwork = CreateObject("Wscript.Network") 
 OsType = WshShell.RegRead("HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\Environment\PROCESSOR_ARCHITECTURE")
-wscript.echo "Please wait until script is completed..." 
+wscript.echo "This script will read from Windows Registry the entire list of installed software and export it in a file with a pre-configured name!" & vbNewLine & vbNewLine & "please wait until script is completed..." 
 Set SrvList = objFSO.OpenTextFile(strCurDir & "\WindowsComputerList.txt", ForReading) 
 Do Until SrvList.AtEndOfStream 
     strComputer = LCase(SrvList.ReadLine) 
@@ -47,12 +47,9 @@ Do Until SrvList.AtEndOfStream
         If (OsType = "AMD64") Then
             srvIP = checkSoftware(strComputer, False, "SOFTWARE\Wow6432Node\Microsoft\Windows\CurrentVersion\Uninstall\")
         End If
-    Else 
-        ReportFile.write strComputer & "," & "Server is unreachable." 
-        ReportFile.writeline 
     End If 
 Loop 
-Wscript.echo "Script completed, consult [" & strCurDir & "\" & strResultFileName & strResultFileType & "] for captured software list currently installed." & vbNewLine & vbNewLine & "Thank you for using this script!" 
+Wscript.echo "This script has completed detecting the entire list of installed software on this Windows, consult generated file [" & strCurDir & "\" & strResultFileName & strResultFileType & "]." & vbNewLine & vbNewLine & "Thank you for using this script!" 
 
 Function Number2Digits(InputNo)
     If (InputNo < 10) Then
@@ -134,21 +131,23 @@ Function CleanStringBeforeOrAfterNumber(strFullStringToClean, strBeforeOrAfter, 
     intLastPieceNumber = UBound(aryFullStringToClean)
     For Each strBlackListPiece In aryBlackList 
         For Each strCurrentPiece In aryFullStringToClean 
-            ' last piece does not need any cleaning as cannot be followed by a numbers or anything else
-            If (intPieceCounter = intLastPieceNumber) Then
+            ' first or last piece does not need any cleaning as cannot be followed by a numbers or anything else
+            If ((intPieceCounter = 0) Or (intPieceCounter = intLastPieceNumber)) Then
                 bolCurrentPieceToKeep = True
             Else
                 bolCurrentPieceToKeep = True
-                Select Case strBeforeOrAfter
-                    Case "After"
-                        If ((strCurrentPiece = strBlackListPiece) And IsNumeric(aryFullStringToClean((intPieceCounter + 1)))) Then
-                            bolCurrentPieceToKeep = False
-                        End If
-                    Case "Before"
-                        If ((strCurrentPiece = strBlackListPiece) And IsNumeric(aryFullStringToClean((intPieceCounter - 1)))) Then
-                            bolCurrentPieceToKeep = False
-                        End If
-                End Select
+                If (strCurrentPiece = strBlackListPiece) Then
+                    Select Case strBeforeOrAfter
+                        Case "After"
+                            If (IsNumeric(aryFullStringToClean((intPieceCounter - 1)))) Then
+                                bolCurrentPieceToKeep = False
+                            End If
+                        Case "Before"
+                            If (IsNumeric(aryFullStringToClean((intPieceCounter + 1)))) Then
+                                bolCurrentPieceToKeep = False
+                            End If
+                    End Select
+                End If
             End If
             If (bolCurrentPieceToKeep) Then
                 strCleanedString = Trim(strCleanedString & " " & strCurrentPiece)
@@ -159,7 +158,22 @@ Function CleanStringBeforeOrAfterNumber(strFullStringToClean, strBeforeOrAfter, 
     CleanStringBeforeOrAfterNumber = strCleanedString
 End Function
 Function checkSoftware(strComputer, bolWriteHeader, strKey) 
-    Const HKLM = &H80000002 'HKEY_LOCAL_MACHINE 
+    Const HKLM = &H80000002 'HKEY_LOCAL_MACHINE
+    aryInformationToExpose = Array(_
+        "Evaluation Timestamp", _
+        "Host Name", _
+        "Publisher", _
+        "Software", _
+        "Software Name Cleaned", _
+        "Install Location", _
+        "Installation Date", _
+        "Size [bytes]", _
+        "Version (major.minor)", _
+        "Full Version Cleaned", _
+        "URL Info About", _
+        "Registry Key Trunk", _
+        "Registry SubKey" _
+    )
     strEntryDisplayName = "DisplayName" 
     strEntryQuietDisplayName = "QuietDisplayName" 
     strEntryPublisher = "Publisher" 
@@ -170,22 +184,18 @@ Function checkSoftware(strComputer, bolWriteHeader, strKey)
     strEntryEstimatedSize = "EstimatedSize" 
     strEntryDisplayVersion = "DisplayVersion" 
     strEntryURLInfoAbout = "URLInfoAbout" 
-    Set objReg = GetObject("winmgmts://" & strComputer & "/root/default:StdRegProv") 
-    If (bolWriteHeader) Then
-        ReportFile.writeline "Evaluation timestamp" & _ 
-            strFieldSeparator  & "HostName" & _
-            strFieldSeparator  & "Publisher" & _
-            strFieldSeparator  & "Software" & _
-            strFieldSeparator  & "Software name cleaned" & _
-            strFieldSeparator & "Install Location" & _
-            strFieldSeparator & "Installation Date" & _
-            strFieldSeparator & "Size [bytes]" & _
-            strFieldSeparator & "Version (major.minor)" & _
-            strFieldSeparator & "Full Version Cleaned" & _
-            strFieldSeparator & "URL Info About" & _
-            strFieldSeparator & "Registry Key Trunk" & _
-            strFieldSeparator & "Registry SubKey"
-    End If
+    Set objReg = GetObject("winmgmts://" & strComputer & "/root/default:StdRegProv")
+    Select Case LCase(strResultFileType)
+        Case ".csv"
+            If (bolWriteHeader) Then
+                ReportFile.writeline Join(aryInformationToExpose, strFieldSeparator)
+            End If
+        Case ".sql"
+            strFieldListForMySQLinsert = "`" & Join(aryInformationToExpose, "`, `") & "`"
+            strFieldListForMySQLinsert = CleanStringWithBlacklistArray(strFieldListForMySQLinsert, Array("[bytes]"), "Bytes")
+            strFieldListForMySQLinsert = CleanStringWithBlacklistArray(strFieldListForMySQLinsert, Array("(major.minor)"), "Major Minor")
+            strFieldListForMySQLinsert = CleanStringWithBlacklistArray(strFieldListForMySQLinsert, Array(" "), "")
+    End Select
     objReg.EnumKey HKLM, strKey, arrSubkeys 
     For Each strSubkey In arrSubkeys 
         intReturnN = objReg.GetStringValue(HKLM, strKey & strSubkey, strEntryDisplayName, strDisplayName) 
@@ -219,12 +229,16 @@ Function checkSoftware(strComputer, bolWriteHeader, strKey)
             If ((intReturnL <> 0) Or (Len(Trim(strInstallLocation)) = 0)) Then
                 strInstallLocation = "_unknown install location_"
             End If
-            If (intReturnD <> 0) Then 
-                strDateYMD = Mid(strInstallDate, 1, 4) & _
-                    "-" & Mid(strInstallDate, 5, 2) & _
-                    "-" & Mid(strInstallDate, 7, 2)
-            Else
+            If (intReturnD <> 0) Then
                 strDateYMD = "NULL"
+            Else
+                If (strInstallDate > 0) Then
+                    strDateYMD = Mid(strInstallDate, 1, 4) & _
+                        "-" & Mid(strInstallDate, 5, 2) & _
+                        "-" & Mid(strInstallDate, 7, 2)
+                Else
+                    strDateYMD = "NULL"
+                End If
             End If
             If (intEstimatedSize <> "") Then
                 strSizeInBytes = CStr(Replace(intEstimatedSize, ",", "."))
@@ -263,19 +277,44 @@ Function checkSoftware(strComputer, bolWriteHeader, strKey)
                 End If
             End If
             strSubkeyPieces = Split(strKey, "\")
-            ReportFile.writeline CurrentDateTime2SqlFormat() & _ 
-                strFieldSeparator & strComputer & _
-                strFieldSeparator & strPublisher & _
-                strFieldSeparator & strDisplayName & _
-                strFieldSeparator & strSoftwareNameCleaned & _
-                strFieldSeparator & strInstallLocation  & _
-                strFieldSeparator & strDateYMD  & _
-                strFieldSeparator & strSizeInBytes & _
-                strFieldSeparator & strDisplayVersion & _
-                strFieldSeparator & strDisplayVersionCleaned & _
-                strFieldSeparator & strURLInfoAbout & _
-                strFieldSeparator & strSubkeyPieces(1) & _
-                strFieldSeparator & strSubkey
+            Select Case LCase(strResultFileType)
+                Case ".csv"
+                    ReportFile.writeline CurrentDateTime2SqlFormat() & _ 
+                        strFieldSeparator & strComputer & _
+                        strFieldSeparator & strPublisher & _
+                        strFieldSeparator & strDisplayName & _
+                        strFieldSeparator & strSoftwareNameCleaned & _
+                        strFieldSeparator & strInstallLocation  & _
+                        strFieldSeparator & strDateYMD  & _
+                        strFieldSeparator & strSizeInBytes & _
+                        strFieldSeparator & strDisplayVersion & _
+                        strFieldSeparator & strDisplayVersionCleaned & _
+                        strFieldSeparator & strURLInfoAbout & _
+                        strFieldSeparator & strSubkeyPieces(1) & _
+                        strFieldSeparator & strSubkey
+                Case ".sql"
+                    strFieldSeparatorMySQL = ", "
+                    If (strDateYMD = "NULL") Then
+                        strDateYMDsafeForNULL = strDateYMD
+                    Else
+                        strDateYMDsafeForNULL = "'" & strDateYMD & "'" 
+                    End If
+                    ReportFile.writeline "INSERT INTO `in_windows_software_list` (" & _
+                        strFieldListForMySQLinsert & ") VALUES(" & "'" & CurrentDateTime2SqlFormat() & "'" & _ 
+                        strFieldSeparatorMySQL & "'" & strComputer & "'" & _
+                        strFieldSeparatorMySQL & "'" & strPublisher & "'" & _
+                        strFieldSeparatorMySQL & "'" & strDisplayName & "'" & _
+                        strFieldSeparatorMySQL & "'" & strSoftwareNameCleaned & "'" & _
+                        strFieldSeparatorMySQL & "'" & Replace(strInstallLocation, "\", "\\") & "'" & _
+                        strFieldSeparatorMySQL & strDateYMDsafeForNULL  & _
+                        strFieldSeparatorMySQL & strSizeInBytes & _
+                        strFieldSeparatorMySQL & "'" & strDisplayVersion & "'" & _
+                        strFieldSeparatorMySQL & "'" & strDisplayVersionCleaned & "'" & _
+                        strFieldSeparatorMySQL & "'" & strURLInfoAbout & "'" & _
+                        strFieldSeparatorMySQL & "'" & strSubkeyPieces(1) & "'" & _
+                        strFieldSeparatorMySQL & "'" & strSubkey & "'" & _
+                        ");"
+            End Select
         End If 
     Next 
 End Function 
