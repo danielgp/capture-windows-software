@@ -42,9 +42,9 @@ wscript.echo "Please wait until script is completed..."
 Set SrvList = objFSO.OpenTextFile(strCurDir & "\WindowsComputerList.txt", ForReading) 
 Do Until SrvList.AtEndOfStream 
     strComputer = LCase(SrvList.ReadLine) 
-    If checkServerResponse(strComputer) then 
+    If (checkServerResponse(strComputer)) Then 
         srvIP = checkSoftware(strComputer, bolFileHeaderToAdd, "SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\")
-        If OsType = "AMD64" Then
+        If (OsType = "AMD64") Then
             srvIP = checkSoftware(strComputer, False, "SOFTWARE\Wow6432Node\Microsoft\Windows\CurrentVersion\Uninstall\")
         End If
     Else 
@@ -55,7 +55,7 @@ Loop
 Wscript.echo "Script completed, consult [" & strCurDir & "\" & strResultFileName & strResultFileType & "] for captured software list currently installed." & vbNewLine & vbNewLine & "Thank you for using this script!" 
 
 Function Number2Digits(InputNo)
-	If InputNo < 10 Then
+	If (InputNo < 10) Then
 		Number2Digits = "0" & InputNo
 	Else
 		Number2Digits = InputNo
@@ -94,7 +94,7 @@ Function InArray(Haystack, GivenArray)
 	Dim bReturn
 	bReturn = False
 	For Each elmnt In GivenArray
-		If cStr(Haystack) = elmnt Then 
+		If (cStr(Haystack) = elmnt) Then 
 			bReturn = True
 		End If
 	Next
@@ -105,7 +105,7 @@ Function CleanStringOfNumericPiece(strFullStringToClean)
     aryFullStringToClean = Split(strFullStringToClean, " ")
     strCleanedString = ""
     For Each strCurrentPiece In aryFullStringToClean 
-        ' if strCurrentPiece is whitelisted, does not to be removed
+        ' if strCurrentPiece is amoung whitelisted values, does not have to be removed
         If (InArray(strCurrentPiece, Array("360", "365"))) Then
             bolCurrentPieceToKeep = True
         Else
@@ -139,7 +139,7 @@ Function checkSoftware(strComputer, bolWriteHeader, strKey)
     strEntryDisplayVersion = "DisplayVersion" 
     strEntryURLInfoAbout = "URLInfoAbout" 
     Set objReg = GetObject("winmgmts://" & strComputer & "/root/default:StdRegProv") 
-    If bolWriteHeader Then
+    If (bolWriteHeader) Then
         ReportFile.writeline "Evaluation timestamp" & _ 
             strFieldSeparator  & "HostName" & _
             strFieldSeparator  & "Publisher" & _
@@ -157,10 +157,10 @@ Function checkSoftware(strComputer, bolWriteHeader, strKey)
     objReg.EnumKey HKLM, strKey, arrSubkeys 
     For Each strSubkey In arrSubkeys 
         intReturnN = objReg.GetStringValue(HKLM, strKey & strSubkey, strEntryDisplayName, strDisplayName) 
-        If intReturnN <> 0 Then
+        If (intReturnN <> 0) Then
             objReg.GetStringValue HKLM, strKey & strSubkey, strEntryQuietDisplayName, strDisplayName
         End If
-        If strDisplayName <> "" Then 
+        If (strDisplayName <> "") Then 
             intReturnP = objReg.GetStringValue(HKLM, strKey & strSubkey, strEntryPublisher, strPublisher) 
             intReturnL = objReg.GetStringValue(HKLM, strKey & strSubkey, strEntryInstallLocation, strInstallLocation) 
             intReturnD = objReg.GetStringValue(HKLM, strKey & strSubkey, strEntryInstallDate, strInstallDate) 
@@ -169,7 +169,7 @@ Function checkSoftware(strComputer, bolWriteHeader, strKey)
             objReg.GetDWORDValue HKLM, strKey & strSubkey, strEntryEstimatedSize, intEstimatedSize 
             intReturnV = objReg.GetStringValue(HKLM, strKey & strSubkey, strEntryDisplayVersion, strDisplayVersion) 
             intReturnU = objReg.GetStringValue(HKLM, strKey & strSubkey, strEntryURLInfoAbout, strURLInfoAbout) 
-            If intReturnP <> 0 Then
+            If (intReturnP <> 0) Then
                 strPublisher = "_unknown publisher_"
             End If
             strSoftwareNameCleaned = CleanStringStartEnd(strDisplayName, " (", ")")
@@ -180,7 +180,7 @@ Function checkSoftware(strComputer, bolWriteHeader, strKey)
             aryBlackListToReplaceWithOriginal = Array("(R)")
             strSoftwareNameCleaned = CleanStringWithBlacklistArray(strSoftwareNameCleaned, aryBlackListToReplaceWithOriginal, Chr(174))
             strSoftwareNameCleaned = CleanStringOfNumericPiece(strSoftwareNameCleaned)
-            If (intReturnL <> 0) Or (Len(Trim(strInstallLocation)) = 0) Then
+            If ((intReturnL <> 0) Or (Len(Trim(strInstallLocation)) = 0)) Then
                 strInstallLocation = "_unknown install location_"
             End If
             If (intReturnD <> 0) Then 
@@ -190,13 +190,13 @@ Function checkSoftware(strComputer, bolWriteHeader, strKey)
             Else
                 strDateYMD = "NULL"
             End If
-            If intEstimatedSize <> "" Then
+            If (intEstimatedSize <> "") Then
                 strSizeInBytes = CStr(Replace(intEstimatedSize, ",", "."))
             Else
                 strSizeInBytes = "0"
             End If
-            If intValueVersionMajor >= 0 Then  
-                If intValueVersionMinor >= 0 Then 
+            If (intValueVersionMajor >= 0) Then  
+                If (intValueVersionMinor >= 0) Then 
                     strVersionMajorMinor = CStr(intValueVersionMajor) & "." & CStr(intValueVersionMinor)
                 Else
                     strVersionMajorMinor = CStr(intValueVersionMajor) & ".0"
@@ -204,7 +204,7 @@ Function checkSoftware(strComputer, bolWriteHeader, strKey)
             Else
                 strVersionMajorMinor = "0.0"
             End If
-            If intReturnV <> 0 Then
+            If (intReturnV <> 0) Then
                 strDisplayVersion = strVersionPrefix & "0.0.0"
                 strDisplayVersionCleaned = strVersionPrefix & "0.0.0"
             Else
@@ -216,7 +216,7 @@ Function checkSoftware(strComputer, bolWriteHeader, strKey)
                 Next
                 strDisplayVersion = strVersionPrefix & strVersionMajorMinor
             End If
-            If (intReturnU <> 0) Or (Len(Trim(strURLInfoAbout)) = 0) Then
+            If ((intReturnU <> 0) Or (Len(Trim(strURLInfoAbout)) = 0)) Then
                 strURLInfoAbout = "NULL"
             Else
                 If ((Left(strURLInfoAbout, 4) <> "http") And (Left(strURLInfoAbout, 4) = "www.")) Then
@@ -248,7 +248,7 @@ Function checkServerResponse(serverName)
     Set objShell = CreateObject("WScript.Shell") 
     Set objExec = objShell.Exec("ping -n 1 -w 1000 " & strTarget) 
     strPingResults = LCase(objExec.StdOut.ReadAll) 
-    If InStr(strPingResults, "reply from") Then 
+    If (InStr(strPingResults, "reply from") > 0) Then 
         checkServerResponse = True 
     Else 
         checkServerResponse = False 
