@@ -206,9 +206,9 @@ Function checkSoftware(strComputer, bolWriteHeader, strKey)
             End If
             strSoftwareNameCleaned = CleanStringStartEnd(strDisplayName, " (", ")")
             aryBlackListToRemoveBetweenNumbers = Array("Update") ' to properly clean "Java <No> Update <No>" software name
-            strSoftwareNameCleaned = CleanStringBeforeNumber(strSoftwareNameCleaned, "Before", aryBlackListToRemoveBetweenNumbers, "")
+            strSoftwareNameCleaned = CleanStringBeforeOrAfterNumber(strSoftwareNameCleaned, "Before", aryBlackListToRemoveBetweenNumbers, "")
             aryBlackListToRemoveBetweenNumbers = Array("R2") ' to properly clean "Microsoft SQL Server <No> R2 Native Client" software name
-            strSoftwareNameCleaned = CleanStringBeforeNumber(strSoftwareNameCleaned, "After", aryBlackListToRemoveBetweenNumbers, "")
+            strSoftwareNameCleaned = CleanStringBeforeOrAfterNumber(strSoftwareNameCleaned, "After", aryBlackListToRemoveBetweenNumbers, "")
             aryBlackListToClean = Array("(x86_x64)", "(x64)", "(x86)", "_WHQL", "_X64", "_X86", "64-bit", "beta", "en-us", "for x64", "for x86", "SP1", "SP2", "SP3", "version", "VS2005", "x64", "x86")
             strSoftwareNameCleaned = CleanStringWithBlacklistArray(strSoftwareNameCleaned, aryBlackListToClean, "")
             aryBlackListToReplaceWithSpace = Array(" -")
