@@ -55,19 +55,19 @@ Loop
 Wscript.echo "Script completed, consult [" & strCurDir & "\" & strResultFileName & strResultFileType & "] for captured software list currently installed." & vbNewLine & vbNewLine & "Thank you for using this script!" 
 
 Function Number2Digits(InputNo)
-	If (InputNo < 10) Then
-		Number2Digits = "0" & InputNo
-	Else
-		Number2Digits = InputNo
-	End If
+    If (InputNo < 10) Then
+        Number2Digits = "0" & InputNo
+    Else
+        Number2Digits = InputNo
+    End If
 End Function
 Function CurrentDate2SqlFormat()
-	CurrentDate2SqlFormat = DatePart("yyyy", Now()) & _
+    CurrentDate2SqlFormat = DatePart("yyyy", Now()) & _
         "-" & Number2Digits(DatePart("m", Now())) & _
         "-" & Number2Digits(DatePart("d", Now()))
 End Function
 Function CurrentDateTime2SqlFormat()
-	CurrentDateTime2SqlFormat = CurrentDate2SqlFormat() & _
+    CurrentDateTime2SqlFormat = CurrentDate2SqlFormat() & _
         " " & Number2Digits(DatePart("h", Now())) & _
         ":" & Number2Digits(DatePart("n", Now())) & _
         ":" & Number2Digits(DatePart("s", Now()))
@@ -91,14 +91,14 @@ Function CleanStringWithBlacklistArray(strFullStringToClean, aryBlackList, strSt
     CleanStringWithBlacklistArray = Trim(strCleanedString)
 End Function
 Function InArray(Haystack, GivenArray)
-	Dim bReturn
-	bReturn = False
-	For Each elmnt In GivenArray
-		If (cStr(Haystack) = elmnt) Then 
-			bReturn = True
-		End If
-	Next
-	InArray = bReturn
+    Dim bReturn
+    bReturn = False
+    For Each elmnt In GivenArray
+        If (cStr(Haystack) = elmnt) Then 
+            bReturn = True
+        End If
+    Next
+    InArray = bReturn
 End Function
 Function CleanStringOfNumericPiece(strFullStringToClean)
     ' break entire string into pieces with space as separator
@@ -130,31 +130,31 @@ Function CleanStringBeforeOrAfterNumber(strFullStringToClean, strBeforeOrAfter, 
     ' break entire string into pieces with space as separator
     aryFullStringToClean = Split(strFullStringToClean, " ")
     strCleanedString = ""
-	intPieceCounter = 0
-	intLastPieceNumber = UBound(aryFullStringToClean)
+    intPieceCounter = 0
+    intLastPieceNumber = UBound(aryFullStringToClean)
     For Each strBlackListPiece In aryBlackList 
-		For Each strCurrentPiece In aryFullStringToClean 
-			' last piece does not need any cleaning as cannot be followed by a numbers or anything else
-			If (intPieceCounter = intLastPieceNumber) Then
-				bolCurrentPieceToKeep = True
-			Else
-				bolCurrentPieceToKeep = True
-				Select Case strBeforeOrAfter
-					Case "After"
-						If ((strCurrentPiece = strBlackListPiece) And IsNumeric(aryFullStringToClean((intPieceCounter + 1)))) Then
-							bolCurrentPieceToKeep = False
-						End If
-					Case "Before"
-						If ((strCurrentPiece = strBlackListPiece) And IsNumeric(aryFullStringToClean((intPieceCounter - 1)))) Then
-							bolCurrentPieceToKeep = False
-						End If
-				End Select
-			End If
-			If (bolCurrentPieceToKeep) Then
-				strCleanedString = Trim(strCleanedString & " " & strCurrentPiece)
-			End If
-			intPieceCounter = intPieceCounter + 1
-		Next
+        For Each strCurrentPiece In aryFullStringToClean 
+            ' last piece does not need any cleaning as cannot be followed by a numbers or anything else
+            If (intPieceCounter = intLastPieceNumber) Then
+                bolCurrentPieceToKeep = True
+            Else
+                bolCurrentPieceToKeep = True
+                Select Case strBeforeOrAfter
+                    Case "After"
+                        If ((strCurrentPiece = strBlackListPiece) And IsNumeric(aryFullStringToClean((intPieceCounter + 1)))) Then
+                            bolCurrentPieceToKeep = False
+                        End If
+                    Case "Before"
+                        If ((strCurrentPiece = strBlackListPiece) And IsNumeric(aryFullStringToClean((intPieceCounter - 1)))) Then
+                            bolCurrentPieceToKeep = False
+                        End If
+                End Select
+            End If
+            If (bolCurrentPieceToKeep) Then
+                strCleanedString = Trim(strCleanedString & " " & strCurrentPiece)
+            End If
+            intPieceCounter = intPieceCounter + 1
+        Next
     Next
     CleanStringBeforeOrAfterNumber = strCleanedString
 End Function
