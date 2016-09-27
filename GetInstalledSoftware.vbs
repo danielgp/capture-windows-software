@@ -40,6 +40,7 @@ InputResultType = MsgBox("This is a script intended to detect all your installed
 If (InputResultType = vbCancel) Then
     MsgBox "This is a script intended to detect all your installed software applications under current Windows installation!" & vbNewLine & vbNewLine & "You have chosen to terminate execution without any processing and no result, should you arrive at this point by mistake just re-execute it and pay greater attention to previous options dialogue otherwise thanks for your attention!", vbOKOnly + vbExclamation, "Script end"
 Else
+    StartTime = Timer()
     Select Case InputResultType
         Case vbYes
             strResultFileType = ".csv"
@@ -60,7 +61,8 @@ Else
     Loop 
     SrvListFile.Close
     ReportFile.Close
-    MsgBox "This script has completed processing entire list of installed software under current Windows installation, please consult generated file [" & strCurDir & "\" & strResultFileName & strResultFileType & "]." & vbNewLine & vbNewLine & "Thank you for using this script, hope to see you back soon!", vbOKOnly + vbInformation, "Script end"
+    EndTime = Timer()
+    MsgBox "This script has completed processing entire list of installed software under current Windows installation (in just " & FormatNumber(EndTime - StartTime, 0) & " seconds), please consult generated file [" & strCurDir & "\" & strResultFileName & strResultFileType & "]." & vbNewLine & vbNewLine & "Thank you for using this script, hope to see you back soon!", vbOKOnly + vbInformation, "Script end"
 End If
 
 Function Number2Digits(InputNo)
