@@ -26,7 +26,7 @@ Const ForAppending = 8
 Const strFieldSeparator = ";" 
 Const strVersionPrefix = "v" 
 Const strResultFileName = "WindowsSoftwareList" 
-Const strResultFileType = ".csv" ' .sql for MySQL insert constructions
+Dim strResultFileType
 Set objFSO = CreateObject("Scripting.FileSystemObject")
 Set WshShell = WScript.CreateObject("WScript.Shell") 
 strCurDir = WshShell.CurrentDirectory
@@ -35,21 +35,33 @@ If (objFSO.FileExists(strCurDir & "\" & strResultFileName & strResultFileType)) 
 Else
     bolFileHeaderToAdd = True
 End If
-Set ReportFile = objFSO.OpenTextFile(strCurDir & "\" & strResultFileName & strResultFileType, ForAppending, True) 
-Set objNetwork = CreateObject("Wscript.Network") 
-OsType = WshShell.RegRead("HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\Environment\PROCESSOR_ARCHITECTURE")
-wscript.echo "This script will read from Windows Registry the entire list of installed software and export it in a file with a pre-configured name!" & vbNewLine & vbNewLine & "please wait until script is completed..." 
-Set SrvList = objFSO.OpenTextFile(strCurDir & "\WindowsComputerList.txt", ForReading) 
-Do Until SrvList.AtEndOfStream 
-    strComputer = LCase(SrvList.ReadLine) 
-    If (checkServerResponse(strComputer)) Then 
-        srvIP = checkSoftware(strComputer, bolFileHeaderToAdd, "SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\")
-        If (OsType = "AMD64") Then
-            srvIP = checkSoftware(strComputer, False, "SOFTWARE\Wow6432Node\Microsoft\Windows\CurrentVersion\Uninstall\")
-        End If
-    End If 
-Loop 
-Wscript.echo "This script has completed detecting the entire list of installed software on this Windows, consult generated file [" & strCurDir & "\" & strResultFileName & strResultFileType & "]." & vbNewLine & vbNewLine & "Thank you for using this script!" 
+MsgBox "This script will read from Windows Registry the entire list of installed software and export it in a file with a pre-configured name!" & vbNewLine & vbNewLine & "please wait until script is completed...", vbOKOnly + vbInformation, "Start feedback" 
+InputResultType = MsgBox("This is a script intended to detect all your installed software applications under current Windows installation!" & vbNewLine & vbNewLine & "Do you want to store obtained results into CSV format file?" & vbNewLine & vbNewLine & "if you choose No a SQL file will be used instead" & vbNewLine & "otherwise choosing Cancel will end current script without any processing and result.", vbYesNoCancel + vbQuestion, "Choose processing result type")
+If (InputResultType = vbCancel) Then
+    MsgBox "This is a script intended to detect all your installed software applications under current Windows installation!" & vbNewLine & vbNewLine & "You have chosen to terminate execution without any processing and no result, should you arrive at this point by mistake just re-execute it and pay greater attention to previous options dialogue otherwise thanks for your attention!", vbOKOnly + vbExclamation, "Script end"
+Else
+    Select Case InputResultType
+        Case vbYes
+            strResultFileType = ".csv"
+        Case vbNo 
+            strResultFileType = ".sql"
+    End Select
+    OsType = WshShell.RegRead("HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\Environment\PROCESSOR_ARCHITECTURE")
+    Set ReportFile = objFSO.OpenTextFile(strCurDir & "\" & strResultFileName & strResultFileType, ForAppending, True) 
+    Set SrvListFile = objFSO.OpenTextFile(strCurDir & "\WindowsComputerList.txt", ForReading) 
+    Do Until SrvListFile.AtEndOfStream 
+        strComputer = LCase(SrvListFile.ReadLine) 
+        If (checkServerResponse(strComputer)) Then 
+            srvIP = checkSoftware(strComputer, bolFileHeaderToAdd, "SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\")
+            If (OsType = "AMD64") Then
+                srvIP = checkSoftware(strComputer, False, "SOFTWARE\Wow6432Node\Microsoft\Windows\CurrentVersion\Uninstall\")
+            End If
+        End If 
+    Loop 
+    SrvListFile.Close
+    ReportFile.Close
+    MsgBox "This script has completed processing entire list of installed software under current Windows installation, please consult generated file [" & strCurDir & "\" & strResultFileName & strResultFileType & "]." & vbNewLine & vbNewLine & "Thank you for using this script, hope to see you back soon!", vbOKOnly + vbInformation, "Script end"
+End If
 
 Function Number2Digits(InputNo)
     If (InputNo < 10) Then
