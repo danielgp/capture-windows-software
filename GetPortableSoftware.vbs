@@ -28,13 +28,13 @@ strCurDir = WshShell.CurrentDirectory
 Set PortableSoftwareList = objFSO.OpenTextFile(strCurDir & "\PortableSoftwareList.txt", ForReading) 
 Do Until PortableSoftwareList.AtEndOfStream 
     strFileToAnalyze = PortableSoftwareList.ReadLine
-    If InStr(1, strFileToAnalyze, "*", vbTextCompare) Then
+    If (InStr(1, strFileToAnalyze, "*", vbTextCompare)) Then
         strFilePieces = Split(strFileToAnalyze, "\")
         PieceCounter = 0
         PiecesCounted = UBound(strFilePieces)
         For Each strFilePiece In strFilePieces 
-            If PieceCounter < PiecesCounted Then
-                If PieceCounter = 0 Then
+            If (PieceCounter < PiecesCounted) Then
+                If (PieceCounter = 0) Then
                     strFilePath = strFilePiece
                 Else
                     strFilePath = strFilePath & "\" & strFilePiece
