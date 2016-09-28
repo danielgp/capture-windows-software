@@ -12,6 +12,7 @@ CREATE TABLE `in_windows_software_list` (
   `URLinfoAbout` text DEFAULT NULL,
   `RegistryKeyTrunk` varchar(20) NOT NULL,
   `RegistrySubKey` varchar(100) NOT NULL,
+  PRIMARY KEY( `RegistryKeyTrunk`, `RegistrySubKey`),
   KEY `HostName` (`HostName`),
   KEY `Publisher` (`Publisher`),
   KEY `InstallationDate` (`InstallationDate`),
