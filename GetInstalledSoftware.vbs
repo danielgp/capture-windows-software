@@ -243,10 +243,14 @@ Function checkSoftware(strComputer, bolWriteHeader, strKey)
             If (intReturnD <> 0) Then
                 strDateYMD = "NULL"
             Else
-                If (strInstallDate > 0) Then
-                    strDateYMD = Mid(strInstallDate, 1, 4) & _
-                        "-" & Mid(strInstallDate, 5, 2) & _
-                        "-" & Mid(strInstallDate, 7, 2)
+                If (IsNumeric(strInstallDate)) Then
+                    If (strInstallDate > 0) Then
+                        strDateYMD = Mid(strInstallDate, 1, 4) & _
+                            "-" & Mid(strInstallDate, 5, 2) & _
+                            "-" & Mid(strInstallDate, 7, 2)
+                    Else
+                        strDateYMD = "NULL"
+                    End If
                 Else
                     strDateYMD = "NULL"
                 End If
@@ -355,8 +359,22 @@ Function BuildInsertOrUpdateSQLstructure(aryFieldNames, aryFieldValues, strInser
 End Function 
 Function PublishersHarmonized(strPublisherName)
     aryPublishersTemplate = Array(_
+        Array("Dell", "Dell Inc."), _
+        Array("Dell Packaging Team", "Dell Inc."), _
+        Array("Dell Products, LP", "Dell Inc."), _
+        Array("Dell SecureWorks", "Dell Inc."), _
+        Array("Google", "Google Inc."), _
+        Array("Informatica", "Informatica Corporation"), _
+        Array("Informatica Co.", "Informatica Corporation"), _
+        Array("Intel", "Intel Corporation"), _
+        Array("Intel(R) Corporation", "Intel Corporation"), _
+        Array("McAfee", "McAfee, Inc."), _
+        Array("Microsoft", "Microsoft Corporation"), _
         Array("Oracle", "Oracle Corporation"), _
-        Array("Qualcomm Atheros", "Qualcomm Atheros Communications") _
+        Array("Qualcomm Atheros", "Qualcomm Atheros Communications"), _
+        Array("SAP", "SAP AG"), _
+        Array("SAP SE", "SAP AG"), _
+        Array("Symantec Corp.", "Symantec Corporation") _
     )
     strPublishersHarmonized = ""
     For Each strCurrentPublisherHarmonized In aryPublishersTemplate 
