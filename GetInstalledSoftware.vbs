@@ -45,12 +45,12 @@ Else
     OsType = WshShell.RegRead("HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\Environment\PROCESSOR_ARCHITECTURE")
     strCurDir = WshShell.CurrentDirectory
     Set SrvListFile = objFSO.OpenTextFile(strCurDir & "\WindowsComputerList.txt", ForReading) 
-    Set ReportFile = objFSO.OpenTextFile(strCurDir & "\" & strResultFileName & strResultFileType, ForAppending, True) 
     If (objFSO.FileExists(strCurDir & "\" & strResultFileName & strResultFileType)) Then
         bolFileHeaderToAdd = False
     Else
         bolFileHeaderToAdd = True
     End If
+    Set ReportFile = objFSO.OpenTextFile(strCurDir & "\" & strResultFileName & strResultFileType, ForAppending, True) 
     Do Until SrvListFile.AtEndOfStream 
         strComputer = LCase(SrvListFile.ReadLine) 
         If (checkServerResponse(strComputer)) Then 
