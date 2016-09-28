@@ -29,12 +29,7 @@ Const strResultFileName = "WindowsSoftwareList"
 Dim strResultFileType
 Set objFSO = CreateObject("Scripting.FileSystemObject")
 Set WshShell = WScript.CreateObject("WScript.Shell") 
-strCurDir = WshShell.CurrentDirectory
-If (objFSO.FileExists(strCurDir & "\" & strResultFileName & strResultFileType)) Then
-    bolFileHeaderToAdd = False
-Else
-    bolFileHeaderToAdd = True
-End If
+'-----------------------------------------------------------------------------------------------------------------------
 MsgBox "This script will read from Windows Registry the entire list of installed software and export it in a file with a pre-configured name!" & vbNewLine & vbNewLine & "please wait until script is completed...", vbOKOnly + vbInformation, "Start feedback" 
 InputResultType = MsgBox("This is a script intended to detect all your installed software applications under current Windows installation!" & vbNewLine & vbNewLine & "Do you want to store obtained results into CSV format file?" & vbNewLine & vbNewLine & "if you choose No a SQL file will be used instead" & vbNewLine & "otherwise choosing Cancel will end current script without any processing and result.", vbYesNoCancel + vbQuestion, "Choose processing result type")
 If (InputResultType = vbCancel) Then
@@ -48,8 +43,14 @@ Else
             strResultFileType = ".sql"
     End Select
     OsType = WshShell.RegRead("HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\Environment\PROCESSOR_ARCHITECTURE")
-    Set ReportFile = objFSO.OpenTextFile(strCurDir & "\" & strResultFileName & strResultFileType, ForAppending, True) 
+    strCurDir = WshShell.CurrentDirectory
     Set SrvListFile = objFSO.OpenTextFile(strCurDir & "\WindowsComputerList.txt", ForReading) 
+    Set ReportFile = objFSO.OpenTextFile(strCurDir & "\" & strResultFileName & strResultFileType, ForAppending, True) 
+    If (objFSO.FileExists(strCurDir & "\" & strResultFileName & strResultFileType)) Then
+        bolFileHeaderToAdd = False
+    Else
+        bolFileHeaderToAdd = True
+    End If
     Do Until SrvListFile.AtEndOfStream 
         strComputer = LCase(SrvListFile.ReadLine) 
         If (checkServerResponse(strComputer)) Then 
@@ -64,7 +65,7 @@ Else
     EndTime = Timer()
     MsgBox "This script has completed processing entire list of installed software under current Windows installation (in just " & FormatNumber(EndTime - StartTime, 0) & " seconds), please consult generated file [" & strCurDir & "\" & strResultFileName & strResultFileType & "]." & vbNewLine & vbNewLine & "Thank you for using this script, hope to see you back soon!", vbOKOnly + vbInformation, "Script end"
 End If
-
+'-----------------------------------------------------------------------------------------------------------------------
 Function Number2Digits(InputNo)
     If (InputNo < 10) Then
         Number2Digits = "0" & InputNo
@@ -343,3 +344,4 @@ Function checkServerResponse(serverName)
         checkServerResponse = False 
     End If 
 End Function 
+'-----------------------------------------------------------------------------------------------------------------------
