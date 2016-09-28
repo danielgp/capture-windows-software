@@ -148,15 +148,19 @@ Function ReadWMI__Win32_ComputerSystem()
                                 intCounter = intCounter + 1
                             Next
                             JSONinformationDeviceOSdetails = JSONinformationDeviceOSdetails & " }"
+                            JSONinformationDeviceOSdetails = Replace(JSONinformationDeviceOSdetails, "\", "\\\\")
                             ReportFile.writeline "INSERT INTO `device_details` (`DeviceName`, `DeviceOSdetails`) VALUES(" & _
                                 "'" & objComputer.Name & "'" & strFieldSeparatorMySQL & "'" & JSONinformationDeviceOSdetails & _
-                                "') ON KEY DUPLICATE UPDATE `DeviceOSdetails` = '" & JSONinformationDeviceOSdetails & _
+                                "') ON DUPLICATE KEY UPDATE `DeviceOSdetails` = '" & JSONinformationDeviceOSdetails & _
                                 "';"
                     End Select
                 Next
             Next
         Next
     Loop 
+    If LCase(strResultFileType) = ".sql" Then
+        ReportFile.writeline "ALTER TABLE `device_details` AUTO_INCREMENT = 1;"
+    End If
     ReportFile.Close
 End Function 
 Function LanguageElementsToIdentify(GivenElement, GivenValue, FeedbackElement)
