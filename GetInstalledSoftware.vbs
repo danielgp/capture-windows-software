@@ -31,9 +31,9 @@ Set objFSO = CreateObject("Scripting.FileSystemObject")
 Set WshShell = WScript.CreateObject("WScript.Shell") 
 '-----------------------------------------------------------------------------------------------------------------------
 MsgBox "This script will read from Windows Registry the entire list of installed software and export it in a file with a pre-configured name!" & vbNewLine & vbNewLine & "please wait until script is completed...", vbOKOnly + vbInformation, "Start feedback" 
-InputResultType = MsgBox("This is a script intended to detect all your installed software applications under current Windows installation!" & vbNewLine & vbNewLine & "Do you want to store obtained results into CSV format file?" & vbNewLine & vbNewLine & "if you choose No a SQL file will be used instead" & vbNewLine & "otherwise choosing Cancel will end current script without any processing and result.", vbYesNoCancel + vbQuestion, "Choose processing result type")
+InputResultType = MsgBox("This is a script intended to read from Windows Registry all your installed software applications under current Windows installation!" & vbNewLine & vbNewLine & "Do you want to store obtained results into CSV format file?" & vbNewLine & vbNewLine & "if you choose No a SQL file will be used instead" & vbNewLine & "otherwise choosing Cancel will end current script without any processing and result.", vbYesNoCancel + vbQuestion, "Choose processing result type")
 If (InputResultType = vbCancel) Then
-    MsgBox "This is a script intended to detect all your installed software applications under current Windows installation!" & vbNewLine & vbNewLine & "You have chosen to terminate execution without any processing and no result, should you arrive at this point by mistake just re-execute it and pay greater attention to previous options dialogue otherwise thanks for your attention!", vbOKOnly + vbExclamation, "Script end"
+    MsgBox "This is a script intended to read from Windows Registry all your installed software applications under current Windows installation!" & vbNewLine & vbNewLine & "You have chosen to terminate execution without any processing and no result, should you arrive at this point by mistake just re-execute it and pay greater attention to previous options dialogue, otherwise thanks for your attention!", vbOKOnly + vbExclamation, "Script end"
 Else
     StartTime = Timer()
     Select Case InputResultType
@@ -63,7 +63,7 @@ Else
     SrvListFile.Close
     ReportFile.Close
     EndTime = Timer()
-    MsgBox "This script has completed processing entire list of installed software under current Windows installation (in just " & FormatNumber(EndTime - StartTime, 0) & " seconds), please consult generated file [" & strCurDir & "\" & strResultFileName & strResultFileType & "]." & vbNewLine & vbNewLine & "Thank you for using this script, hope to see you back soon!", vbOKOnly + vbInformation, "Script end"
+    MsgBox "This script has completed processing from Windows Registry entire list of installed software under current Windows installation (in just " & FormatNumber(EndTime - StartTime, 0) & " seconds), please consult generated file [" & strCurDir & "\" & strResultFileName & strResultFileType & "]." & vbNewLine & vbNewLine & "Thank you for using this script, hope to see you back soon!", vbOKOnly + vbInformation, "Script end"
 End If
 '-----------------------------------------------------------------------------------------------------------------------
 Function Number2Digits(InputNo)
