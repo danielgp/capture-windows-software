@@ -221,7 +221,7 @@ Function checkSoftware(strComputer, bolWriteHeader, strKey)
             intReturnV = objReg.GetStringValue(HKLM, strKey & strSubkey, strEntryDisplayVersion, strDisplayVersion) 
             intReturnU = objReg.GetStringValue(HKLM, strKey & strSubkey, strEntryURLInfoAbout, strURLInfoAbout) 
             If (intReturnP <> 0) Then
-                strPublisher = "_unknown publisher_"
+                strPublisher = "NULL"
             End If
             strSoftwareNameCleaned = CleanStringStartEnd(strDisplayName, " (", ")")
             aryBlackListToRemoveBetweenNumbers = Array("Update") ' to properly clean "Java <No> Update <No>" software name
@@ -236,7 +236,7 @@ Function checkSoftware(strComputer, bolWriteHeader, strKey)
             strSoftwareNameCleaned = CleanStringWithBlacklistArray(strSoftwareNameCleaned, aryBlackListToReplaceWithOriginal, Chr(174))
             strSoftwareNameCleaned = CleanStringOfNumericPiece(strSoftwareNameCleaned)
             If ((intReturnL <> 0) Or (Len(Trim(strInstallLocation)) = 0)) Then
-                strInstallLocation = "_unknown install location_"
+                strInstallLocation = "NULL"
             End If
             If (intReturnD <> 0) Then
                 strDateYMD = "NULL"
@@ -252,7 +252,7 @@ Function checkSoftware(strComputer, bolWriteHeader, strKey)
             If (intEstimatedSize <> "") Then
                 strSizeInBytes = CStr(Replace(intEstimatedSize, ",", "."))
             Else
-                strSizeInBytes = "0"
+                strSizeInBytes = "NULL"
             End If
             If (intValueVersionMajor >= 0) Then  
                 If (intValueVersionMinor >= 0) Then 
@@ -261,11 +261,11 @@ Function checkSoftware(strComputer, bolWriteHeader, strKey)
                     strVersionMajorMinor = CStr(intValueVersionMajor) & ".0"
                 End If
             Else
-                strVersionMajorMinor = "0.0"
+                strVersionMajorMinor = "NULL"
             End If
             If (intReturnV <> 0) Then
-                strDisplayVersion = strVersionPrefix & "0.0.0"
-                strDisplayVersionCleaned = strVersionPrefix & "0.0.0"
+                strDisplayVersion = "NULL"
+                strDisplayVersionCleaned = "NULL"
             Else
                 strDisplayVersion = Replace(strDisplayVersion, " beta ", ".")
                 ' In some cases DisplayVersion has a date before the version so we're going to take in consideration only the very last group of continuous string splitted by space
@@ -273,7 +273,11 @@ Function checkSoftware(strComputer, bolWriteHeader, strKey)
                 For Each strDisplayVersionPieceValue In strDisplayVersionPieces 
                     strDisplayVersionCleaned = strVersionPrefix & strDisplayVersionPieceValue
                 Next
-                strDisplayVersion = strVersionPrefix & strVersionMajorMinor
+                If (strVersionMajorMinor = "NULL") Then
+                    strDisplayVersion = "NULL"
+                Else
+                    strDisplayVersion = strVersionPrefix & strVersionMajorMinor
+                End If
             End If
             If ((intReturnU <> 0) Or (Len(Trim(strURLInfoAbout)) = 0)) Then
                 strURLInfoAbout = "NULL"
@@ -346,13 +350,6 @@ Function BuildInsertOrUpdateSQLstructure(aryFieldNames, aryFieldValues, strInser
             Next
     End Select
     BuildInsertOrUpdateSQLstructure = Replace(Replace(strUpdateSQLstructure, "'NULL'", "NULL"), "\", "\\")
-End Function 
-Function NullSafeField(strFieldValue)
-    If (strFieldValue = "NULL") Then
-        NullSafeField = strFieldValue
-    Else
-        NullSafeField = "'" & strFieldValue & "'" 
-    End If
 End Function 
 Function checkServerResponse(serverName) 
     strTarget = serverName 
