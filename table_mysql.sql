@@ -17,3 +17,14 @@ CREATE TABLE `in_windows_software_list` (
   KEY `InstallationDate` (`InstallationDate`),
   KEY `SoftwareNameCleaned` (`SoftwareNameCleaned`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+CREATE TABLE IF NOT EXISTS `software_monitoring`.`device_details` (
+  `DeviceId` SMALLINT(5) UNSIGNED NOT NULL AUTO_INCREMENT,
+  `DeviceName` VARCHAR(60) NULL,
+  `DeviceOSdetails` JSON NULL DEFAULT NULL,
+  `DeviceHardwareDetails` JSON NULL DEFAULT NULL,
+  `FirstSeen` DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+  `LastSeen` DATETIME(6) DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP(6),
+  PRIMARY KEY (`DeviceId`),
+  UNIQUE INDEX `ndx_dd_DeviceName_UNIQUE` (`DeviceName` ASC)
+) ENGINE = InnoDB DEFAULT CHARSET=utf8;
