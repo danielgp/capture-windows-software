@@ -160,7 +160,246 @@ Function ReadWMI__Win32_ComputerSystem()
     ReportFile.Close
 End Function 
 Function LanguageElementsToIdentify(GivenElement, GivenValue, FeedbackElement)
-    aryLanguageCodes = Array(Array("10241", "2801", "Arabic - Syria"), Array("10249", "2809", "English - Belize"), Array("1025", "0401", "Arabic - Saudi Arabia"), Array("10250", "280a", "Spanish - Peru"), Array("10252", "280c", "French - Senegal"), Array("1026", "0402", "Bulgarian"), Array("1027", "0403", "Catalan"), Array("1028", "0404", "Chinese - Taiwan"), Array("1029", "0405", "Czech"), Array("1030", "0406", "Danish"), Array("1031", "0407", "German - Germany"), Array("1032", "0408", "Greek"), Array("1033", "0409", "English - United States"), Array("1034", "040a", "Spanish - Spain Array(Traditional Sort)"), Array("1035", "040b", "Finnish"), Array("1036", "040c", "French - France"), Array("1037", "040d", "Hebrew"), Array("1038", "040e", "Hungarian"), Array("1039", "040f", "Icelandic"), Array("1040", "0410", "Italian - Italy"), Array("1041", "0411", "Japanese"), Array("1042", "0412", "Korean"), Array("1043", "0413", "Dutch - Netherlands"), Array("1044", "0414", "Norwegian Array(Bokmål)"), Array("1045", "0415", "Polish"), Array("1046", "0416", "Portuguese - Brazil"), Array("1047", "0417", "Rhaeto-Romanic"), Array("1048", "0418", "Romanian"), Array("1049", "0419", "Russian"), Array("1050", "041a", "Croatian"), Array("1051", "041b", "Slovak"), Array("1052", "041c", "Albanian - Albania"), Array("1053", "041d", "Swedish"), Array("1054", "041e", "Thai"), Array("1055", "041f", "Turkish"), Array("1056", "0420", "Urdu"), Array("1057", "0421", "Indonesian"), Array("1058", "0422", "Ukrainian"), Array("1059", "0423", "Belarusian"), Array("1060", "0424", "Slovenian"), Array("1061", "0425", "Estonian"), Array("1062", "0426", "Latvian"), Array("1063", "0427", "Lithuanian"), Array("1064", "0428", "Tajik"), Array("1065", "0429", "Farsi"), Array("1066", "042a", "Vietnamese"), Array("1067", "042b", "Armenian - Armenia"), Array("1068", "042c", "Azeri Array(Latin)"), Array("1069", "042d", "Basque"), Array("1070", "042e", "Sorbian"), Array("1071", "042f", "FYRO Macedonian"), Array("1072", "0430", "Sutu"), Array("1073", "0431", "Tsonga"), Array("1074", "0432", "Tswana"), Array("1075", "0433", "Venda"), Array("1076", "0434", "Xhosa"), Array("1077", "0435", "Zulu"), Array("1078", "0436", "Afrikaans - South Africa"), Array("1079", "0437", "Georgian"), Array("1080", "0438", "Faroese"), Array("1081", "0439", "Hindi"), Array("1082", "043a", "Maltese"), Array("1083", "043b", "Sami Array(Lappish)"), Array("1084", "043c", "Scottish Gaelic"), Array("1085", "043d", "Yiddish"), Array("1086", "043e", "Malay - Malaysia"), Array("1087", "043f", "Kazakh"), Array("1088", "0440", "Kyrgyz Array(Cyrillic)"), Array("1089", "0441", "Swahili"), Array("1090", "0442", "Turkmen"), Array("1091", "0443", "Uzbek Array(Latin)"), Array("1092", "0444", "Tatar"), Array("1093", "0445", "Bengali Array(India)"), Array("1094", "0446", "Punjabi"), Array("1095", "0447", "Gujarati"), Array("1096", "0448", "Oriya"), Array("1097", "0449", "Tamil"), Array("1098", "044a", "Telugu"), Array("1099", "044b", "Kannada"), Array("1100", "044c", "Malayalam"), Array("1101", "044d", "Assamese"), Array("1102", "044e", "Marathi"), Array("1103", "044f", "Sanskrit"), Array("1104", "0450", "Mongolian Array(Cyrillic)"), Array("1105", "0451", "Tibetan - People's Republic of China"), Array("1106", "0452", "Welsh"), Array("1107", "0453", "Khmer"), Array("1108", "0454", "Lao"), Array("1109", "0455", "Burmese"), Array("1110", "0456", "Galician"), Array("1111", "0457", "Konkani"), Array("1112", "0458", "Manipuri"), Array("1113", "0459", "Sindhi - India"), Array("1114", "045a", "Syriac"), Array("1115", "045b", "Sinhalese - Sri Lanka"), Array("1116", "045c", "Cherokee - United States"), Array("1117", "045d", "Inuktitut"), Array("1118", "045e", "Amharic - Ethiopia"), Array("1119", "045f", "Tamazight Array(Arabic)"), Array("1120", "0460", "Kashmiri Array(Arabic)"), Array("1121", "0461", "Nepali"), Array("1122", "0462", "Frisian - Netherlands"), Array("1123", "0463", "Pashto"), Array("1124", "0464", "Filipino"), Array("1125", "0465", "Divehi"), Array("1126", "0466", "Edo"), Array("11265", "2c01", "Arabic - Jordan"), Array("1127", "0467", "Fulfulde - Nigeria"), Array("11273", "2c09", "English - Trinidad"), Array("11274", "2c0a", "Spanish - Argentina"), Array("11276", "2c0c", "French - Cameroon"), Array("1128", "0468", "Hausa - Nigeria"), Array("1129", "0469", "Ibibio - Nigeria"), Array("1130", "046a", "Yoruba"), Array("1131", "046B", "Quecha - Bolivia"), Array("1132", "046c", "Sepedi"), Array("1133", "046d", "Bashkir"), Array("1134", "046e", "Luxembourgish"), Array("1135", "046f", "Greenlandic"), Array("1136", "0470", "Igbo - Nigeria"), Array("1137", "0471", "Kanuri - Nigeria"), Array("1138", "0472", "Oromo"), Array("1139", "0473", "Tigrigna - Ethiopia"), Array("1140", "0474", "Guarani - Paraguay"), Array("1141", "0475", "Hawaiian - United States"), Array("1142", "0476", "Latin"), Array("1143", "0477", "Somali"), Array("1144", "0478", "Yi"), Array("1145", "0479", "Papiamentu"), Array("1146", "0471", "Mapudungun"), Array("1148", "047c", "Mohawk"), Array("1150", "047e", "Breton"), Array("1152", "0480", "Uighur - China"), Array("1153", "0481", "Maori - New Zealand"), Array("1154", "0482", "Occitan"), Array("1155", "0483", "Corsican"), Array("1156", "0484", "Alsatian"), Array("1157", "0485", "Yakut"), Array("1158", "0486", "K'iche"), Array("1159", "0487", "Kinyarwanda"), Array("1160", "0488", "Wolof"), Array("1164", "048c", "Dari"), Array("12289", "3001", "Arabic - Lebanon"), Array("12297", "3009", "English - Zimbabwe"), Array("12298", "300a", "Spanish - Ecuador"), Array("12300", "300c", "French - Cote d'Ivoire"), Array("1279", "04ff", "HID Array(Human Interface Device)"), Array("13313", "3401", "Arabic - Kuwait"), Array("13321", "3409", "English - Philippines"), Array("13322", "340a", "Spanish - Chile"), Array("13324", "340c", "French - Mali"), Array("14337", "3801", "Arabic - U.A.E."), Array("14345", "3809", "English - Indonesia"), Array("14346", "380a", "Spanish - Uruguay"), Array("14348", "380c", "French - Morocco"), Array("15361", "3c01", "Arabic - Bahrain"), Array("15369", "3c09", "English - Hong Kong SAR"), Array("15370", "3c0a", "Spanish - Paraguay"), Array("15372", "3c0c", "French - Haiti"), Array("16385", "4001", "Arabic - Qatar"), Array("16393", "4009", "English - India"), Array("16394", "400a", "Spanish - Bolivia"), Array("17417", "4409", "English - Malaysia"), Array("17418", "440a", "Spanish - El Salvador"), Array("18441", "4809", "English - Singapore"), Array("18442", "480a", "Spanish - Honduras"), Array("19466", "4c0a", "Spanish - Nicaragua"), Array("2049", "0801", "Arabic - Iraq"), Array("20490", "500a", "Spanish - Puerto Rico"), Array("2052", "0804", "Chinese - People's Republic of China"), Array("2055", "0807", "German - Switzerland"), Array("2057", "0809", "English - United Kingdom"), Array("2058", "080a", "Spanish - Mexico"), Array("2060", "080c", "French - Belgium"), Array("2064", "0810", "Italian - Switzerland"), Array("2067", "0813", "Dutch - Belgium"), Array("2068", "0814", "Norwegian Array(Nynorsk)"), Array("2070", "0816", "Portuguese - Portugal"), Array("2072", "0818", "Romanian - Moldava"), Array("2073", "0819", "Russian - Moldava"), Array("2074", "081a", "Serbian Array(Latin)"), Array("2077", "081d", "Swedish - Finland"), Array("2080", "0820", "Urdu - India"), Array("2092", "082c", "Azeri Array(Cyrillic)"), Array("2108", "083c", "Irish"), Array("2110", "083e", "Malay - Brunei Darussalam"), Array("2115", "0843", "Uzbek Array(Cyrillic)"), Array("2117", "0845", "Bengali Array(Bangladesh)"), Array("2118", "0846", "Punjabi Array(Pakistan)"), Array("2128", "0850", "Mongolian Array(Mongolian)"), Array("2129", "0851", "Tibetan - Bhutan"), Array("2137", "0859", "Sindhi - Pakistan"), Array("2143", "085f", "Tamazight Array(Latin)"), Array("2144", "0860", "Kashmiri"), Array("2145", "0861", "Nepali - India"), Array("21514", "540a", "Spanish - United States"), Array("2155", "086B", "Quecha - Ecuador"), Array("2163", "0873", "Tigrigna - Eritrea"), Array("22538", "580a", "Spanish - Latin America"), Array("3073", "0c01", "Arabic - Egypt"), Array("3076", "0c04", "Chinese - Hong Kong SAR"), Array("3079", "0c07", "German - Austria"), Array("3081", "0c09", "English - Australia"), Array("3082", "0c0a", "Spanish - Spain Array(Modern Sort)"), Array("3084", "0c0c", "French - Canada"), Array("3098", "0c1a", "Serbian Array(Cyrillic)"), Array("3179", "0C6B", "Quecha - Peru"), Array("4097", "1001", "Arabic - Libya"), Array("4100", "1004", "Chinese - Singapore"), Array("4103", "1007", "German - Luxembourg"), Array("4105", "1009", "English - Canada"), Array("4106", "100a", "Spanish - Guatemala"), Array("4108", "100c", "French - Switzerland"), Array("4122", "101a", "Croatian Array(Bosnia/Herzegovina)"), Array("5121", "1401", "Arabic - Algeria"), Array("5124", "1404", "Chinese - Macao SAR"), Array("5127", "1407", "German - Liechtenstein"), Array("5129", "1409", "English - New Zealand"), Array("5130", "140a", "Spanish - Costa Rica"), Array("5132", "140c", "French - Luxembourg"), Array("5146", "141A", "Bosnian Array(Bosnia/Herzegovina)"), Array("58380", "e40c", "French - North Africa"), Array("6145", "1801", "Arabic - Morocco"), Array("6153", "1809", "English - Ireland"), Array("6154", "180a", "Spanish - Panama"), Array("6156", "180c", "French - Monaco"), Array("7169", "1c01", "Arabic - Tunisia"), Array("7177", "1c09", "English - South Africa"), Array("7178", "1c0a", "Spanish - Dominican Republic"), Array("7180", "1c0c", "French - West Indies"), Array("8193", "2001", "Arabic - Oman"), Array("8201", "2009", "English - Jamaica"), Array("8202", "200a", "Spanish - Venezuela"), Array("8204", "200c", "French - Reunion"), Array("9217", "2401", "Arabic - Yemen"), Array("9225", "2409", "English - Caribbean"), Array("9226", "240a", "Spanish - Colombia"), Array("9228", "240c", "French - Democratic Rep. of Congo"))
+    aryLanguageCodes = Array(_
+        Array("10241", "2801", "Arabic - Syria"), _
+        Array("10249", "2809", "English - Belize"), _
+        Array("1025", "0401", "Arabic - Saudi Arabia"), _
+        Array("10250", "280a", "Spanish - Peru"), _
+        Array("10252", "280c", "French - Senegal"), _
+        Array("1026", "0402", "Bulgarian"), _
+        Array("1027", "0403", "Catalan"), _
+        Array("1028", "0404", "Chinese - Taiwan"), _
+        Array("1029", "0405", "Czech"), _
+        Array("1030", "0406", "Danish"), _
+        Array("1031", "0407", "German - Germany"), _
+        Array("1032", "0408", "Greek"), _
+        Array("1033", "0409", "English - United States"), _
+        Array("1034", "040a", "Spanish - Spain Array(Traditional Sort)"), _
+        Array("1035", "040b", "Finnish"), _
+        Array("1036", "040c", "French - France"), _
+        Array("1037", "040d", "Hebrew"), _
+        Array("1038", "040e", "Hungarian"), _
+        Array("1039", "040f", "Icelandic"), _
+        Array("1040", "0410", "Italian - Italy"), _
+        Array("1041", "0411", "Japanese"), _
+        Array("1042", "0412", "Korean"), _
+        Array("1043", "0413", "Dutch - Netherlands"), _
+        Array("1044", "0414", "Norwegian Array(Bokmål)"), _
+        Array("1045", "0415", "Polish"), _
+        Array("1046", "0416", "Portuguese - Brazil"), _
+        Array("1047", "0417", "Rhaeto-Romanic"), _
+        Array("1048", "0418", "Romanian"), _
+        Array("1049", "0419", "Russian"), _
+        Array("1050", "041a", "Croatian"), _
+        Array("1051", "041b", "Slovak"), _
+        Array("1052", "041c", "Albanian - Albania"), _
+        Array("1053", "041d", "Swedish"), _
+        Array("1054", "041e", "Thai"), _
+        Array("1055", "041f", "Turkish"), _
+        Array("1056", "0420", "Urdu"), _
+        Array("1057", "0421", "Indonesian"), _
+        Array("1058", "0422", "Ukrainian"), _
+        Array("1059", "0423", "Belarusian"), _
+        Array("1060", "0424", "Slovenian"), _
+        Array("1061", "0425", "Estonian"), _
+        Array("1062", "0426", "Latvian"), _
+        Array("1063", "0427", "Lithuanian"), _
+        Array("1064", "0428", "Tajik"), _
+        Array("1065", "0429", "Farsi"), _
+        Array("1066", "042a", "Vietnamese"), _
+        Array("1067", "042b", "Armenian - Armenia"), _
+        Array("1068", "042c", "Azeri Array(Latin)"), _
+        Array("1069", "042d", "Basque"), _
+        Array("1070", "042e", "Sorbian"), _
+        Array("1071", "042f", "FYRO Macedonian"), _
+        Array("1072", "0430", "Sutu"), _
+        Array("1073", "0431", "Tsonga"), _
+        Array("1074", "0432", "Tswana"), _
+        Array("1075", "0433", "Venda"), _
+        Array("1076", "0434", "Xhosa"), _
+        Array("1077", "0435", "Zulu"), _
+        Array("1078", "0436", "Afrikaans - South Africa"), _
+        Array("1079", "0437", "Georgian"), _
+        Array("1080", "0438", "Faroese"), _
+        Array("1081", "0439", "Hindi"), _
+        Array("1082", "043a", "Maltese"), _
+        Array("1083", "043b", "Sami Array(Lappish)"), _
+        Array("1084", "043c", "Scottish Gaelic"), _
+        Array("1085", "043d", "Yiddish"), _
+        Array("1086", "043e", "Malay - Malaysia"), _
+        Array("1087", "043f", "Kazakh"), _
+        Array("1088", "0440", "Kyrgyz Array(Cyrillic)"), _
+        Array("1089", "0441", "Swahili"), _
+        Array("1090", "0442", "Turkmen"), _
+        Array("1091", "0443", "Uzbek Array(Latin)"), _
+        Array("1092", "0444", "Tatar"), _
+        Array("1093", "0445", "Bengali Array(India)"), _
+        Array("1094", "0446", "Punjabi"), _
+        Array("1095", "0447", "Gujarati"), _
+        Array("1096", "0448", "Oriya"), _
+        Array("1097", "0449", "Tamil"), _
+        Array("1098", "044a", "Telugu"), _
+        Array("1099", "044b", "Kannada"), _
+        Array("1100", "044c", "Malayalam"), _
+        Array("1101", "044d", "Assamese"), _
+        Array("1102", "044e", "Marathi"), _
+        Array("1103", "044f", "Sanskrit"), _
+        Array("1104", "0450", "Mongolian Array(Cyrillic)"), _
+        Array("1105", "0451", "Tibetan - People's Republic of China"), _
+        Array("1106", "0452", "Welsh"), _
+        Array("1107", "0453", "Khmer"), _
+        Array("1108", "0454", "Lao"), _
+        Array("1109", "0455", "Burmese"), _
+        Array("1110", "0456", "Galician"), _
+        Array("1111", "0457", "Konkani"), _
+        Array("1112", "0458", "Manipuri"), _
+        Array("1113", "0459", "Sindhi - India"), _
+        Array("1114", "045a", "Syriac"), _
+        Array("1115", "045b", "Sinhalese - Sri Lanka"), _
+        Array("1116", "045c", "Cherokee - United States"), _
+        Array("1117", "045d", "Inuktitut"), _
+        Array("1118", "045e", "Amharic - Ethiopia"), _
+        Array("1119", "045f", "Tamazight Array(Arabic)"), _
+        Array("1120", "0460", "Kashmiri Array(Arabic)"), _
+        Array("1121", "0461", "Nepali"), _
+        Array("1122", "0462", "Frisian - Netherlands"), _
+        Array("1123", "0463", "Pashto"), _
+        Array("1124", "0464", "Filipino"), _
+        Array("1125", "0465", "Divehi"), _
+        Array("1126", "0466", "Edo"), _
+        Array("11265", "2c01", "Arabic - Jordan"), _
+        Array("1127", "0467", "Fulfulde - Nigeria"), _
+        Array("11273", "2c09", "English - Trinidad"), _
+        Array("11274", "2c0a", "Spanish - Argentina"), _
+        Array("11276", "2c0c", "French - Cameroon"), _
+        Array("1128", "0468", "Hausa - Nigeria"), _
+        Array("1129", "0469", "Ibibio - Nigeria"), _
+        Array("1130", "046a", "Yoruba"), _
+        Array("1131", "046B", "Quecha - Bolivia"), _
+        Array("1132", "046c", "Sepedi"), _
+        Array("1133", "046d", "Bashkir"), _
+        Array("1134", "046e", "Luxembourgish"), _
+        Array("1135", "046f", "Greenlandic"), _
+        Array("1136", "0470", "Igbo - Nigeria"), _
+        Array("1137", "0471", "Kanuri - Nigeria"), _
+        Array("1138", "0472", "Oromo"), _
+        Array("1139", "0473", "Tigrigna - Ethiopia"), _
+        Array("1140", "0474", "Guarani - Paraguay"), _
+        Array("1141", "0475", "Hawaiian - United States"), _
+        Array("1142", "0476", "Latin"), _
+        Array("1143", "0477", "Somali"), _
+        Array("1144", "0478", "Yi"), _
+        Array("1145", "0479", "Papiamentu"), _
+        Array("1146", "0471", "Mapudungun"), _
+        Array("1148", "047c", "Mohawk"), _
+        Array("1150", "047e", "Breton"), _
+        Array("1152", "0480", "Uighur - China"), _
+        Array("1153", "0481", "Maori - New Zealand"), _
+        Array("1154", "0482", "Occitan"), _
+        Array("1155", "0483", "Corsican"), _
+        Array("1156", "0484", "Alsatian"), _
+        Array("1157", "0485", "Yakut"), _
+        Array("1158", "0486", "K'iche"), _
+        Array("1159", "0487", "Kinyarwanda"), _
+        Array("1160", "0488", "Wolof"), _
+        Array("1164", "048c", "Dari"), _
+        Array("12289", "3001", "Arabic - Lebanon"), _
+        Array("12297", "3009", "English - Zimbabwe"), _
+        Array("12298", "300a", "Spanish - Ecuador"), _
+        Array("12300", "300c", "French - Cote d'Ivoire"), _
+        Array("1279", "04ff", "HID Array(Human Interface Device)"), _
+        Array("13313", "3401", "Arabic - Kuwait"), _
+        Array("13321", "3409", "English - Philippines"), _
+        Array("13322", "340a", "Spanish - Chile"), _
+        Array("13324", "340c", "French - Mali"), _
+        Array("14337", "3801", "Arabic - U.A.E."), _
+        Array("14345", "3809", "English - Indonesia"), _
+        Array("14346", "380a", "Spanish - Uruguay"), _
+        Array("14348", "380c", "French - Morocco"), _
+        Array("15361", "3c01", "Arabic - Bahrain"), _
+        Array("15369", "3c09", "English - Hong Kong SAR"), _
+        Array("15370", "3c0a", "Spanish - Paraguay"), _
+        Array("15372", "3c0c", "French - Haiti"), _
+        Array("16385", "4001", "Arabic - Qatar"), _
+        Array("16393", "4009", "English - India"), _
+        Array("16394", "400a", "Spanish - Bolivia"), _
+        Array("17417", "4409", "English - Malaysia"), _
+        Array("17418", "440a", "Spanish - El Salvador"), _
+        Array("18441", "4809", "English - Singapore"), _
+        Array("18442", "480a", "Spanish - Honduras"), _
+        Array("19466", "4c0a", "Spanish - Nicaragua"), _
+        Array("2049", "0801", "Arabic - Iraq"), _
+        Array("20490", "500a", "Spanish - Puerto Rico"), _
+        Array("2052", "0804", "Chinese - People's Republic of China"), _
+        Array("2055", "0807", "German - Switzerland"), _
+        Array("2057", "0809", "English - United Kingdom"), _
+        Array("2058", "080a", "Spanish - Mexico"), _
+        Array("2060", "080c", "French - Belgium"), _
+        Array("2064", "0810", "Italian - Switzerland"), _
+        Array("2067", "0813", "Dutch - Belgium"), _
+        Array("2068", "0814", "Norwegian Array(Nynorsk)"), _
+        Array("2070", "0816", "Portuguese - Portugal"), _
+        Array("2072", "0818", "Romanian - Moldava"), _
+        Array("2073", "0819", "Russian - Moldava"), _
+        Array("2074", "081a", "Serbian Array(Latin)"), _
+        Array("2077", "081d", "Swedish - Finland"), _
+        Array("2080", "0820", "Urdu - India"), _
+        Array("2092", "082c", "Azeri Array(Cyrillic)"), _
+        Array("2108", "083c", "Irish"), _
+        Array("2110", "083e", "Malay - Brunei Darussalam"), _
+        Array("2115", "0843", "Uzbek Array(Cyrillic)"), _
+        Array("2117", "0845", "Bengali Array(Bangladesh)"), _
+        Array("2118", "0846", "Punjabi Array(Pakistan)"), _
+        Array("2128", "0850", "Mongolian Array(Mongolian)"), _
+        Array("2129", "0851", "Tibetan - Bhutan"), _
+        Array("2137", "0859", "Sindhi - Pakistan"), _
+        Array("2143", "085f", "Tamazight Array(Latin)"), _
+        Array("2144", "0860", "Kashmiri"), _
+        Array("2145", "0861", "Nepali - India"), _
+        Array("21514", "540a", "Spanish - United States"), _
+        Array("2155", "086B", "Quecha - Ecuador"), _
+        Array("2163", "0873", "Tigrigna - Eritrea"), _
+        Array("22538", "580a", "Spanish - Latin America"), _
+        Array("3073", "0c01", "Arabic - Egypt"), _
+        Array("3076", "0c04", "Chinese - Hong Kong SAR"), _
+        Array("3079", "0c07", "German - Austria"), _
+        Array("3081", "0c09", "English - Australia"), _
+        Array("3082", "0c0a", "Spanish - Spain Array(Modern Sort)"), _
+        Array("3084", "0c0c", "French - Canada"), _
+        Array("3098", "0c1a", "Serbian Array(Cyrillic)"), _
+        Array("3179", "0C6B", "Quecha - Peru"), _
+        Array("4097", "1001", "Arabic - Libya"), _
+        Array("4100", "1004", "Chinese - Singapore"), _
+        Array("4103", "1007", "German - Luxembourg"), _
+        Array("4105", "1009", "English - Canada"), _
+        Array("4106", "100a", "Spanish - Guatemala"), _
+        Array("4108", "100c", "French - Switzerland"), _
+        Array("4122", "101a", "Croatian Array(Bosnia/Herzegovina)"), _
+        Array("5121", "1401", "Arabic - Algeria"), _
+        Array("5124", "1404", "Chinese - Macao SAR"), _
+        Array("5127", "1407", "German - Liechtenstein"), _
+        Array("5129", "1409", "English - New Zealand"), _
+        Array("5130", "140a", "Spanish - Costa Rica"), _
+        Array("5132", "140c", "French - Luxembourg"), _
+        Array("5146", "141A", "Bosnian Array(Bosnia/Herzegovina)"), _
+        Array("58380", "e40c", "French - North Africa"), _
+        Array("6145", "1801", "Arabic - Morocco"), _
+        Array("6153", "1809", "English - Ireland"), _
+        Array("6154", "180a", "Spanish - Panama"), _
+        Array("6156", "180c", "French - Monaco"), _
+        Array("7169", "1c01", "Arabic - Tunisia"), _
+        Array("7177", "1c09", "English - South Africa"), _
+        Array("7178", "1c0a", "Spanish - Dominican Republic"), _
+        Array("7180", "1c0c", "French - West Indies"), _
+        Array("8193", "2001", "Arabic - Oman"), _
+        Array("8201", "2009", "English - Jamaica"), _
+        Array("8202", "200a", "Spanish - Venezuela"), _
+        Array("8204", "200c", "French - Reunion"), _
+        Array("9217", "2401", "Arabic - Yemen"), _
+        Array("9225", "2409", "English - Caribbean"), _
+        Array("9226", "240a", "Spanish - Colombia"), _
+        Array("9228", "240c", "French - Democratic Rep. of Congo") _
+    )
     For Each CurrentLanguageCode In aryLanguageCodes
         Select Case GivenElement
             Case "Language - Country/Region"
@@ -200,7 +439,71 @@ Function LanguageElementsToIdentify(GivenElement, GivenValue, FeedbackElement)
     Next
 End Function
 Function OSTypeDescription(InputOSTypeCode)
-    aryOSTypeInfos = Array(Array(0, "Unknown"), Array(1, "Other"), Array(10, "MVS"), Array(11, "OS400"), Array(12, "OS/2"), Array(13, "JavaVM"), Array(14, "MSDOS"), Array(15, "WIN3x"), Array(16, "WIN95"), Array(17, "WIN98"), Array(18, "WINNT"), Array(19, "WINCE"), Array(2, "MACOS"), Array(20, "NCR3000"), Array(21, "NetWare"), Array(22, "OSF"), Array(23, "DC/OS"), Array(24, "Reliant UNIX"), Array(25, "SCO UnixWare"), Array(26, "SCO OpenServer"), Array(27, "Sequent"), Array(28, "IRIX"), Array(29, "Solaris"), Array(3, "ATTUNIX"), Array(30, "SunOS"), Array(31, "U6000"), Array(32, "ASERIES"), Array(33, "TandemNSK"), Array(34, "TandemNT"), Array(35, "BS2000"), Array(36, "LINUX"), Array(37, "Lynx"), Array(38, "XENIX"), Array(39, "VM/ESA"), Array(4, "DGUX"), Array(40, "Interactive UNIX"), Array(41, "BSDUNIX"), Array(42, "FreeBSD"), Array(43, "NetBSD"), Array(44, "GNU Hurd"), Array(45, "OS9"), Array(46, "MACH Kernel"), Array(47, "Inferno"), Array(48, "QNX"), Array(49, "EPOC"), Array(5, "DECNT"), Array(50, "IxWorks"), Array(51, "VxWorks"), Array(52, "MiNT"), Array(53, "BeOS"), Array(54, "HP MPE"), Array(55, "NextStep"), Array(56, "PalmPilot"), Array(57, "Rhapsody"), Array(58, "Windows 2000"), Array(59, "Dedicated"), Array(6, "Digital Unix"), Array(60, "OS/390"), Array(61, "VSE"), Array(62, "TPF"), Array(7, "OpenVMS"), Array(8, "HPUX"), Array(9, "AIX"))
+    aryOSTypeInfos = Array(_
+        Array(0, "Unknown"), _
+        Array(1, "Other"), _
+        Array(2, "MACOS"), _
+        Array(3, "ATTUNIX"), _
+        Array(4, "DGUX"), _
+        Array(5, "DECNT"), _
+        Array(6, "Digital Unix"), _
+        Array(7, "OpenVMS"), _
+        Array(8, "HPUX"), _
+        Array(9, "AIX"), _
+        Array(10, "MVS"), _
+        Array(11, "OS400"), _
+        Array(12, "OS/2"), _
+        Array(13, "JavaVM"), _
+        Array(14, "MSDOS"), _
+        Array(15, "WIN3x"), _
+        Array(16, "WIN95"), _
+        Array(17, "WIN98"), _
+        Array(18, "WINNT"), _
+        Array(19, "WINCE"), _
+        Array(20, "NCR3000"), _
+        Array(21, "NetWare"), _
+        Array(22, "OSF"), _
+        Array(23, "DC/OS"), _
+        Array(24, "Reliant UNIX"), _
+        Array(25, "SCO UnixWare"), _
+        Array(26, "SCO OpenServer"), _
+        Array(27, "Sequent"), _
+        Array(28, "IRIX"), _
+        Array(29, "Solaris"), _
+        Array(30, "SunOS"), _
+        Array(31, "U6000"), _
+        Array(32, "ASERIES"), _
+        Array(33, "TandemNSK"), _
+        Array(34, "TandemNT"), _
+        Array(35, "BS2000"), _
+        Array(36, "LINUX"), _
+        Array(37, "Lynx"), _
+        Array(38, "XENIX"), _
+        Array(39, "VM/ESA"), _
+        Array(40, "Interactive UNIX"), _
+        Array(41, "BSDUNIX"), _
+        Array(42, "FreeBSD"), _
+        Array(43, "NetBSD"), _
+        Array(44, "GNU Hurd"), _
+        Array(45, "OS9"), _
+        Array(46, "MACH Kernel"), _
+        Array(47, "Inferno"), _
+        Array(48, "QNX"), _
+        Array(49, "EPOC"), _
+        Array(50, "IxWorks"), _
+        Array(51, "VxWorks"), _
+        Array(52, "MiNT"), _
+        Array(53, "BeOS"), _
+        Array(54, "HP MPE"), _
+        Array(55, "NextStep"), _
+        Array(56, "PalmPilot"), _
+        Array(57, "Rhapsody"), _
+        Array(58, "Windows 2000"), _
+        Array(59, "Dedicated"), _
+        Array(60, "OS/390"), _
+        Array(61, "VSE"), _
+        Array(62, "TPF") _
+    )
     For Each CurrentOSTypeInfo In aryOSTypeInfos
         If (InputOSTypeCode = CurrentOSTypeInfo(0)) Then
             OSTypeDescription = CurrentOSTypeInfo(1)
