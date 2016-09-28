@@ -158,7 +158,7 @@ Function ReadWMI__Win32_ComputerSystem()
             Next
         Next
     Loop 
-    If LCase(strResultFileType) = ".sql" Then
+    If (LCase(strResultFileType) = ".sql") Then
         ReportFile.writeline "ALTER TABLE `device_details` AUTO_INCREMENT = 1;"
     End If
     ReportFile.Close
