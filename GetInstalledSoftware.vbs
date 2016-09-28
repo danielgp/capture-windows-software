@@ -220,7 +220,9 @@ Function checkSoftware(strComputer, bolWriteHeader, strKey)
             objReg.GetDWORDValue HKLM, strKey & strSubkey, strEntryEstimatedSize, intEstimatedSize 
             intReturnV = objReg.GetStringValue(HKLM, strKey & strSubkey, strEntryDisplayVersion, strDisplayVersion) 
             intReturnU = objReg.GetStringValue(HKLM, strKey & strSubkey, strEntryURLInfoAbout, strURLInfoAbout) 
-            If (intReturnP <> 0) Then
+            If (intReturnP = 0) Then
+                strPublisher = PublishersHarmonized(strPublisher)
+            Else
                 strPublisher = "NULL"
             End If
             strSoftwareNameCleaned = CleanStringStartEnd(strDisplayName, " (", ")")
@@ -351,6 +353,23 @@ Function BuildInsertOrUpdateSQLstructure(aryFieldNames, aryFieldValues, strInser
     End Select
     BuildInsertOrUpdateSQLstructure = Replace(Replace(strUpdateSQLstructure, "'NULL'", "NULL"), "\", "\\")
 End Function 
+Function PublishersHarmonized(strPublisherName)
+    aryPublishersTemplate = Array(_
+        Array("Oracle", "Oracle Corporation"), _
+        Array("Qualcomm Atheros", "Qualcomm Atheros Communications") _
+    )
+    strPublishersHarmonized = ""
+    For Each strCurrentPublisherHarmonized In aryPublishersTemplate 
+        If (strPublisherName = strCurrentPublisherHarmonized(0)) Then
+            strPublishersHarmonized = strCurrentPublisherHarmonized(1)
+        End If
+    Next
+    If (strPublishersHarmonized = "") Then
+        PublishersHarmonized = strPublisherName
+    Else
+        PublishersHarmonized = strPublishersHarmonized
+    End If
+End Function
 Function checkServerResponse(serverName) 
     strTarget = serverName 
     Set objShell = CreateObject("WScript.Shell") 
