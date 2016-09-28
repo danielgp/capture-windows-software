@@ -309,11 +309,6 @@ Function checkSoftware(strComputer, bolWriteHeader, strKey)
                         strFieldSeparator & strSubkey
                 Case ".sql"
                     strFieldSeparatorMySQL = ", "
-                    If (strDateYMD = "NULL") Then
-                        strDateYMDsafeForNULL = strDateYMD
-                    Else
-                        strDateYMDsafeForNULL = "'" & strDateYMD & "'" 
-                    End If
                     ReportFile.writeline "INSERT INTO `in_windows_software_list` (" & _
                         strFieldListForMySQLinsert & ") VALUES(" & "'" & CurrentDateTime2SqlFormat() & "'" & _ 
                         strFieldSeparatorMySQL & "'" & strComputer & "'" & _
@@ -321,17 +316,24 @@ Function checkSoftware(strComputer, bolWriteHeader, strKey)
                         strFieldSeparatorMySQL & "'" & strDisplayName & "'" & _
                         strFieldSeparatorMySQL & "'" & strSoftwareNameCleaned & "'" & _
                         strFieldSeparatorMySQL & "'" & Replace(strInstallLocation, "\", "\\") & "'" & _
-                        strFieldSeparatorMySQL & strDateYMDsafeForNULL  & _
+                        strFieldSeparatorMySQL & NullSafeField(strDateYMD)  & _
                         strFieldSeparatorMySQL & strSizeInBytes & _
                         strFieldSeparatorMySQL & "'" & strDisplayVersion & "'" & _
                         strFieldSeparatorMySQL & "'" & strDisplayVersionCleaned & "'" & _
-                        strFieldSeparatorMySQL & "'" & strURLInfoAbout & "'" & _
+                        strFieldSeparatorMySQL & NullSafeField(strURLInfoAbout) & _
                         strFieldSeparatorMySQL & "'" & strSubkeyPieces(1) & "'" & _
                         strFieldSeparatorMySQL & "'" & strSubkey & "'" & _
                         ");"
             End Select
         End If 
     Next 
+End Function 
+Function NullSafeField(strFieldValue)
+    If (strFieldValue = "NULL") Then
+        NullSafeField = strFieldValue
+    Else
+        NullSafeField = "'" & strFieldValue & "'" 
+    End If
 End Function 
 Function checkServerResponse(serverName) 
     strTarget = serverName 
