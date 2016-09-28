@@ -12,7 +12,7 @@ CREATE TABLE `in_windows_software_list` (
   `URLinfoAbout` text DEFAULT NULL,
   `RegistryKeyTrunk` ENUM('Microsoft', 'Wow6432Node') NOT NULL,
   `RegistrySubKey` varchar(100) NOT NULL,
-  PRIMARY KEY( `RegistryKeyTrunk`, `RegistrySubKey`),
+  PRIMARY KEY(`HostName`, `RegistryKeyTrunk`, `RegistrySubKey`)
   KEY `HostName` (`HostName`),
   KEY `Publisher` (`Publisher`),
   KEY `InstallationDate` (`InstallationDate`),
