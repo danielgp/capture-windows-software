@@ -200,17 +200,11 @@ Function checkSoftware(strComputer, bolWriteHeader, strKey)
     strEntryDisplayVersion = "DisplayVersion" 
     strEntryURLInfoAbout = "URLInfoAbout" 
     Set objReg = GetObject("winmgmts://" & strComputer & "/root/default:StdRegProv")
-    Select Case LCase(strResultFileType)
-        Case ".csv"
-            If (bolWriteHeader) Then
-                ReportFile.writeline Join(aryInformationToExpose, strFieldSeparator)
-            End If
-        Case ".sql"
-            strFieldListForMySQLinsert = "`" & Join(aryInformationToExpose, "`, `") & "`"
-            strFieldListForMySQLinsert = CleanStringWithBlacklistArray(strFieldListForMySQLinsert, Array("[bytes]"), "Bytes")
-            strFieldListForMySQLinsert = CleanStringWithBlacklistArray(strFieldListForMySQLinsert, Array("(major.minor)"), "Major Minor")
-            strFieldListForMySQLinsert = CleanStringWithBlacklistArray(strFieldListForMySQLinsert, Array(" "), "")
-    End Select
+    If (LCase(strResultFileType) = ".csv") Then
+        If (bolWriteHeader) Then
+            ReportFile.writeline Join(aryInformationToExpose, strFieldSeparator)
+        End If
+    End If
     objReg.EnumKey HKLM, strKey, arrSubkeys 
     For Each strSubkey In arrSubkeys 
         intReturnN = objReg.GetStringValue(HKLM, strKey & strSubkey, strEntryDisplayName, strDisplayName) 
@@ -292,41 +286,66 @@ Function checkSoftware(strComputer, bolWriteHeader, strKey)
                 End If
             End If
             strSubkeyPieces = Split(strKey, "\")
+            aryValuesToExpose = Array(_
+                CurrentDateTime2SqlFormat(), _ 
+                strComputer, _
+                strPublisher, _
+                strDisplayName, _
+                strSoftwareNameCleaned, _
+                strInstallLocation , _
+                strDateYMD , _
+                strSizeInBytes, _
+                strDisplayVersion, _
+                strDisplayVersionCleaned, _
+                strURLInfoAbout, _
+                strSubkeyPieces(1), _
+                strSubkey _
+            )
             Select Case LCase(strResultFileType)
                 Case ".csv"
-                    ReportFile.writeline CurrentDateTime2SqlFormat() & _ 
-                        strFieldSeparator & strComputer & _
-                        strFieldSeparator & strPublisher & _
-                        strFieldSeparator & strDisplayName & _
-                        strFieldSeparator & strSoftwareNameCleaned & _
-                        strFieldSeparator & strInstallLocation  & _
-                        strFieldSeparator & strDateYMD  & _
-                        strFieldSeparator & strSizeInBytes & _
-                        strFieldSeparator & strDisplayVersion & _
-                        strFieldSeparator & strDisplayVersionCleaned & _
-                        strFieldSeparator & strURLInfoAbout & _
-                        strFieldSeparator & strSubkeyPieces(1) & _
-                        strFieldSeparator & strSubkey
+                    ReportFile.writeline Join(aryValuesToExpose, strFieldSeparator)
                 Case ".sql"
-                    strFieldSeparatorMySQL = ", "
                     ReportFile.writeline "INSERT INTO `in_windows_software_list` (" & _
-                        strFieldListForMySQLinsert & ") VALUES(" & "'" & CurrentDateTime2SqlFormat() & "'" & _ 
-                        strFieldSeparatorMySQL & "'" & strComputer & "'" & _
-                        strFieldSeparatorMySQL & "'" & strPublisher & "'" & _
-                        strFieldSeparatorMySQL & "'" & strDisplayName & "'" & _
-                        strFieldSeparatorMySQL & "'" & strSoftwareNameCleaned & "'" & _
-                        strFieldSeparatorMySQL & "'" & Replace(strInstallLocation, "\", "\\") & "'" & _
-                        strFieldSeparatorMySQL & NullSafeField(strDateYMD)  & _
-                        strFieldSeparatorMySQL & strSizeInBytes & _
-                        strFieldSeparatorMySQL & "'" & strDisplayVersion & "'" & _
-                        strFieldSeparatorMySQL & "'" & strDisplayVersionCleaned & "'" & _
-                        strFieldSeparatorMySQL & NullSafeField(strURLInfoAbout) & _
-                        strFieldSeparatorMySQL & "'" & strSubkeyPieces(1) & "'" & _
-                        strFieldSeparatorMySQL & "'" & strSubkey & "'" & _
-                        ");"
+                        BuildInsertOrUpdateSQLstructure(aryInformationToExpose, aryValuesToExpose, "InsertFields") & _
+                        ") VALUES(" & _
+                        BuildInsertOrUpdateSQLstructure(aryInformationToExpose, aryValuesToExpose, "InsertValues") & _
+                        ") ON DUPLICATE KEY UPDATE " & _
+                        BuildInsertOrUpdateSQLstructure(aryInformationToExpose, aryValuesToExpose, "Update") & _
+                        ";"
             End Select
         End If 
     Next 
+End Function 
+Function CSVfieldNamesIntoSQLfieldName(aryFieldNames)
+    strFieldListForMySQLinsert = Join(aryFieldNames, "|")
+    strFieldListForMySQLinsert = CleanStringWithBlacklistArray(strFieldListForMySQLinsert, Array("[bytes]"), "Bytes")
+    strFieldListForMySQLinsert = CleanStringWithBlacklistArray(strFieldListForMySQLinsert, Array("(major.minor)"), "Major Minor")
+    strFieldListForMySQLinsert = CleanStringWithBlacklistArray(strFieldListForMySQLinsert, Array(" "), "")
+    CSVfieldNamesIntoSQLfieldName = strFieldListForMySQLinsert
+End Function
+Function BuildInsertOrUpdateSQLstructure(aryFieldNames, aryFieldValues, strInsertOrUpdate)
+    Counter = 0
+    strUpdateSQLstructure = ""
+    Select Case strInsertOrUpdate
+        Case "InsertFields"
+            aryFieldValuesMySQL = Split(CSVfieldNamesIntoSQLfieldName(aryFieldNames), "|")
+            strUpdateSQLstructure = "`" & Join(aryFieldValuesMySQL, "`, `") & "`"
+        Case "InsertValues"
+            strUpdateSQLstructure = "'" & Join(aryFieldValues, "', '") & "'"
+        Case "Update"
+            aryFieldValuesMySQL = Split(CSVfieldNamesIntoSQLfieldName(aryFieldNames), "|")
+            intFieldNumbered = UBound(aryFieldValuesMySQL)
+            For Each strFieldName In aryFieldValuesMySQL 
+                If (Counter <= (intFieldNumbered - 2)) Then 'last 2 fields are part of PK so will not be used
+                    If (Counter > 0) Then
+                        strUpdateSQLstructure = strUpdateSQLstructure & ", "
+                    End If
+                    strUpdateSQLstructure = strUpdateSQLstructure & "`" & strFieldName & "` = '" & aryFieldValues(Counter) & "'"
+                End If
+                Counter = Counter + 1
+            Next
+    End Select
+    BuildInsertOrUpdateSQLstructure = Replace(Replace(strUpdateSQLstructure, "'NULL'", "NULL"), "\", "\\")
 End Function 
 Function NullSafeField(strFieldValue)
     If (strFieldValue = "NULL") Then
