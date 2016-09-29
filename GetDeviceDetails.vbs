@@ -93,51 +93,51 @@ Function ReadWMI__Win32_ComputerSystem()
         strComputer = LCase(SrvListFile.ReadLine) 
         Set objWMIService = GetObject("winmgmts:{impersonationLevel=impersonate}!\\" & strComputer & "\root\cimv2")
         Set objComputerSystem = objWMIService.ExecQuery("Select * from Win32_ComputerSystem")
-        Set oss = objWMIService.ExecQuery("Select * from Win32_OperatingSystem")
+        Set objOperatingSystem = objWMIService.ExecQuery("Select * from Win32_OperatingSystem")
         Set colTimeZone = objWMIService.ExecQuery("Select * from Win32_TimeZone")
-        For Each objComputer in objComputerSystem
-            For Each osObj in oss
-                For Each objTZ in colTimeZone
-                    dtmConvertedDate.Value = osObj.InstallDate
-                    aryValuesComputerSystem = Array(_
-                        objComputer.Name, _
-                        osObj.BootDevice, _
-                        osObj.BuildNumber, _
-                        osObj.BuildType, _
-                        osObj.Caption, _
-                        osObj.CodeSet, _
-                        osObj.CountryCode, _
-                        osObj.CurrentTimeZone, _
-                        objTZ.Description, _
-                        osObj.EncryptionLevel, _
-                        osObj.ForegroundApplicationBoost, _
+        For Each crtObjCS in objComputerSystem
+            For Each crtObjOS in objOperatingSystem
+                For Each crtObjTZ in colTimeZone
+                    dtmConvertedDate.Value = crtObjOS.InstallDate
+                    aryValuesCS = Array(_
+                        crtObjCS.Name, _
+                        crtObjOS.BootDevice, _
+                        crtObjOS.BuildNumber, _
+                        crtObjOS.BuildType, _
+                        crtObjOS.Caption, _
+                        crtObjOS.CodeSet, _
+                        crtObjOS.CountryCode, _
+                        crtObjOS.CurrentTimeZone, _
+                        crtObjTZ.Description, _
+                        crtObjOS.EncryptionLevel, _
+                        crtObjOS.ForegroundApplicationBoost, _
                         dtmConvertedDate.GetVarDate, _
-                        osObj.Locale, _
-                        LanguageElementsToIdentify("LCID Hexadecimal", osObj.Locale, "Language - Country/Region"), _
-                        osObj.Manufacturer, _
-                        osObj.Organization, _
-                        osObj.OSArchitecture, _
-                        osObj.OSLanguage, _
-                        LanguageElementsToIdentify("LCID Decimal", osObj.OSLanguage, "Language - Country/Region"), _
-                        osObj.OSProductSuite, _
-                        osObj.OSType, _
-                        OSTypeDescription(osObj.OSType), _
-                        osObj.Primary, _
-                        osObj.RegisteredUser, _
-                        osObj.SerialNumber, _
-                        osObj.SystemDrive, _
-                        osObj.SystemDirectory, _
-                        Round((osObj.TotalVirtualMemorySize / 1024), 0), _
-                        Round((osObj.TotalVisibleMemorySize / 1024), 0), _
-                        osObj.Version, _
-                        osObj.WindowsDirectory _
+                        crtObjOS.Locale, _
+                        LanguageElementsToIdentify("LCID Hexadecimal", crtObjOS.Locale, "Language - Country/Region"), _
+                        crtObjOS.Manufacturer, _
+                        crtObjOS.Organization, _
+                        crtObjOS.OSArchitecture, _
+                        crtObjOS.OSLanguage, _
+                        LanguageElementsToIdentify("LCID Decimal", crtObjOS.OSLanguage, "Language - Country/Region"), _
+                        crtObjOS.OSProductSuite, _
+                        crtObjOS.OSType, _
+                        OSTypeDescription(crtObjOS.OSType), _
+                        crtObjOS.Primary, _
+                        crtObjOS.RegisteredUser, _
+                        crtObjOS.SerialNumber, _
+                        crtObjOS.SystemDrive, _
+                        crtObjOS.SystemDirectory, _
+                        Round((crtObjOS.TotalVirtualMemorySize / 1024), 0), _
+                        Round((crtObjOS.TotalVisibleMemorySize / 1024), 0), _
+                        crtObjOS.Version, _
+                        crtObjOS.WindowsDirectory _
                     )
                     Select Case LCase(strResultFileType)
                         Case ".csv"
                             If (bolFileHeaderToAdd) Then
                                 ReportFile.writeline Join(aryFieldsComputerSystem, strFieldSeparator)
                             End If
-                            ReportFile.writeline Join(aryValuesComputerSystem, strFieldSeparator)
+                            ReportFile.writeline Join(aryValuesCS, strFieldSeparator)
                         Case ".sql"
                             strFieldSeparatorMySQL = ", "
                             JSONinformationDeviceOSdetails = ""
@@ -151,14 +151,14 @@ Function ReadWMI__Win32_ComputerSystem()
                                     End If
                                     JSONinformationDeviceOSdetails = JSONinformationDeviceOSdetails & _
                                         """" & CurrenInformationToExpose & """: " & _
-                                        """" & aryValuesComputerSystem(intCounter) & """"
+                                        """" & aryValuesCS(intCounter) & """"
                                 End If
                                 intCounter = intCounter + 1
                             Next
                             JSONinformationDeviceOSdetails = JSONinformationDeviceOSdetails & " }"
                             JSONinformationDeviceOSdetails = Replace(JSONinformationDeviceOSdetails, "\", "\\\\")
                             ReportFile.writeline "INSERT INTO `device_details` (`DeviceName`, `DeviceOSdetails`) VALUES(" & _
-                                "'" & objComputer.Name & "'" & strFieldSeparatorMySQL & "'" & JSONinformationDeviceOSdetails & _
+                                "'" & crtObjCS.Name & "'" & strFieldSeparatorMySQL & "'" & JSONinformationDeviceOSdetails & _
                                 "') ON DUPLICATE KEY UPDATE `DeviceOSdetails` = '" & JSONinformationDeviceOSdetails & _
                                 "';"
                     End Select
