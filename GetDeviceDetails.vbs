@@ -56,7 +56,7 @@ Function ReadWMI__Win32_ComputerSystem()
             strResultFileType = ".sql"
     End Select
     Set ReportFile = objFSO.OpenTextFile(strCurDir & "\" & strResultFileName & strResultFileType, ForAppending, True) 
-    aryInformationToExpose = Array(_
+    aryFieldsComputerSystem = Array(_
         "Computer Name", _
         "Boot Device", _
         "Build Number", _
@@ -64,17 +64,21 @@ Function ReadWMI__Win32_ComputerSystem()
         "Caption", _
         "Code Set", _
         "Country Code", _
-        "Current Time Zone", _
+        "Current Time Zone Code", _
+        "Current Time Zone Description", _
         "Encryption Level", _
         "Foreground Application Boost", _
         "Install Date", _
-        "Locale", _
+        "Locale Code", _
+        "Locale Description", _
         "Manufacturer", _
         "Organization", _
         "OS Architecture", _
-        "OS Language", _
+        "OS Language Code", _
+        "OS Language Description", _
         "OS Product Suite", _
-        "OS Type", _
+        "OS Type Code", _
+        "OS Type Description", _
         "Primary", _
         "Registered User", _
         "Serial Number", _
@@ -95,7 +99,7 @@ Function ReadWMI__Win32_ComputerSystem()
             For Each osObj in oss
                 For Each objTZ in colTimeZone
                     dtmConvertedDate.Value = osObj.InstallDate
-                    aryValuesToExpose = Array(_
+                    aryValuesComputerSystem = Array(_
                         objComputer.Name, _
                         osObj.BootDevice, _
                         osObj.BuildNumber, _
@@ -103,17 +107,21 @@ Function ReadWMI__Win32_ComputerSystem()
                         osObj.Caption, _
                         osObj.CodeSet, _
                         osObj.CountryCode, _
-                        osObj.CurrentTimeZone & " {" & objTZ.Description & "}", _
+                        osObj.CurrentTimeZone, _
+                        objTZ.Description, _
                         osObj.EncryptionLevel, _
                         osObj.ForegroundApplicationBoost, _
                         dtmConvertedDate.GetVarDate, _
-                        osObj.Locale & " (" & LanguageElementsToIdentify("LCID Hexadecimal", osObj.Locale, "Language - Country/Region") & ")", _
+                        osObj.Locale, _
+                        LanguageElementsToIdentify("LCID Hexadecimal", osObj.Locale, "Language - Country/Region"), _
                         osObj.Manufacturer, _
                         osObj.Organization, _
                         osObj.OSArchitecture, _
-                        osObj.OSLanguage & " (" & LanguageElementsToIdentify("LCID Decimal", osObj.OSLanguage, "Language - Country/Region") & ")", _
+                        osObj.OSLanguage, _
+                        LanguageElementsToIdentify("LCID Decimal", osObj.OSLanguage, "Language - Country/Region"), _
                         osObj.OSProductSuite, _
-                        osObj.OSType & " (" & OSTypeDescription(osObj.OSType) & ")", _
+                        osObj.OSType, _
+                        OSTypeDescription(osObj.OSType), _
                         osObj.Primary, _
                         osObj.RegisteredUser, _
                         osObj.SerialNumber, _
@@ -127,14 +135,14 @@ Function ReadWMI__Win32_ComputerSystem()
                     Select Case LCase(strResultFileType)
                         Case ".csv"
                             If (bolFileHeaderToAdd) Then
-                                ReportFile.writeline Join(aryInformationToExpose, strFieldSeparator)
+                                ReportFile.writeline Join(aryFieldsComputerSystem, strFieldSeparator)
                             End If
-                            ReportFile.writeline Join(aryValuesToExpose, strFieldSeparator)
+                            ReportFile.writeline Join(aryValuesComputerSystem, strFieldSeparator)
                         Case ".sql"
                             strFieldSeparatorMySQL = ", "
                             JSONinformationDeviceOSdetails = ""
                             intCounter = 0
-                            For Each CurrenInformationToExpose in aryInformationToExpose
+                            For Each CurrenInformationToExpose in aryFieldsComputerSystem
                                 If (intCounter = 0) Then
                                     JSONinformationDeviceOSdetails = "{ "
                                 Else
@@ -143,7 +151,7 @@ Function ReadWMI__Win32_ComputerSystem()
                                     End If
                                     JSONinformationDeviceOSdetails = JSONinformationDeviceOSdetails & _
                                         """" & CurrenInformationToExpose & """: " & _
-                                        """" & aryValuesToExpose(intCounter) & """"
+                                        """" & aryValuesComputerSystem(intCounter) & """"
                                 End If
                                 intCounter = intCounter + 1
                             Next
