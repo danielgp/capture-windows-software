@@ -37,25 +37,41 @@ Else
     StartTime = Timer()
     strCurDir = WshShell.CurrentDirectory
     Set SrvListFile = objFSO.OpenTextFile(strCurDir & "\WindowsComputerList.txt", ForReading) 
-        ReadWMI__Win32_ComputerSystem()
+    Do Until SrvListFile.AtEndOfStream 
+        Select Case InputResultType
+            Case vbYes
+                strResultFileType = ".csv"
+                If (objFSO.FileExists(strCurDir & "\" & strResultFileName & strResultFileType)) Then
+                    bolFileHeaderToAdd = False
+                Else
+                    bolFileHeaderToAdd = True
+                End If
+            Case vbNo 
+                strResultFileType = ".sql"
+        End Select
+        strComputer = LCase(SrvListFile.ReadLine) 
+        Set objWMIService = GetObject("winmgmts:{impersonationLevel=impersonate}!\\" & strComputer & "\root\cimv2")
+        Set ReportFile = objFSO.OpenTextFile(strCurDir & "\" & strResultFileName & strResultFileType, ForAppending, True) 
+        strDetailsCS = Split(ReadWMI__Win32_ComputerSystem(objWMIService, strComputer), "||")
+        ReportFile.WriteLine strDetailsCS(0)
+        Select Case LCase(strResultFileType)
+            Case ".csv"
+                If (strDetailsCS(1) <> "") Then
+                    ReportFile.WriteLine strDetailsCS(1)
+                End If
+            Case ".sql"
+                ReportFile.WriteLine strDetailsCS(1)
+                ReportFile.WriteLine "ALTER TABLE `device_details` AUTO_INCREMENT = 1;"
+        End Select
+        ReportFile.Close
+    Loop 
     SrvListFile.Close
     EndTime = Timer()
     MsgBox "This script has completed read current Device Details from Windows Management Instrumentation (WMI), (in just " & FormatNumber(EndTime - StartTime, 0) & " seconds), please consult generated file [" & strCurDir & "\" & strResultFileName & strResultFileType & "]." & vbNewLine & vbNewLine & "Thank you for using this script, hope to see you back soon!", vbOKOnly + vbInformation, "Script end"
 End If
 '-----------------------------------------------------------------------------------------------------------------------
-Function ReadWMI__Win32_ComputerSystem()
-    Select Case InputResultType
-        Case vbYes
-            strResultFileType = ".csv"
-            If (objFSO.FileExists(strCurDir & "\" & strResultFileName & strResultFileType)) Then
-                bolFileHeaderToAdd = False
-            Else
-                bolFileHeaderToAdd = True
-            End If
-        Case vbNo 
-            strResultFileType = ".sql"
-    End Select
-    Set ReportFile = objFSO.OpenTextFile(strCurDir & "\" & strResultFileName & strResultFileType, ForAppending, True) 
+Function ReadWMI__Win32_ComputerSystem(objWMIService, strComputer)
+    Dim aryDetailsToReturn(1)
     aryFieldsComputerSystem = Array(_
         "Computer Name", _
         "Boot Device", _
@@ -89,88 +105,84 @@ Function ReadWMI__Win32_ComputerSystem()
         "Version", _
         "Windows Directory" _
     )
-    Do Until SrvListFile.AtEndOfStream 
-        strComputer = LCase(SrvListFile.ReadLine) 
-        Set objWMIService = GetObject("winmgmts:{impersonationLevel=impersonate}!\\" & strComputer & "\root\cimv2")
-        Set objComputerSystem = objWMIService.ExecQuery("Select * from Win32_ComputerSystem")
-        Set objOperatingSystem = objWMIService.ExecQuery("Select * from Win32_OperatingSystem")
-        Set colTimeZone = objWMIService.ExecQuery("Select * from Win32_TimeZone")
-        For Each crtObjCS in objComputerSystem
-            For Each crtObjOS in objOperatingSystem
-                For Each crtObjTZ in colTimeZone
-                    dtmConvertedDate.Value = crtObjOS.InstallDate
-                    aryValuesCS = Array(_
-                        crtObjCS.Name, _
-                        crtObjOS.BootDevice, _
-                        crtObjOS.BuildNumber, _
-                        crtObjOS.BuildType, _
-                        crtObjOS.Caption, _
-                        crtObjOS.CodeSet, _
-                        crtObjOS.CountryCode, _
-                        crtObjOS.CurrentTimeZone, _
-                        crtObjTZ.Description, _
-                        crtObjOS.EncryptionLevel, _
-                        crtObjOS.ForegroundApplicationBoost, _
-                        dtmConvertedDate.GetVarDate, _
-                        crtObjOS.Locale, _
-                        LanguageElementsToIdentify("LCID Hexadecimal", crtObjOS.Locale, "Language - Country/Region"), _
-                        crtObjOS.Manufacturer, _
-                        crtObjOS.Organization, _
-                        crtObjOS.OSArchitecture, _
-                        crtObjOS.OSLanguage, _
-                        LanguageElementsToIdentify("LCID Decimal", crtObjOS.OSLanguage, "Language - Country/Region"), _
-                        crtObjOS.OSProductSuite, _
-                        crtObjOS.OSType, _
-                        OSTypeDescription(crtObjOS.OSType), _
-                        crtObjOS.Primary, _
-                        crtObjOS.RegisteredUser, _
-                        crtObjOS.SerialNumber, _
-                        crtObjOS.SystemDrive, _
-                        crtObjOS.SystemDirectory, _
-                        Round((crtObjOS.TotalVirtualMemorySize / 1024), 0), _
-                        Round((crtObjOS.TotalVisibleMemorySize / 1024), 0), _
-                        crtObjOS.Version, _
-                        crtObjOS.WindowsDirectory _
-                    )
-                    Select Case LCase(strResultFileType)
-                        Case ".csv"
-                            If (bolFileHeaderToAdd) Then
-                                ReportFile.writeline Join(aryFieldsComputerSystem, strFieldSeparator)
-                            End If
-                            ReportFile.writeline Join(aryValuesCS, strFieldSeparator)
-                        Case ".sql"
-                            strFieldSeparatorMySQL = ", "
-                            JSONinformationDeviceOSdetails = ""
-                            intCounter = 0
-                            For Each CurrenInformationToExpose in aryFieldsComputerSystem
-                                If (intCounter = 0) Then
-                                    JSONinformationDeviceOSdetails = "{ "
-                                Else
-                                    If (intCounter > 1) Then
-                                        JSONinformationDeviceOSdetails = JSONinformationDeviceOSdetails & ", "
-                                    End If
-                                    JSONinformationDeviceOSdetails = JSONinformationDeviceOSdetails & _
-                                        """" & CurrenInformationToExpose & """: " & _
-                                        """" & aryValuesCS(intCounter) & """"
+    Set objComputerSystem = objWMIService.ExecQuery("Select * from Win32_ComputerSystem")
+    Set objOperatingSystem = objWMIService.ExecQuery("Select * from Win32_OperatingSystem")
+    Set colTimeZone = objWMIService.ExecQuery("Select * from Win32_TimeZone")
+    For Each crtObjCS in objComputerSystem
+        For Each crtObjOS in objOperatingSystem
+            For Each crtObjTZ in colTimeZone
+                dtmConvertedDate.Value = crtObjOS.InstallDate
+                aryValuesCS = Array(_
+                    crtObjCS.Name, _
+                    crtObjOS.BootDevice, _
+                    crtObjOS.BuildNumber, _
+                    crtObjOS.BuildType, _
+                    crtObjOS.Caption, _
+                    crtObjOS.CodeSet, _
+                    crtObjOS.CountryCode, _
+                    crtObjOS.CurrentTimeZone, _
+                    crtObjTZ.Description, _
+                    crtObjOS.EncryptionLevel, _
+                    crtObjOS.ForegroundApplicationBoost, _
+                    dtmConvertedDate.GetVarDate, _
+                    crtObjOS.Locale, _
+                    LanguageElementsToIdentify("LCID Hexadecimal", crtObjOS.Locale, "Language - Country/Region"), _
+                    crtObjOS.Manufacturer, _
+                    crtObjOS.Organization, _
+                    crtObjOS.OSArchitecture, _
+                    crtObjOS.OSLanguage, _
+                    LanguageElementsToIdentify("LCID Decimal", crtObjOS.OSLanguage, "Language - Country/Region"), _
+                    crtObjOS.OSProductSuite, _
+                    crtObjOS.OSType, _
+                    OSTypeDescription(crtObjOS.OSType), _
+                    crtObjOS.Primary, _
+                    crtObjOS.RegisteredUser, _
+                    crtObjOS.SerialNumber, _
+                    crtObjOS.SystemDrive, _
+                    crtObjOS.SystemDirectory, _
+                    Round((crtObjOS.TotalVirtualMemorySize / 1024), 0), _
+                    Round((crtObjOS.TotalVisibleMemorySize / 1024), 0), _
+                    crtObjOS.Version, _
+                    crtObjOS.WindowsDirectory _
+                )
+                Select Case LCase(strResultFileType)
+                    Case ".csv"
+                        If (bolFileHeaderToAdd) Then
+                            aryDetailsToReturn(0) = Join(aryFieldsComputerSystem, strFieldSeparator)
+                        Else
+                            aryDetailsToReturn(0) = ""
+                        End If
+                        aryDetailsToReturn(1) = Join(aryValuesCS, strFieldSeparator)
+                    Case ".sql"
+                        aryDetailsToReturn(0) = "/* " & strComputer & " - Details Computer System results for MySQL */"
+                        strFieldSeparatorMySQL = ", "
+                        JSONinformationSQL = ""
+                        intCounter = 0
+                        For Each crtField in aryFieldsComputerSystem
+                            If (intCounter = 0) Then
+                                JSONinformationSQL = "{ "
+                            Else
+                                If (intCounter > 1) Then
+                                    JSONinformationSQL = JSONinformationSQL & ", "
                                 End If
-                                intCounter = intCounter + 1
-                            Next
-                            JSONinformationDeviceOSdetails = JSONinformationDeviceOSdetails & " }"
-                            JSONinformationDeviceOSdetails = Replace(JSONinformationDeviceOSdetails, "\", "\\\\")
-                            ReportFile.writeline "INSERT INTO `device_details` (`DeviceName`, `DeviceOSdetails`) VALUES(" & _
-                                "'" & crtObjCS.Name & "'" & strFieldSeparatorMySQL & "'" & JSONinformationDeviceOSdetails & _
-                                "') ON DUPLICATE KEY UPDATE `DeviceOSdetails` = '" & JSONinformationDeviceOSdetails & _
-                                "';"
-                    End Select
-                Next
+                                JSONinformationSQL = JSONinformationSQL & _
+                                    """" & crtField & """: " & _
+                                    """" & aryValuesCS(intCounter) & """"
+                            End If
+                            intCounter = intCounter + 1
+                        Next
+                        JSONinformationSQL = JSONinformationSQL & " }"
+                        JSONinformationSQL = Replace(JSONinformationSQL, "\", "\\\\")
+                        aryDetailsToReturn(1) = "INSERT INTO `device_details` (`DeviceName`, `DeviceOSdetails`) VALUES(" & _
+                            "'" & crtObjCS.Name & "'" & strFieldSeparatorMySQL & "'" & JSONinformationSQL & _
+                            "') ON DUPLICATE KEY UPDATE `DeviceOSdetails` = '" & JSONinformationSQL & _
+                            "';"
+                End Select
             Next
         Next
-    Loop 
-    If (LCase(strResultFileType) = ".sql") Then
-        ReportFile.writeline "ALTER TABLE `device_details` AUTO_INCREMENT = 1;"
-    End If
-    ReportFile.Close
-End Function 
+    Next
+    ReadWMI__Win32_ComputerSystem = Join(aryDetailsToReturn, "||")
+End Function
 Function LanguageElementsToIdentify(GivenElement, GivenValue, FeedbackElement)
     aryLanguageCodes = Array(_
         Array("10241", "2801", "Arabic - Syria"), _
