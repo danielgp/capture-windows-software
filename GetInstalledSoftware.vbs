@@ -368,6 +368,7 @@ Function PublishersHarmonized(strPublisherName)
         Array("Informatica Co.", "Informatica Corporation"), _
         Array("Intel", "Intel Corporation"), _
         Array("Intel(R) Corporation", "Intel Corporation"), _
+        Array("Lumension", "Lumension Security, Inc."), _
         Array("McAfee", "McAfee, Inc."), _
         Array("Microsoft", "Microsoft Corporation"), _
         Array("Oracle", "Oracle Corporation"), _
