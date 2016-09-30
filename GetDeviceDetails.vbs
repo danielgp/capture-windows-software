@@ -52,15 +52,37 @@ Else
         strComputer = LCase(SrvListFile.ReadLine) 
         Set objWMIService = GetObject("winmgmts:{impersonationLevel=impersonate}!\\" & strComputer & "\root\cimv2")
         Set ReportFile = objFSO.OpenTextFile(strCurDir & "\" & strResultFileName & strResultFileType, ForAppending, True) 
-        strDetailsCS = Split(ReadWMI__Win32_ComputerSystem(objWMIService, strComputer), "||")
-        ReportFile.WriteLine strDetailsCS(0)
+        strDetailsCS = Split(ReadWMI__Win32_ComputerSystem(objWMIService, strComputer, strResultFileType, strFieldSeparator), "||")
+        strDetailsCPU = Split(ReadWMI__Win32_Processor(objWMIService, strComputer, strResultFileType, strFieldSeparator), "||")
+        strDetailsBaseBoard = Split(ReadWMI__Win32_BaseBoard(objWMIService, strComputer, strResultFileType, strFieldSeparator), "||")
+        strDetailsDiskDrive = Split(ReadWMI_Win32_DiskDrive(objWMIService, strComputer, strResultFileType, strFieldSeparator), "||")
         Select Case LCase(strResultFileType)
             Case ".csv"
-                If (strDetailsCS(1) <> "") Then
-                    ReportFile.WriteLine strDetailsCS(1)
+                If (bolFileHeaderToAdd) Then
+                    ReportFile.WriteLine strDetailsCS(0) & _
+                        strFieldSeparator & strDetailsCPU(0) & _
+                        strFieldSeparator & strDetailsBaseBoard(0) & _
+                        strFieldSeparator & strDetailsDiskDrive(0)
                 End If
+                ReportFile.WriteLine strDetailsCS(1) & _
+                    strFieldSeparator & strDetailsCPU(1) & _
+                    strFieldSeparator & strDetailsBaseBoard(1) & _
+                    strFieldSeparator & strDetailsDiskDrive(1)
             Case ".sql"
-                ReportFile.WriteLine strDetailsCS(1)
+                ReportFile.WriteLine strDetailsCS(0)
+                JSONinformationComputerSystemSQL = "{ " & strDetailsCS(1) & " }"
+                ReportFile.WriteLine strDetailsCPU(0)
+                JSONinformationHardwareSQL = "{ ""CPU"": { " & strDetailsCPU(1) & " }" & _
+                    ", ""Motherboard"": { " & strDetailsBaseBoard(1) & " }" & _
+                    ", ""Disk Drive"": { " & strDetailsDiskDrive(1) & " }" & _
+                    " }"
+                ReportFile.WriteLine "INSERT INTO `device_details` " & _
+                    "(`DeviceName`, `DeviceOSdetails`, `DeviceHardwareDetails`) VALUES(" & _
+                    "'" & strComputer & "', '" & JSONinformationComputerSystemSQL & "', '" & JSONinformationHardwareSQL & "') " & _
+                    "ON DUPLICATE KEY UPDATE " & _
+                    "`DeviceOSdetails` = '" & JSONinformationComputerSystemSQL & "', " & _
+                    "`DeviceHardwareDetails` = '" & JSONinformationHardwareSQL & "'" & _
+                    ";"
                 ReportFile.WriteLine "ALTER TABLE `device_details` AUTO_INCREMENT = 1;"
         End Select
         ReportFile.Close
@@ -70,10 +92,10 @@ Else
     MsgBox "This script has completed read current Device Details from Windows Management Instrumentation (WMI), (in just " & FormatNumber(EndTime - StartTime, 0) & " seconds), please consult generated file [" & strCurDir & "\" & strResultFileName & strResultFileType & "]." & vbNewLine & vbNewLine & "Thank you for using this script, hope to see you back soon!", vbOKOnly + vbInformation, "Script end"
 End If
 '-----------------------------------------------------------------------------------------------------------------------
-Function ReadWMI__Win32_ComputerSystem(objWMIService, strComputer)
+Function ReadWMI__Win32_ComputerSystem(objWMIService, strComputer, strResultFileType, strFieldSeparator)
     Dim aryDetailsToReturn(1)
+    Dim aryJSONinformationSQL(29)
     aryFieldsComputerSystem = Array(_
-        "Computer Name", _
         "Boot Device", _
         "Build Number", _
         "Build Type", _
@@ -113,7 +135,6 @@ Function ReadWMI__Win32_ComputerSystem(objWMIService, strComputer)
             For Each crtObjTZ in colTimeZone
                 dtmConvertedDate.Value = crtObjOS.InstallDate
                 aryValuesCS = Array(_
-                    crtObjCS.Name, _
                     crtObjOS.BootDevice, _
                     crtObjOS.BuildNumber, _
                     crtObjOS.BuildType, _
@@ -147,41 +168,270 @@ Function ReadWMI__Win32_ComputerSystem(objWMIService, strComputer)
                 )
                 Select Case LCase(strResultFileType)
                     Case ".csv"
-                        If (bolFileHeaderToAdd) Then
-                            aryDetailsToReturn(0) = Join(aryFieldsComputerSystem, strFieldSeparator)
-                        Else
-                            aryDetailsToReturn(0) = ""
-                        End If
+                        aryDetailsToReturn(0) = Join(aryFieldsComputerSystem, strFieldSeparator)
                         aryDetailsToReturn(1) = Join(aryValuesCS, strFieldSeparator)
                     Case ".sql"
                         aryDetailsToReturn(0) = "/* " & strComputer & " - Details Computer System results for MySQL */"
-                        strFieldSeparatorMySQL = ", "
-                        JSONinformationSQL = ""
                         intCounter = 0
                         For Each crtField in aryFieldsComputerSystem
-                            If (intCounter = 0) Then
-                                JSONinformationSQL = "{ "
-                            Else
-                                If (intCounter > 1) Then
-                                    JSONinformationSQL = JSONinformationSQL & ", "
-                                End If
-                                JSONinformationSQL = JSONinformationSQL & _
-                                    """" & crtField & """: " & _
-                                    """" & aryValuesCS(intCounter) & """"
-                            End If
+                            aryJSONinformationSQL(intCounter) = """" & crtField & """: " & _
+                                """" & aryValuesCS(intCounter) & """"
                             intCounter = intCounter + 1
                         Next
-                        JSONinformationSQL = JSONinformationSQL & " }"
-                        JSONinformationSQL = Replace(JSONinformationSQL, "\", "\\\\")
-                        aryDetailsToReturn(1) = "INSERT INTO `device_details` (`DeviceName`, `DeviceOSdetails`) VALUES(" & _
-                            "'" & crtObjCS.Name & "'" & strFieldSeparatorMySQL & "'" & JSONinformationSQL & _
-                            "') ON DUPLICATE KEY UPDATE `DeviceOSdetails` = '" & JSONinformationSQL & _
-                            "';"
+                        aryDetailsToReturn(1) = Replace(Join(aryJSONinformationSQL, ", "), "\", "\\\\")
                 End Select
             Next
         Next
     Next
     ReadWMI__Win32_ComputerSystem = Join(aryDetailsToReturn, "||")
+End Function 
+Function ReadWMI__Win32_Processor(objWMIService, strComputer, strResultFileType, strFieldSeparator)
+    Dim aryDetailsToReturn(1)
+    Dim aryJSONinformationSQL(33)
+    aryFieldsCPU = Array(_
+        "Address Width", _
+        "Architecture", _
+        "Availability", _
+        "Characteristics", _
+        "CPU Status", _
+        "Current Clock Speed", _
+        "Current Voltage", _
+        "Data Width", _
+        "Description", _
+        "Device ID", _
+        "External Clock", _
+        "Family", _
+        "L2 Cache Size", _
+        "L3 Cache Size", _
+        "Level", _
+        "Load Percentage", _
+        "Manufacturer", _
+        "Maximum Clock Speed", _
+        "Name", _
+        "Number Of Cores", _
+        "Number Of Enabled Core", _
+        "Number Of Logical Processors", _
+        "PartNumber", _
+        "Processor ID", _
+        "Processor Type", _
+        "Revision", _
+        "Role", _
+        "Second Level Address Translation Extensions", _
+        "Socket Designation", _
+        "Status Information", _
+        "ThreadCount", _
+        "Upgrade Method", _
+        "Virtualization Firmware Enabled", _
+        "VMMonitor Mode Extensions" _
+    )
+    Set objCPU = objWMIService.ExecQuery("Select * from Win32_Processor")
+    For Each crtObjCPU in objCPU
+        aryValuesCPU = Array(_
+            crtObjCPU.AddressWidth, _
+            crtObjCPU.Architecture, _
+            crtObjCPU.Availability, _
+            crtObjCPU.Characteristics, _
+            crtObjCPU.CpuStatus, _
+            crtObjCPU.CurrentClockSpeed, _
+            crtObjCPU.CurrentVoltage, _
+            crtObjCPU.DataWidth, _
+            crtObjCPU.Description, _
+            crtObjCPU.DeviceID, _
+            crtObjCPU.ExtClock, _
+            crtObjCPU.Family, _
+            crtObjCPU.L2CacheSize, _
+            crtObjCPU.L3CacheSize, _
+            crtObjCPU.Level, _
+            crtObjCPU.LoadPercentage, _
+            crtObjCPU.Manufacturer, _
+            crtObjCPU.MaxClockSpeed, _
+            crtObjCPU.Name, _
+            crtObjCPU.NumberOfCores, _
+            crtObjCPU.NumberOfEnabledCore, _
+            crtObjCPU.NumberOfLogicalProcessors, _
+            crtObjCPU.PartNumber, _
+            crtObjCPU.ProcessorId, _
+            crtObjCPU.ProcessorType, _
+            crtObjCPU.Revision, _
+            crtObjCPU.Role, _
+            crtObjCPU.SecondLevelAddressTranslationExtensions, _
+            crtObjCPU.SocketDesignation, _
+            crtObjCPU.StatusInfo, _
+            crtObjCPU.ThreadCount, _
+            crtObjCPU.UpgradeMethod, _
+            crtObjCPU.VirtualizationFirmwareEnabled, _
+            crtObjCPU.VMMonitorModeExtensions _
+        )
+        Select Case LCase(strResultFileType)
+            Case ".csv"
+                aryDetailsToReturn(0) = "CPU " & Join(aryFieldsCPU, strFieldSeparator & "CPU ")
+                aryDetailsToReturn(1) = Join(aryValuesCPU, strFieldSeparator)
+            Case ".sql"
+                aryDetailsToReturn(0) = "/* " & strComputer & " - Details CPU results for MySQL */"
+                intCounter = 0
+                For Each crtField in aryFieldsCPU
+                    aryJSONinformationSQL(intCounter) = """" & crtField & """: " & _
+                        """" & aryValuesCPU(intCounter) & """"
+                    intCounter = intCounter + 1
+                Next
+                aryDetailsToReturn(1) = Replace(Join(aryJSONinformationSQL, ", "), "\", "\\\\")
+        End Select
+    Next
+    ReadWMI__Win32_Processor = Join(aryDetailsToReturn, "||")
+End Function
+Function ReadWMI__Win32_BaseBoard(objWMIService, strComputer, strResultFileType, strFieldSeparator)
+    Dim aryDetailsToReturn(1)
+    Dim aryJSONinformationSQL(7)
+    aryFieldsBaseBoard = Array(_
+        "Caption", _
+        "Creation Class Name", _
+        "Description", _
+        "Manufacturer", _
+        "Name", _
+        "Status", _
+        "Tag", _
+        "Version" _
+    )
+    Set objBaseBoard = objWMIService.ExecQuery("Select * from Win32_BaseBoard")
+    For Each crtObjBaseBoard in objBaseBoard
+        aryValuesBaseBoard = Array(_
+            crtObjBaseBoard.Caption, _
+            crtObjBaseBoard.CreationClassName, _
+            crtObjBaseBoard.Description, _
+            crtObjBaseBoard.Manufacturer, _
+            crtObjBaseBoard.Name, _
+            crtObjBaseBoard.Status, _
+            crtObjBaseBoard.Tag, _
+            crtObjBaseBoard.Version _
+        )
+        Select Case LCase(strResultFileType)
+            Case ".csv"
+                aryDetailsToReturn(0) = "MBR " & Join(aryFieldsBaseBoard, strFieldSeparator & "MBR ")
+                aryDetailsToReturn(1) = Join(aryValuesBaseBoard, strFieldSeparator)
+            Case ".sql"
+                aryDetailsToReturn(0) = "/* " & strComputer & " - Details MBR results for MySQL */"
+                intCounter = 0
+                For Each crtField in aryFieldsBaseBoard
+                    aryJSONinformationSQL(intCounter) = """" & crtField & """: " & _
+                        """" & aryValuesBaseBoard(intCounter) & """"
+                    intCounter = intCounter + 1
+                Next
+                aryDetailsToReturn(1) = Replace(Join(aryJSONinformationSQL, ", "), "\", "\\\\")
+        End Select
+    Next
+    ReadWMI__Win32_BaseBoard = Join(aryDetailsToReturn, "||")
+End Function
+Function ReadWMI_Win32_DiskDrive(objWMIService, strComputer, strResultFileType, strFieldSeparator)
+    Dim aryDetailsToReturn(1)
+    Dim aryJSONinformationSQL(18)
+    aryFieldsDiskDrive = Array(_
+        "Bytes PerSector", _
+        "Caption", _
+        "Description", _
+        "FirmwareRevision", _
+        "InterfaceType", _
+        "Manufacturer", _
+        "Model", _
+        "Name", _
+        "Partitions", _
+        "Sectors PerTrack", _
+        "Serial Number", _
+        "Signature", _
+        "Size [GB]", _
+        "Status", _
+        "Total Cylinders", _
+        "Total Heads", _
+        "Total Sectors", _
+        "Total Tracks", _
+        "Tracks Per Cylinder" _
+    )
+    Set objDiskDrive = objWMIService.ExecQuery("Select * from Win32_DiskDrive")
+    aryDetailsToReturn(0) = ""
+    aryDetailsToReturn(1) = ""
+    For Each crtObjDiskDrive in objDiskDrive
+        If (IsNull(crtObjDiskDrive.Signature) Or (crtObjDiskDrive.Signature = "")) Then
+            strSignatureSafe = "-"
+        Else
+            StrSignatureSafe = crtObjDiskDrive.Signature
+        End If
+        aryValuesDiskDrive = Array(_
+            crtObjDiskDrive.BytesPerSector, _
+            crtObjDiskDrive.Caption, _
+            crtObjDiskDrive.Description, _
+            crtObjDiskDrive.FirmwareRevision, _
+            crtObjDiskDrive.InterfaceType, _
+            crtObjDiskDrive.Manufacturer, _
+            crtObjDiskDrive.Model, _
+            crtObjDiskDrive.Name, _
+            crtObjDiskDrive.Partitions, _
+            crtObjDiskDrive.SectorsPerTrack, _
+            crtObjDiskDrive.SerialNumber, _
+            strSignatureSafe, _
+            Round((crtObjDiskDrive.Size /(1024 * 1024 * 1024)), 0), _
+            crtObjDiskDrive.Status, _
+            crtObjDiskDrive.TotalCylinders, _
+            crtObjDiskDrive.TotalHeads, _
+            crtObjDiskDrive.TotalSectors, _
+            crtObjDiskDrive.TotalTracks, _
+            crtObjDiskDrive.TracksPerCylinder _
+        )
+        strDiskNameCleaned = Replace(Replace(crtObjDiskDrive.Name, "\", ""), ".", "")
+        strDiskNumber = Replace(strDiskNameCleaned, "PHYSICALDRIVE", "")
+        Select Case LCase(strResultFileType)
+            Case ".csv"
+                If (aryDetailsToReturn(0) = "") Then
+                    aryDetailsToReturn(0) = _
+                        "Disk" & strDiskNumber & " " & _
+                        Join(aryFieldsDiskDrive, strFieldSeparator & "Disk" & strDiskNumber & " ")
+                Else
+                    aryDetailsToReturn(0) = aryDetailsToReturn(0) & strFieldSeparator & _
+                        "Disk" & strDiskNumber & " " & _
+                        Join(aryFieldsDiskDrive, strFieldSeparator & "Disk" & strDiskNumber & " ")
+                End If
+                If (aryDetailsToReturn(1) = "") Then
+                    aryDetailsToReturn(1) = _
+                        Join(aryValuesDiskDrive, strFieldSeparator)
+                Else
+                    aryDetailsToReturn(1) = aryDetailsToReturn(1) & strFieldSeparator & _ 
+                        Join(aryValuesDiskDrive, strFieldSeparator)
+                End If
+            Case ".sql"
+                aryDetailsToReturn(0) = "/* " & strComputer & " - Details Disk results for MySQL */"
+                intCounter = 0
+                For Each crtField in aryFieldsDiskDrive
+                    Select Case crtField
+                        Case "Name"
+                            aryJSONinformationSQL(intCounter) = """" & crtField & """: " & _
+                                """" & strDiskNameCleaned & """"
+                        Case "Serial Number"
+                            If (StrComp(aryValuesDiskDrive(intCounter), "", 0) <> 0) Then
+                                aryJSONinformationSQL(intCounter) = """" & crtField & """: " & _
+                                    """" & Trim(aryValuesDiskDrive(intCounter))     & """"
+                            End If
+                        Case Else
+                            aryJSONinformationSQL(intCounter) = """" & crtField & """: " & _
+                                """" & Trim(aryValuesDiskDrive(intCounter)) & """"
+                    End Select
+                    If (crtField = "Name") Then
+                    Else
+                    End If
+                    intCounter = intCounter + 1
+                Next
+                strDiskNameCleanedNice = Replace(strDiskNameCleaned, "PHYSICALDRIVE", "Physical Drive ")
+                If (aryDetailsToReturn(1) = "") Then
+                    aryDetailsToReturn(1) = _
+                        """" & strDiskNameCleanedNice & """: { " & _ 
+                        Replace(Join(aryJSONinformationSQL, ", "), "\", "\\\\") & _
+                        " }"
+                Else
+                    aryDetailsToReturn(1) = aryDetailsToReturn(1) & ", " & _
+                        """" & strDiskNameCleanedNice & """: { " & _ 
+                        Replace(Join(aryJSONinformationSQL, ", "), "\", "\\\\") & _
+                        " }"
+                End If
+        End Select
+    Next
+    ReadWMI_Win32_DiskDrive = Join(aryDetailsToReturn, "||")
 End Function
 Function LanguageElementsToIdentify(GivenElement, GivenValue, FeedbackElement)
     aryLanguageCodes = Array(_
