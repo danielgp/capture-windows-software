@@ -50,7 +50,7 @@ Else
                 strResultFileType = ".sql"
         End Select
         strComputer = LCase(SrvListFile.ReadLine) 
-        Set objWMIService = GetObject("winmgmts:{impersonationLevel=impersonate}!\\" & strComputer & "\root\cimv2")
+        Set objWMIService = GetObject("winmgmts:\\" & strComputer & "\root\cimv2")
         Set ReportFile = objFSO.OpenTextFile(strCurDir & "\" & strResultFileName & strResultFileType, ForAppending, True) 
         strDetailsCS = Split(ReadWMI__Win32_ComputerSystem(objWMIService, strComputer, strResultFileType, strFieldSeparator), "||")
         strDetailsCPU = Split(ReadWMI__Win32_Processor(objWMIService, strComputer, strResultFileType, strFieldSeparator), "||")
@@ -187,7 +187,7 @@ Function ReadWMI__Win32_ComputerSystem(objWMIService, strComputer, strResultFile
 End Function 
 Function ReadWMI__Win32_Processor(objWMIService, strComputer, strResultFileType, strFieldSeparator)
     Dim aryDetailsToReturn(1)
-    Dim aryJSONinformationSQL(33)
+    Dim aryJSONinformationSQL(34)
     aryFieldsCPU = Array(_
         "Address Width", _
         "Architecture", _
@@ -217,6 +217,7 @@ Function ReadWMI__Win32_Processor(objWMIService, strComputer, strResultFileType,
         "Revision", _
         "Role", _
         "Second Level Address Translation Extensions", _
+        "Serial Number", _
         "Socket Designation", _
         "Status Information", _
         "ThreadCount", _
@@ -224,13 +225,42 @@ Function ReadWMI__Win32_Processor(objWMIService, strComputer, strResultFileType,
         "Virtualization Firmware Enabled", _
         "VMMonitor Mode Extensions" _
     )
+    ' only required to be able to differentiate a few attributes present only in modern OS versions
+    Set objOperatingSystem = objWMIService.ExecQuery("Select * from Win32_OperatingSystem")
+    For Each crtObjOS in objOperatingSystem
+        aryVersionParts = Split(crtObjOS.Version, ".")
+        intOSVersion = CInt(aryVersionParts(0)) * 10 + aryVersionParts(1)
+    Next
+    ' actual Win32_Processor determination
     Set objCPU = objWMIService.ExecQuery("Select * from Win32_Processor")
-    For Each crtObjCPU in objCPU
+    For Each crtObjCPU in objCPU    
+        strSecondLevelAddressTranslationExtensions = "N/A"
+        strVirtualizationFirmwareEnabled = "N/A"
+        strVMMonitorModeExtensions = "N/A"
+        strCharacteristics = "N/A"
+        strNumberOfEnabledCore = "N/A"
+        strPartNumber = "N/A"
+        strThreadCount = "N/A"
+        strSerialNumber = "N/A"
+        ' for Windows 8 and Server 2012 or newer
+        If (intOSVersion >= 62) Then
+            strSecondLevelAddressTranslationExtensions = crtObjCPU.SecondLevelAddressTranslationExtensions
+            strVirtualizationFirmwareEnabled = crtObjCPU.VirtualizationFirmwareEnabled
+            strVMMonitorModeExtensions = crtObjCPU.VMMonitorModeExtensions
+            ' for Windows 10 and Server 2016 or newer
+            If (intOSVersion >= 100) Then
+                strCharacteristics = crtObjCPU.Characteristics
+                strNumberOfEnabledCore = crtObjCPU.NumberOfEnabledCore
+                strPartNumber = crtObjCPU.PartNumber
+                strThreadCount = crtObjCPU.ThreadCount
+                strSerialNumber = crtObjCPU.SerialNumber
+            End If
+        End If
         aryValuesCPU = Array(_
             crtObjCPU.AddressWidth, _
             crtObjCPU.Architecture, _
             crtObjCPU.Availability, _
-            crtObjCPU.Characteristics, _
+            strCharacteristics, _
             crtObjCPU.CpuStatus, _
             crtObjCPU.CurrentClockSpeed, _
             crtObjCPU.CurrentVoltage, _
@@ -247,20 +277,21 @@ Function ReadWMI__Win32_Processor(objWMIService, strComputer, strResultFileType,
             crtObjCPU.MaxClockSpeed, _
             crtObjCPU.Name, _
             crtObjCPU.NumberOfCores, _
-            crtObjCPU.NumberOfEnabledCore, _
+            strNumberOfEnabledCore, _
             crtObjCPU.NumberOfLogicalProcessors, _
-            crtObjCPU.PartNumber, _
+            strPartNumber, _
             crtObjCPU.ProcessorId, _
             crtObjCPU.ProcessorType, _
             crtObjCPU.Revision, _
             crtObjCPU.Role, _
-            crtObjCPU.SecondLevelAddressTranslationExtensions, _
+            strSecondLevelAddressTranslationExtensions, _
+            strSerialNumber, _
             crtObjCPU.SocketDesignation, _
             crtObjCPU.StatusInfo, _
-            crtObjCPU.ThreadCount, _
+            strThreadCount, _
             crtObjCPU.UpgradeMethod, _
-            crtObjCPU.VirtualizationFirmwareEnabled, _
-            crtObjCPU.VMMonitorModeExtensions _
+            strVirtualizationFirmwareEnabled, _
+            strVMMonitorModeExtensions _
         )
         Select Case LCase(strResultFileType)
             Case ".csv"
