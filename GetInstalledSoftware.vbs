@@ -53,12 +53,10 @@ Else
     Set ReportFile = objFSO.OpenTextFile(strCurDir & "\" & strResultFileName & strResultFileType, ForAppending, True) 
     Do Until SrvListFile.AtEndOfStream 
         strComputer = LCase(SrvListFile.ReadLine) 
-        If (checkServerResponse(strComputer)) Then 
-            srvIP = checkSoftware(strComputer, bolFileHeaderToAdd, "SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\")
-            If (OsType = "AMD64") Then
-                srvIP = checkSoftware(strComputer, False, "SOFTWARE\Wow6432Node\Microsoft\Windows\CurrentVersion\Uninstall\")
-            End If
-        End If 
+        checkSoftware(strComputer, bolFileHeaderToAdd, "SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\")
+        If (OsType = "AMD64") Then
+            checkSoftware(strComputer, False, "SOFTWARE\Wow6432Node\Microsoft\Windows\CurrentVersion\Uninstall\")
+        End If
     Loop 
     SrvListFile.Close
     ReportFile.Close
@@ -173,21 +171,29 @@ Function CleanStringBeforeOrAfterNumber(strFullStringToClean, strBeforeOrAfter, 
     CleanStringBeforeOrAfterNumber = strCleanedString
 End Function
 Function checkSoftware(strComputer, bolWriteHeader, strKey) 
+    Dim aryJSONinformationCSV(5)
+    Dim aryJSONinformationSQL(5)
     Const HKLM = &H80000002 'HKEY_LOCAL_MACHINE
     aryInformationToExpose = Array(_
         "Evaluation Timestamp", _
         "Host Name", _
-        "Publisher", _
-        "Software", _
-        "Software Name Cleaned", _
+        "Publisher Name", _
+        "Software Name", _
         "Install Location", _
         "Installation Date", _
         "Size [bytes]", _
-        "Version (major.minor)", _
-        "Full Version Cleaned", _
-        "URL Info About", _
+        "Full Version", _
+        "Other Info", _
         "Registry Key Trunk", _
         "Registry SubKey" _
+    )
+    aryInformationToExposeOtherInfo = Array(_
+        "Publisher Name", _
+        "Software", _
+        "Version Major", _
+        "Version Minor", _
+        "Version Displayed", _
+        "URL Info About" _
     )
     strEntryDisplayName = "DisplayName" 
     strEntryQuietDisplayName = "QuietDisplayName" 
@@ -221,9 +227,9 @@ Function checkSoftware(strComputer, bolWriteHeader, strKey)
             intReturnV = objReg.GetStringValue(HKLM, strKey & strSubkey, strEntryDisplayVersion, strDisplayVersion) 
             intReturnU = objReg.GetStringValue(HKLM, strKey & strSubkey, strEntryURLInfoAbout, strURLInfoAbout) 
             If (intReturnP = 0) Then
-                strPublisher = PublishersHarmonized(strPublisher)
+                strPublisherName = PublishersHarmonized(strPublisher)
             Else
-                strPublisher = "NULL"
+                strPublisherName = "NULL"
             End If
             strSoftwareNameCleaned = CleanStringStartEnd(strDisplayName, " (", ")")
             aryBlackListToRemoveBetweenNumbers = Array("Update") ' to properly clean "Java <No> Update <No>" software name
@@ -260,33 +266,30 @@ Function checkSoftware(strComputer, bolWriteHeader, strKey)
             Else
                 strSizeInBytes = "NULL"
             End If
-            If (intValueVersionMajor >= 0) Then  
-                If (intValueVersionMinor >= 0) Then 
-                    strVersionMajorMinor = CStr(intValueVersionMajor) & "." & CStr(intValueVersionMinor)
-                Else
-                    strVersionMajorMinor = CStr(intValueVersionMajor) & ".0"
-                End If
+            If (intValueVersionMajor > 0) Then
+                intValueVersionMajor = CStr(intValueVersionMajor)
             Else
-                strVersionMajorMinor = "NULL"
+                intValueVersionMajor = "-"
+            End If
+            If (intValueVersionMinor > 0) Then
+                intValueVersionMinor = CStr(intValueVersionMinor)
+            Else
+                intValueVersionMinor = "-"
             End If
             If (intReturnV <> 0) Then
-                strDisplayVersion = "NULL"
+                strDisplayVersion = "-"
                 strDisplayVersionCleaned = "NULL"
             Else
-                strDisplayVersion = Replace(strDisplayVersion, " beta ", ".")
                 ' In some cases DisplayVersion has a date before the version so we're going to take in consideration only the very last group of continuous string splitted by space
-                strDisplayVersionPieces = Split(CStr(strDisplayVersion), " ")
-                For Each strDisplayVersionPieceValue In strDisplayVersionPieces 
-                    strDisplayVersionCleaned = strVersionPrefix & strDisplayVersionPieceValue
+                strDisplayVersionPieces = Split(CStr(Replace(Replace(strDisplayVersion, "a", "."), " beta ", ".")), " ")
+                For Each strDisplayVersionPieceValue In strDisplayVersionPieces
+                    If (IsNumeric(strDisplayVersionPieceValue)) Then
+                        strDisplayVersionCleaned = strVersionPrefix & strDisplayVersionPieceValue
+                    End If
                 Next
-                If (strVersionMajorMinor = "NULL") Then
-                    strDisplayVersion = "NULL"
-                Else
-                    strDisplayVersion = strVersionPrefix & strVersionMajorMinor
-                End If
             End If
-            If ((intReturnU <> 0) Or (Len(Trim(strURLInfoAbout)) = 0)) Then
-                strURLInfoAbout = "NULL"
+            If ((intReturnU <> 0) Or (IsNull(strURLInfoAbout)) Or (Len(Trim(strURLInfoAbout)) = 0)) Then
+                strURLInfoAbout = "-"
             Else
                 If ((Left(strURLInfoAbout, 4) <> "http") And (Left(strURLInfoAbout, 4) = "www.")) Then
                     strURLInfoAbout = "http://" & strURLInfoAbout
@@ -296,26 +299,50 @@ Function checkSoftware(strComputer, bolWriteHeader, strKey)
                 End If
             End If
             strSubkeyPieces = Split(strKey, "\")
+            aryValuesToExposeOtherInfo = Array(_
+                strPublisher, _
+                strDisplayName, _
+                intValueVersionMajor, _
+                intValueVersionMinor, _
+                strDisplayVersion, _
+                strURLInfoAbout _
+            )
+            Select Case LCase(strResultFileType)
+                Case ".csv"
+                    intCounter = 0
+                    For Each crtOtherInfo in aryInformationToExposeOtherInfo
+                        aryJSONinformationCSV(intCounter) = crtOtherInfo & ": " & _
+                            aryValuesToExposeOtherInfo(intCounter)
+                        intCounter = intCounter + 1
+                    Next
+                    strOtherInfo = Join(aryJSONinformationCSV, " | ")
+                Case ".sql"
+                    intCounter = 0
+                    For Each crtOtherInfo in aryInformationToExposeOtherInfo
+                        aryJSONinformationSQL(intCounter) = """" & crtOtherInfo & """: " & _
+                            """" & aryValuesToExposeOtherInfo(intCounter) & """"
+                        intCounter = intCounter + 1
+                    Next
+                    strOtherInfo = "{ " & Join(aryJSONinformationSQL, ", ") & " }"
+            End Select
             aryValuesToExpose = Array(_
                 CurrentDateTime2SqlFormat(), _ 
                 strComputer, _
-                strPublisher, _
-                strDisplayName, _
+                strPublisherName, _
                 strSoftwareNameCleaned, _
                 strInstallLocation , _
                 strDateYMD , _
                 strSizeInBytes, _
-                strDisplayVersion, _
                 strDisplayVersionCleaned, _
-                strURLInfoAbout, _
+                strOtherInfo, _
                 strSubkeyPieces(1), _
                 strSubkey _
             )
             Select Case LCase(strResultFileType)
                 Case ".csv"
-                    ReportFile.writeline Join(aryValuesToExpose, strFieldSeparator)
+                    ReportFile.WriteLine Join(aryValuesToExpose, strFieldSeparator)
                 Case ".sql"
-                    ReportFile.writeline "INSERT INTO `in_windows_software_list` (" & _
+                    ReportFile.WriteLine "INSERT INTO `in_windows_software_list` (" & _
                         BuildInsertOrUpdateSQLstructure(aryInformationToExpose, aryValuesToExpose, "InsertFields") & _
                         ") VALUES(" & _
                         BuildInsertOrUpdateSQLstructure(aryInformationToExpose, aryValuesToExpose, "InsertValues") & _
@@ -325,6 +352,9 @@ Function checkSoftware(strComputer, bolWriteHeader, strKey)
             End Select
         End If 
     Next 
+    If (LCase(strResultFileType) = ".sql") Then
+        ReportFile.WriteLine "INSERT `version_details` (`FullVersion`) SELECT `FullVersion` FROM `in_windows_software_list` WHERE (`HostName` = '" & strComputer & "') AND (`FullVersion` IS NOT NULL) AND (`FullVersion` NOT IN (SELECT `FullVersion` FROM `version_details` GROUP BY `FullVersion`)) GROUP BY `FullVersion`;"
+    End If
 End Function 
 Function CSVfieldNamesIntoSQLfieldName(aryFieldNames)
     strFieldListForMySQLinsert = Join(aryFieldNames, "|")
@@ -389,15 +419,4 @@ Function PublishersHarmonized(strPublisherName)
         PublishersHarmonized = strPublishersHarmonized
     End If
 End Function
-Function checkServerResponse(serverName) 
-    strTarget = serverName 
-    Set objShell = CreateObject("WScript.Shell") 
-    Set objExec = objShell.Exec("ping -n 1 -w 1000 " & strTarget) 
-    strPingResults = LCase(objExec.StdOut.ReadAll) 
-    If (InStr(strPingResults, "reply from") > 0) Then 
-        checkServerResponse = True 
-    Else 
-        checkServerResponse = False 
-    End If 
-End Function 
 '-----------------------------------------------------------------------------------------------------------------------
