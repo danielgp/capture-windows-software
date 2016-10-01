@@ -53,9 +53,10 @@ Else
     Set ReportFile = objFSO.OpenTextFile(strCurDir & "\" & strResultFileName & strResultFileType, ForAppending, True) 
     Do Until SrvListFile.AtEndOfStream 
         strComputer = LCase(SrvListFile.ReadLine) 
-        checkSoftware(strComputer, bolFileHeaderToAdd, "SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\")
+        checkSoftware strComputer, bolFileHeaderToAdd, "SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\"
+        ' if Windows is 64-bit an additional Registry Key has to be analyzed
         If (OsType = "AMD64") Then
-            checkSoftware(strComputer, False, "SOFTWARE\Wow6432Node\Microsoft\Windows\CurrentVersion\Uninstall\")
+            checkSoftware strComputer, False, "SOFTWARE\Wow6432Node\Microsoft\Windows\CurrentVersion\Uninstall\"
         End If
     Loop 
     SrvListFile.Close
