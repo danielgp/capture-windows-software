@@ -42,6 +42,7 @@ Else
     strCurDir = WshShell.CurrentDirectory
     Set SrvListFile = objFSO.OpenTextFile(strCurDir & "\WindowsComputerList.txt", ForReading)
     Do Until SrvListFile.AtEndOfStream
+        strComputer = LCase(SrvListFile.ReadLine)
         Select Case InputResultType
             Case vbYes
                 strResultFileType = ".csv"
@@ -94,8 +95,7 @@ Else
                 objResultDeviceDetails.WriteLine "ALTER TABLE `device_details` AUTO_INCREMENT = 1;"
         End Select
         objResultDeviceDetails.Close
-        Set objResultSoftware = objFSO.OpenTextFile(strCurDir & "\" & strResultFileNameSoftware & strResultFileType, ForAppending, True) 
-        strComputer = LCase(SrvListFile.ReadLine)
+        Set objResultSoftware = objFSO.OpenTextFile(strCurDir & "\" & strResultFileNameSoftware & strResultFileType, ForAppending, True)
         Set objRegistry = GetObject("winmgmts:{impersonationLevel=impersonate}!\\" & strComputer & "\root\default:StdRegProv")
         objRegistry.GetStringValue HKLM, "SYSTEM\CurrentControlSet\Control\Session Manager\Environment", "PROCESSOR_ARCHITECTURE", strOStype
         CheckSoftware strComputer, bolFileSoftwareHeaderToAdd, objResultSoftware, objRegistry, "SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\"
@@ -147,23 +147,23 @@ Function BuildInsertOrUpdateSQLstructure(aryFieldNames, aryFieldValues, strInser
     BuildInsertOrUpdateSQLstructure = Replace(Replace(strUpdateSQLstructure, "'NULL'", "NULL"), "\", "\\")
 End Function
 Function CheckSoftware(strComputer, bolWriteHeader, ReportFile, objReg, strKey) 
-    Dim aryJSONinformationCSV(5)
-    Dim aryJSONinformationSQL(5)
+    Dim aryJSONinformationCSV(7)
+    Dim aryJSONinformationSQL(7)
     aryInformationToExpose = Array(_
         "Evaluation Timestamp", _
         "Host Name", _
         "Publisher Name", _
         "Software Name", _
-        "Install Location", _
-        "Installation Date", _
-        "Size [bytes]", _
         "Full Version", _
+        "Installation Date", _
         "Other Info", _
         "Registry Key Trunk", _
         "Registry SubKey" _
     )
     aryInformationToExposeOtherInfo = Array(_
+        "Install Location", _
         "Publisher Name", _
+        "Size [bytes]", _
         "Software", _
         "Version Major", _
         "Version Minor", _
@@ -208,6 +208,8 @@ Function CheckSoftware(strComputer, bolWriteHeader, ReportFile, objReg, strKey)
             strSoftwareNameCleaned = HarmonizedSoftwareName(strDisplayName)
             If ((intReturnL <> 0) Or (Len(Trim(strInstallLocation)) = 0)) Then
                 strInstallLocation = "NULL"
+            Else
+                strInstallLocation = Replace(strInstallLocation, "\", "\\")
             End If
             If (intReturnD <> 0) Then
                 strDateYMD = "NULL"
@@ -243,11 +245,16 @@ Function CheckSoftware(strComputer, bolWriteHeader, ReportFile, objReg, strKey)
                 strDisplayVersion = "-"
                 strDisplayVersionCleaned = "NULL"
                 ' as LAME software is an just an encoder for MP3 the version seem to require special handling for both FullVersion and Publisher
-                If (strSoftwareNameCleaned = "LAME") Then
-                    aryDisplayName = Split(strDisplayName, " ")
-                    strPublisherName = aryDisplayName(1)
-                    strDisplayVersionCleaned = aryDisplayName(2)
-                End If
+                Select Case strSoftwareNameCleaned
+                    Case "LAME"
+                        aryDisplayName = Split(strDisplayName, " ")
+                        strPublisherName = aryDisplayName(1)
+                        strDisplayVersionCleaned = aryDisplayName(2)
+                    Case "Double Commander"
+                        strPublisherName = "alexx2000"
+                        aryDisplayName = Split(strDisplayName, " ")
+                        strDisplayVersionCleaned = aryDisplayName(2)
+                End Select
             Else
                 ' In some cases DisplayVersion has a date before the version so we're going to take in consideration only the very last group of continuous string splitted by space
                 strDisplayVersionPieces = Split(CStr(Replace(Replace(strDisplayVersion, "a", "."), " beta ", ".")), " ")
@@ -269,7 +276,9 @@ Function CheckSoftware(strComputer, bolWriteHeader, ReportFile, objReg, strKey)
             End If
             strSubkeyPieces = Split(strKey, "\")
             aryValuesToExposeOtherInfo = Array(_
+                strInstallLocation, _
                 strPublisher, _
+                strSizeInBytes, _
                 strDisplayName, _
                 intValueVersionMajor, _
                 intValueVersionMinor, _
@@ -299,10 +308,8 @@ Function CheckSoftware(strComputer, bolWriteHeader, ReportFile, objReg, strKey)
                 strComputer, _
                 strPublisherName, _
                 strSoftwareNameCleaned, _
-                strInstallLocation , _
-                strDateYMD , _
-                strSizeInBytes, _
                 strDisplayVersionCleaned, _
+                strDateYMD , _
                 strOtherInfo, _
                 strSubkeyPieces(1), _
                 strSubkey _
@@ -367,12 +374,12 @@ Function CleanStringWithBlacklistArray(strFullStringToClean, aryBlackList, strSt
     CleanStringWithBlacklistArray = Trim(strCleanedString)
 End Function
 Function CleanStringBeforeOrAfterNumber(strFullStringToClean, strBeforeOrAfter, aryBlackList, strStringToReplaceWith)
-    ' break entire string into pieces with space as separator
-    aryFullStringToClean = Split(strFullStringToClean, " ")
-    strCleanedString = ""
     intPieceCounter = 0
-    intLastPieceNumber = UBound(aryFullStringToClean)
-    For Each strBlackListPiece In aryBlackList 
+    For Each strBlackListPiece In aryBlackList
+        ' break entire string into pieces with space as separator
+        aryFullStringToClean = Split(strFullStringToClean, " ")
+        intLastPieceNumber = UBound(aryFullStringToClean)
+        strCleanedString = ""
         For Each strCurrentPiece In aryFullStringToClean 
             ' first or last piece does not need any cleaning as cannot be followed by a numbers or anything else
             If ((intPieceCounter = 0) Or (intPieceCounter = intLastPieceNumber)) Then
@@ -394,6 +401,7 @@ Function CleanStringBeforeOrAfterNumber(strFullStringToClean, strBeforeOrAfter, 
             End If
             If (bolCurrentPieceToKeep) Then
                 strCleanedString = Trim(strCleanedString & " " & strCurrentPiece)
+                strFullStringToClean = strCleanedString
             End If
             intPieceCounter = intPieceCounter + 1
         Next
@@ -452,20 +460,20 @@ Function HarmonizedPublisher(strPublisherName)
     End If
 End Function
 Function HarmonizedSoftwareName(strSoftwareName)
-    Dim strSoftwareNameCleaned String
-    strSoftwareNameCleaned = CleanStringStartEnd(strDisplayName, " (", ")")
+    Dim strSoftwareNameWIP
+    strSoftwareNameWIP = CleanStringStartEnd(strSoftwareName, " (", ")")
     aryBlackListToRemove = Array("Update") ' to properly clean "Java <No> Update <No>" software name
-    strSoftwareNameCleaned = CleanStringBeforeOrAfterNumber(strSoftwareNameCleaned, "Before", aryBlackListToRemove, "")
-    aryBlackListToRemove = Array("R2", "LAME") ' to properly clean "Microsoft SQL Server <No> R2 Native Client" software name
-    strSoftwareNameCleaned = CleanStringBeforeOrAfterNumber(strSoftwareNameCleaned, "After", aryBlackListToRemove, "")
+    strSoftwareNameWIP = CleanStringBeforeOrAfterNumber(strSoftwareNameWIP, "Before", aryBlackListToRemove, "")
+    aryBlackListToRemoveAfter = Array("R2", "LAME") ' to properly clean "Microsoft SQL Server <No> R2 Native Client" software name
+    strSoftwareNameWIP = CleanStringBeforeOrAfterNumber(strSoftwareNameWIP, "After", aryBlackListToRemoveAfter, "")
     aryBlackListToClean = Array("(x86_x64)", "(x64)", "(x86)", "_WHQL", "_X64", "_X86", "64-bit", "beta", "en-us", "for x64", "for x86", "SP1", "SP2", "SP3", "version", "VS2005", "VS2008", "VS2010", "VS2012", "VS2015", "x64", "x86")
-    strSoftwareNameCleaned = CleanStringWithBlacklistArray(strSoftwareNameCleaned, aryBlackListToClean, "")
+    strSoftwareNameWIP = CleanStringWithBlacklistArray(strSoftwareNameWIP, aryBlackListToClean, "")
     aryBlackListToReplaceWithSpace = Array(" -")
-    strSoftwareNameCleaned = CleanStringWithBlacklistArray(strSoftwareNameCleaned, aryBlackListToReplaceWithSpace, " ")
+    strSoftwareNameWIP = CleanStringWithBlacklistArray(strSoftwareNameWIP, aryBlackListToReplaceWithSpace, " ")
     aryBlackListToReplaceWithOriginal = Array("(R)")
-    strSoftwareNameCleaned = CleanStringWithBlacklistArray(strSoftwareNameCleaned, aryBlackListToReplaceWithOriginal, Chr(174))
-    strSoftwareNameCleaned = CleanStringOfNumericPiece(strSoftwareNameCleaned)
-    HarmonizedSoftwareName = strSoftwareNameCleaned
+    strSoftwareNameWIP = CleanStringWithBlacklistArray(strSoftwareNameWIP, aryBlackListToReplaceWithOriginal, Chr(174))
+    strSoftwareNameWIP = CleanStringOfNumericPiece(strSoftwareNameWIP)
+    HarmonizedSoftwareName = strSoftwareNameWIP
 End Function
 Function InArray(Haystack, GivenArray)
     Dim bReturn
