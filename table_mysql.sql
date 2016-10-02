@@ -1,3 +1,14 @@
+CREATE TABLE IF NOT EXISTS `device_details` (
+  `DeviceId` SMALLINT(5) UNSIGNED NOT NULL AUTO_INCREMENT,
+  `DeviceName` VARCHAR(60) NULL,
+  `DeviceOSdetails` JSON NULL DEFAULT NULL,
+  `DeviceHardwareDetails` JSON NULL DEFAULT NULL,
+  `FirstSeen` DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+  `LastSeen` DATETIME(6) DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP(6),
+  PRIMARY KEY (`DeviceId`),
+  UNIQUE INDEX `ndx_dd_DeviceName_UNIQUE` (`DeviceName` ASC)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
 CREATE TABLE `in_windows_software_list` (
   `EvaluationTimestamp` datetime NOT NULL,
   `HostName` varchar(64) NOT NULL,
@@ -18,6 +29,27 @@ CREATE TABLE `in_windows_software_list` (
   KEY `InstallationDate` (`InstallationDate`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
+CREATE TABLE IF NOT EXISTS `publisher_details` (
+  `PublisherId` TINYINT(3) UNSIGNED NOT NULL AUTO_INCREMENT,
+  `PublisherName` VARCHAR(45) NOT NULL,
+  `PublisheMainWebsite` VARCHAR(250) NULL DEFAULT NULL,
+  `FirstSeen` DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+  `LastSeen` DATETIME(6) DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP(6),
+  PRIMARY KEY (`PublisherId`),
+  UNIQUE INDEX `ndx_pd_PublisherName_UNIQUE` (`PublisherName` ASC)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+CREATE TABLE IF NOT EXISTS `software_details` (
+  `SoftwareId` SMALLINT(5) UNSIGNED NOT NULL AUTO_INCREMENT,
+  `SoftwareName` VARCHAR(45) NOT NULL,
+  `SoftwareDescription` TEXT NULL DEFAULT NULL,
+  `SoftwareMainWebsite` VARCHAR(250) NULL DEFAULT NULL,
+  `FirstSeen` DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+  `LastSeen` DATETIME(6) DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP(6),
+  PRIMARY KEY (`SoftwareId`),
+  UNIQUE INDEX `ndx_sd_SoftwareName_UNIQUE` (`SoftwareName` ASC)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
 CREATE TABLE `version_details` (
     `FullVersion` varchar(30) NOT NULL,
     `FullVersionParts` JSON GENERATED ALWAYS AS (CONCAT('{ "Major": ', (CASE WHEN (`FullVersion` IS NULL) THEN NULL ELSE CAST(REPLACE((CASE WHEN (LOCATE(".", `FullVersion`) = 0) THEN `FullVersion` ELSE SUBSTRING_INDEX(`FullVersion`, '.', 1) END), "v", "") AS UNSIGNED) END), ', "Minor": ', (CASE WHEN (`FullVersion` IS NULL) THEN 0 ELSE CAST((CASE WHEN (LOCATE(".", `FullVersion`) = 0) THEN 0 ELSE REPLACE(SUBSTRING_INDEX(`FullVersion`, '.', 2), CONCAT(SUBSTRING_INDEX(`FullVersion`, '.', 1), '.'), '') END) AS UNSIGNED) END), ', "Build": ',(CASE WHEN (`FullVersion` IS NULL) THEN 0 ELSE CAST((CASE WHEN (LOCATE(".", `FullVersion`) = 0) THEN 0 WHEN ((CHAR_LENGTH(`FullVersion`) - CHAR_LENGTH(REPLACE(`FullVersion`, '.', ''))) < 2) THEN 0 ELSE REPLACE(SUBSTRING_INDEX(`FullVersion`, '.', 3), CONCAT(SUBSTRING_INDEX(`FullVersion`, '.', 2), '.'), '') END) AS UNSIGNED) END), ', "Revision": ', (CASE WHEN (`FullVersion` IS NULL) THEN 0 ELSE CAST((CASE WHEN (LOCATE(".", `FullVersion`) = 0) THEN 0 WHEN ((CHAR_LENGTH(`FullVersion`) - CHAR_LENGTH(REPLACE(`FullVersion`, '.', ''))) < 3) THEN 0 ELSE REPLACE(SUBSTRING_INDEX(`FullVersion`, '.', 4), CONCAT(SUBSTRING_INDEX(`FullVersion`, '.', 3), '.'), '') END) AS UNSIGNED) END), ' }')) STORED,
@@ -25,14 +57,3 @@ CREATE TABLE `version_details` (
     PRIMARY KEY(`FullVersion`),
     KEY `FullVersionNumeric` (`FullVersionNumeric`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
-
-CREATE TABLE IF NOT EXISTS `software_monitoring`.`device_details` (
-  `DeviceId` SMALLINT(5) UNSIGNED NOT NULL AUTO_INCREMENT,
-  `DeviceName` VARCHAR(60) NULL,
-  `DeviceOSdetails` JSON NULL DEFAULT NULL,
-  `DeviceHardwareDetails` JSON NULL DEFAULT NULL,
-  `FirstSeen` DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
-  `LastSeen` DATETIME(6) DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP(6),
-  PRIMARY KEY (`DeviceId`),
-  UNIQUE INDEX `ndx_dd_DeviceName_UNIQUE` (`DeviceName` ASC)
-) ENGINE = InnoDB DEFAULT CHARSET=utf8;

@@ -45,24 +45,19 @@ Else
         Select Case InputResultType
             Case vbYes
                 strResultFileType = ".csv"
-                If (objFSO.FileExists(strCurDir & "\" & strResultFileNameSoftware & strResultFileType)) Then
-                    bolFileHeaderToAdd = False
+                If (objFSO.FileExists(strCurDir & "\" & strResultFileNameDevice & strResultFileType)) Then
+                    bolFileDeviceHeaderToAdd = False
                 Else
-                    bolFileHeaderToAdd = True
+                    bolFileDeviceHeaderToAdd = True
+                End If
+                If (objFSO.FileExists(strCurDir & "\" & strResultFileNameSoftware & strResultFileType)) Then
+                    bolFileSoftwareHeaderToAdd = False
+                Else
+                    bolFileSoftwareHeaderToAdd = True
                 End If
             Case vbNo
                 strResultFileType = ".sql"
         End Select
-        Set objResultSoftware = objFSO.OpenTextFile(strCurDir & "\" & strResultFileNameSoftware & strResultFileType, ForAppending, True) 
-        strComputer = LCase(SrvListFile.ReadLine)
-        Set objRegistry = GetObject("winmgmts:{impersonationLevel=impersonate}!\\" & strComputer & "\root\default:StdRegProv")
-        objRegistry.GetStringValue HKLM, "SYSTEM\CurrentControlSet\Control\Session Manager\Environment", "PROCESSOR_ARCHITECTURE", strOStype
-        CheckSoftware strComputer, bolFileHeaderToAdd, objResultSoftware, objRegistry, "SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\"
-        ' if Windows is 64-bit an additional Registry Key has to be analyzed
-        If (strOStype = "AMD64") Then
-            CheckSoftware strComputer, False, objResultSoftware, objRegistry, "SOFTWARE\Wow6432Node\Microsoft\Windows\CurrentVersion\Uninstall\"
-        End If
-        objResultSoftware.Close
         Set objWMIService = GetObject("winmgmts:{impersonationLevel=impersonate}!\\" & strComputer & "\root\cimv2")
         strDetailsCS = Split(ReadWMI__Win32_ComputerSystem(objWMIService, strComputer, strResultFileType, strFieldSeparator), "||")
         strDetailsCPU = Split(ReadWMI__Win32_Processor(objWMIService, strComputer, strResultFileType, strFieldSeparator), "||")
@@ -71,7 +66,7 @@ Else
         Set objResultDeviceDetails = objFSO.OpenTextFile(strCurDir & "\" & strResultFileNameDeviceDetails & strResultFileType, ForAppending, True) 
         Select Case LCase(strResultFileType)
             Case ".csv"
-                If (bolFileHeaderToAdd) Then
+                If (bolFileDeviceHeaderToAdd) Then
                     objResultDeviceDetails.WriteLine strDetailsCS(0) & _
                         strFieldSeparator & strDetailsCPU(0) & _
                         strFieldSeparator & strDetailsBaseBoard(0) & _
@@ -99,6 +94,17 @@ Else
                 objResultDeviceDetails.WriteLine "ALTER TABLE `device_details` AUTO_INCREMENT = 1;"
         End Select
         objResultDeviceDetails.Close
+        Set objResultSoftware = objFSO.OpenTextFile(strCurDir & "\" & strResultFileNameSoftware & strResultFileType, ForAppending, True) 
+        strComputer = LCase(SrvListFile.ReadLine)
+        Set objRegistry = GetObject("winmgmts:{impersonationLevel=impersonate}!\\" & strComputer & "\root\default:StdRegProv")
+        objRegistry.GetStringValue HKLM, "SYSTEM\CurrentControlSet\Control\Session Manager\Environment", "PROCESSOR_ARCHITECTURE", strOStype
+        CheckSoftware strComputer, bolFileSoftwareHeaderToAdd, objResultSoftware, objRegistry, "SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\"
+        ' if Windows is 64-bit an additional Registry Key has to be analyzed
+        If (strOStype = "AMD64") Then
+            CheckSoftware strComputer, False, objResultSoftware, objRegistry, "SOFTWARE\Wow6432Node\Microsoft\Windows\CurrentVersion\Uninstall\"
+        End If
+        ApplySoftwareNormalization strComputer, strResultFileType, objResultSoftware
+        objResultSoftware.Close
     Loop
     SrvListFile.Close
     EndTime = Timer()
@@ -109,6 +115,13 @@ Else
         vbNewLine & "Thank you for using this script, hope to see you back soon!", vbOKOnly + vbInformation, "Script end"
 End If
 '-----------------------------------------------------------------------------------------------------------------------
+Function ApplySoftwareNormalization(strComputer, strResultFileType, ReportFile)
+    If (LCase(strResultFileType) = ".sql") Then
+        ReportFile.WriteLine "INSERT `publisher_details` (`PublisherName`) SELECT `PublisherName` FROM `in_windows_software_list` WHERE (`HostName` = '" & strComputer & "') AND (`PublisherName` IS NOT NULL) AND (`PublisherName` NOT IN (SELECT `PublisherName` FROM `publisher_details` GROUP BY `PublisherName`)) GROUP BY `PublisherName`;"
+        ReportFile.WriteLine "INSERT `software_details` (`SoftwareName`) SELECT `SoftwareName` FROM `in_windows_software_list` WHERE (`HostName` = '" & strComputer & "') AND (`SoftwareName` IS NOT NULL) AND (`SoftwareName` NOT IN (SELECT `SoftwareName` FROM `software_details` GROUP BY `SoftwareName`)) GROUP BY `SoftwareName`;"
+        ReportFile.WriteLine "INSERT `version_details` (`FullVersion`) SELECT `FullVersion` FROM `in_windows_software_list` WHERE (`HostName` = '" & strComputer & "') AND (`FullVersion` IS NOT NULL) AND (`FullVersion` NOT IN (SELECT `FullVersion` FROM `version_details` GROUP BY `FullVersion`)) GROUP BY `FullVersion`;"
+    End If
+End Function
 Function BuildInsertOrUpdateSQLstructure(aryFieldNames, aryFieldValues, strInsertOrUpdate)
     Counter = 0
     strUpdateSQLstructure = ""
@@ -312,10 +325,7 @@ Function CheckSoftware(strComputer, bolWriteHeader, ReportFile, objReg, strKey)
                         ";"
             End Select
         End If 
-    Next 
-    If (LCase(strResultFileType) = ".sql") Then
-        ReportFile.WriteLine "INSERT `version_details` (`FullVersion`) SELECT `FullVersion` FROM `in_windows_software_list` WHERE (`HostName` = '" & strComputer & "') AND (`FullVersion` IS NOT NULL) AND (`FullVersion` NOT IN (SELECT `FullVersion` FROM `version_details` GROUP BY `FullVersion`)) GROUP BY `FullVersion`;"
-    End If
+    Next
 End Function
 Function CleanStringOfNumericPiece(strFullStringToClean)
     ' break entire string into pieces with space as separator
