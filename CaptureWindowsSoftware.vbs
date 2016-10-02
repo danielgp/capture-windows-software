@@ -201,22 +201,11 @@ Function CheckSoftware(strComputer, bolWriteHeader, ReportFile, objReg, strKey)
             intReturnV = objReg.GetStringValue(HKLM, strKey & strSubkey, strEntryDisplayVersion, strDisplayVersion) 
             intReturnU = objReg.GetStringValue(HKLM, strKey & strSubkey, strEntryURLInfoAbout, strURLInfoAbout) 
             If (intReturnP = 0) Then
-                strPublisherName = PublishersHarmonized(strPublisher)
+                strPublisherName = HarmonizedPublisher(strPublisher)
             Else
                 strPublisherName = "NULL"
             End If
-            strSoftwareNameCleaned = CleanStringStartEnd(strDisplayName, " (", ")")
-            aryBlackListToRemoveBetweenNumbers = Array("Update") ' to properly clean "Java <No> Update <No>" software name
-            strSoftwareNameCleaned = CleanStringBeforeOrAfterNumber(strSoftwareNameCleaned, "Before", aryBlackListToRemoveBetweenNumbers, "")
-            aryBlackListToRemoveBetweenNumbers = Array("R2") ' to properly clean "Microsoft SQL Server <No> R2 Native Client" software name
-            strSoftwareNameCleaned = CleanStringBeforeOrAfterNumber(strSoftwareNameCleaned, "After", aryBlackListToRemoveBetweenNumbers, "")
-            aryBlackListToClean = Array("(x86_x64)", "(x64)", "(x86)", "_WHQL", "_X64", "_X86", "64-bit", "beta", "en-us", "for x64", "for x86", "SP1", "SP2", "SP3", "version", "VS2005", "x64", "x86")
-            strSoftwareNameCleaned = CleanStringWithBlacklistArray(strSoftwareNameCleaned, aryBlackListToClean, "")
-            aryBlackListToReplaceWithSpace = Array(" -")
-            strSoftwareNameCleaned = CleanStringWithBlacklistArray(strSoftwareNameCleaned, aryBlackListToReplaceWithSpace, " ")
-            aryBlackListToReplaceWithOriginal = Array("(R)")
-            strSoftwareNameCleaned = CleanStringWithBlacklistArray(strSoftwareNameCleaned, aryBlackListToReplaceWithOriginal, Chr(174))
-            strSoftwareNameCleaned = CleanStringOfNumericPiece(strSoftwareNameCleaned)
+            strSoftwareNameCleaned = HarmonizedSoftwareName(strDisplayName)
             If ((intReturnL <> 0) Or (Len(Trim(strInstallLocation)) = 0)) Then
                 strInstallLocation = "NULL"
             End If
@@ -422,6 +411,54 @@ Function CurrentDateToSqlFormat()
     CurrentDateToSqlFormat = DatePart("yyyy", Now()) & _
         "-" & NumberWithTwoDigits(DatePart("m", Now())) & _
         "-" & NumberWithTwoDigits(DatePart("d", Now()))
+End Function
+Function HarmonizedPublisher(strPublisherName)
+    aryPublishersTemplate = Array(_
+        Array("Dell", "Dell Inc."), _
+        Array("Dell Packaging Team", "Dell Inc."), _
+        Array("Dell Products, LP", "Dell Inc."), _
+        Array("Dell SecureWorks", "Dell Inc."), _
+        Array("Google", "Google Inc."), _
+        Array("Informatica", "Informatica Corporation"), _
+        Array("Informatica Co.", "Informatica Corporation"), _
+        Array("Intel", "Intel Corporation"), _
+        Array("Intel(R) Corporation", "Intel Corporation"), _
+        Array("Lumension", "Lumension Security, Inc."), _
+        Array("McAfee", "McAfee, Inc."), _
+        Array("Microsoft", "Microsoft Corporation"), _
+        Array("Oracle", "Oracle Corporation"), _
+        Array("Qualcomm Atheros", "Qualcomm Atheros Communications"), _
+        Array("SAP", "SAP AG"), _
+        Array("SAP SE", "SAP AG"), _
+        Array("Symantec Corp.", "Symantec Corporation") _
+    )
+    strPublishersHarmonized = ""
+    For Each strCurrentPublisherHarmonized In aryPublishersTemplate 
+        If (strPublisherName = strCurrentPublisherHarmonized(0)) Then
+            strPublishersHarmonized = strCurrentPublisherHarmonized(1)
+        End If
+    Next
+    If (strPublishersHarmonized = "") Then
+        HarmonizedPublisher = strPublisherName
+    Else
+        HarmonizedPublisher = strPublishersHarmonized
+    End If
+End Function
+Function HarmonizedSoftwareName(strSoftwareName)
+    Dim strSoftwareNameCleaned String
+    strSoftwareNameCleaned = CleanStringStartEnd(strDisplayName, " (", ")")
+    aryBlackListToRemoveBetweenNumbers = Array("Update") ' to properly clean "Java <No> Update <No>" software name
+    strSoftwareNameCleaned = CleanStringBeforeOrAfterNumber(strSoftwareNameCleaned, "Before", aryBlackListToRemoveBetweenNumbers, "")
+    aryBlackListToRemoveBetweenNumbers = Array("R2") ' to properly clean "Microsoft SQL Server <No> R2 Native Client" software name
+    strSoftwareNameCleaned = CleanStringBeforeOrAfterNumber(strSoftwareNameCleaned, "After", aryBlackListToRemoveBetweenNumbers, "")
+    aryBlackListToClean = Array("(x86_x64)", "(x64)", "(x86)", "_WHQL", "_X64", "_X86", "64-bit", "beta", "en-us", "for x64", "for x86", "SP1", "SP2", "SP3", "version", "VS2005", "VS2008", "VS2010", "VS2012", "VS2015", "x64", "x86")
+    strSoftwareNameCleaned = CleanStringWithBlacklistArray(strSoftwareNameCleaned, aryBlackListToClean, "")
+    aryBlackListToReplaceWithSpace = Array(" -")
+    strSoftwareNameCleaned = CleanStringWithBlacklistArray(strSoftwareNameCleaned, aryBlackListToReplaceWithSpace, " ")
+    aryBlackListToReplaceWithOriginal = Array("(R)")
+    strSoftwareNameCleaned = CleanStringWithBlacklistArray(strSoftwareNameCleaned, aryBlackListToReplaceWithOriginal, Chr(174))
+    strSoftwareNameCleaned = CleanStringOfNumericPiece(strSoftwareNameCleaned)
+    HarmonizedSoftwareName = strSoftwareNameCleaned
 End Function
 Function InArray(Haystack, GivenArray)
     Dim bReturn
@@ -789,38 +826,6 @@ Function NumberWithTwoDigits(InputNo)
         NumberWithTwoDigits = "0" & InputNo
     Else
         NumberWithTwoDigits = InputNo
-    End If
-End Function
-Function PublishersHarmonized(strPublisherName)
-    aryPublishersTemplate = Array(_
-        Array("Dell", "Dell Inc."), _
-        Array("Dell Packaging Team", "Dell Inc."), _
-        Array("Dell Products, LP", "Dell Inc."), _
-        Array("Dell SecureWorks", "Dell Inc."), _
-        Array("Google", "Google Inc."), _
-        Array("Informatica", "Informatica Corporation"), _
-        Array("Informatica Co.", "Informatica Corporation"), _
-        Array("Intel", "Intel Corporation"), _
-        Array("Intel(R) Corporation", "Intel Corporation"), _
-        Array("Lumension", "Lumension Security, Inc."), _
-        Array("McAfee", "McAfee, Inc."), _
-        Array("Microsoft", "Microsoft Corporation"), _
-        Array("Oracle", "Oracle Corporation"), _
-        Array("Qualcomm Atheros", "Qualcomm Atheros Communications"), _
-        Array("SAP", "SAP AG"), _
-        Array("SAP SE", "SAP AG"), _
-        Array("Symantec Corp.", "Symantec Corporation") _
-    )
-    strPublishersHarmonized = ""
-    For Each strCurrentPublisherHarmonized In aryPublishersTemplate 
-        If (strPublisherName = strCurrentPublisherHarmonized(0)) Then
-            strPublishersHarmonized = strCurrentPublisherHarmonized(1)
-        End If
-    Next
-    If (strPublishersHarmonized = "") Then
-        PublishersHarmonized = strPublisherName
-    Else
-        PublishersHarmonized = strPublishersHarmonized
     End If
 End Function
 Function ReadWMI__Win32_BaseBoard(objWMIService, strComputer, strResultFileType, strFieldSeparator)
