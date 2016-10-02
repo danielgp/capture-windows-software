@@ -447,10 +447,10 @@ End Function
 Function HarmonizedSoftwareName(strSoftwareName)
     Dim strSoftwareNameCleaned String
     strSoftwareNameCleaned = CleanStringStartEnd(strDisplayName, " (", ")")
-    aryBlackListToRemoveBetweenNumbers = Array("Update") ' to properly clean "Java <No> Update <No>" software name
-    strSoftwareNameCleaned = CleanStringBeforeOrAfterNumber(strSoftwareNameCleaned, "Before", aryBlackListToRemoveBetweenNumbers, "")
-    aryBlackListToRemoveBetweenNumbers = Array("R2") ' to properly clean "Microsoft SQL Server <No> R2 Native Client" software name
-    strSoftwareNameCleaned = CleanStringBeforeOrAfterNumber(strSoftwareNameCleaned, "After", aryBlackListToRemoveBetweenNumbers, "")
+    aryBlackListToRemove = Array("Update") ' to properly clean "Java <No> Update <No>" software name
+    strSoftwareNameCleaned = CleanStringBeforeOrAfterNumber(strSoftwareNameCleaned, "Before", aryBlackListToRemove, "")
+    aryBlackListToRemove = Array("R2", "LAME") ' to properly clean "Microsoft SQL Server <No> R2 Native Client" software name
+    strSoftwareNameCleaned = CleanStringBeforeOrAfterNumber(strSoftwareNameCleaned, "After", aryBlackListToRemove, "")
     aryBlackListToClean = Array("(x86_x64)", "(x64)", "(x86)", "_WHQL", "_X64", "_X86", "64-bit", "beta", "en-us", "for x64", "for x86", "SP1", "SP2", "SP3", "version", "VS2005", "VS2008", "VS2010", "VS2012", "VS2015", "x64", "x86")
     strSoftwareNameCleaned = CleanStringWithBlacklistArray(strSoftwareNameCleaned, aryBlackListToClean, "")
     aryBlackListToReplaceWithSpace = Array(" -")
