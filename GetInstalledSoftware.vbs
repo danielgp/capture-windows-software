@@ -53,10 +53,10 @@ Else
     Set ReportFile = objFSO.OpenTextFile(strCurDir & "\" & strResultFileName & strResultFileType, ForAppending, True) 
     Do Until SrvListFile.AtEndOfStream 
         strComputer = LCase(SrvListFile.ReadLine) 
-        checkSoftware strComputer, bolFileHeaderToAdd, "SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\"
+        CheckSoftware strComputer, bolFileHeaderToAdd, "SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\"
         ' if Windows is 64-bit an additional Registry Key has to be analyzed
         If (OsType = "AMD64") Then
-            checkSoftware strComputer, False, "SOFTWARE\Wow6432Node\Microsoft\Windows\CurrentVersion\Uninstall\"
+            CheckSoftware strComputer, False, "SOFTWARE\Wow6432Node\Microsoft\Windows\CurrentVersion\Uninstall\"
         End If
     Loop 
     SrvListFile.Close
@@ -65,113 +65,31 @@ Else
     MsgBox "This script has completed processing from Windows Registry entire list of installed software under current Windows installation (in just " & FormatNumber(EndTime - StartTime, 0) & " seconds), please consult generated file [" & strCurDir & "\" & strResultFileName & strResultFileType & "]." & vbNewLine & vbNewLine & "Thank you for using this script, hope to see you back soon!", vbOKOnly + vbInformation, "Script end"
 End If
 '-----------------------------------------------------------------------------------------------------------------------
-Function Number2Digits(InputNo)
-    If (InputNo < 10) Then
-        Number2Digits = "0" & InputNo
-    Else
-        Number2Digits = InputNo
-    End If
-End Function
-Function CurrentDate2SqlFormat()
-    CurrentDate2SqlFormat = DatePart("yyyy", Now()) & _
-        "-" & Number2Digits(DatePart("m", Now())) & _
-        "-" & Number2Digits(DatePart("d", Now()))
-End Function
-Function CurrentDateTime2SqlFormat()
-    CurrentDateTime2SqlFormat = CurrentDate2SqlFormat() & _
-        " " & Number2Digits(DatePart("h", Now())) & _
-        ":" & Number2Digits(DatePart("n", Now())) & _
-        ":" & Number2Digits(DatePart("s", Now()))
-End Function
-Function CleanStringStartEnd(strFullStringToClean, strStartCleanSubString, strEndCleanSubString)
-    intStartCleanPosition = InStr(1, strFullStringToClean, strStartCleanSubString, vbTextCompare)
-    intEndCleanPosition = InStr(1, strFullStringToClean, strEndCleanSubString, vbTextCompare)
-    If ((intStartCleanPosition > 0) And (intEndCleanPosition > 0)) Then
-        strCleanedString = Trim(Replace(Left(strFullStringToClean, (intStartCleanPosition - 1)) & " " & Right(strFullStringToClean, (Len(strFullStringToClean) - intEndCleanPosition)), "  ", " "))
-        strCleanedString = CleanStringStartEnd(strCleanedString, strStartCleanSubString, strEndCleanSubString) ' to ensure if more then 1 occurence of identifiers is being taken care of
-    Else
-        strCleanedString = strFullStringToClean
-    End If
-    CleanStringStartEnd = strCleanedString
-End Function
-Function CleanStringWithBlacklistArray(strFullStringToClean, aryBlackList, strStringToReplaceWith)
-    strCleanedString = strFullStringToClean
-    For Each strBlackListPiece In aryBlackList 
-        strCleanedString = Replace(Replace(strCleanedString, strBlackListPiece, strStringToReplaceWith), "  ", " ")
-    Next
-    CleanStringWithBlacklistArray = Trim(strCleanedString)
-End Function
-Function InArray(Haystack, GivenArray)
-    Dim bReturn
-    bReturn = False
-    For Each elmnt In GivenArray
-        If (cStr(Haystack) = elmnt) Then 
-            bReturn = True
-        End If
-    Next
-    InArray = bReturn
-End Function
-Function CleanStringOfNumericPiece(strFullStringToClean)
-    ' break entire string into pieces with space as separator
-    aryFullStringToClean = Split(strFullStringToClean, " ")
-    strCleanedString = ""
-    For Each strCurrentPiece In aryFullStringToClean 
-        ' if strCurrentPiece is amoung whitelisted values, does not have to be removed
-        If (InArray(strCurrentPiece, Array("360", "365"))) Then
-            bolCurrentPieceToKeep = True
-        Else
-            intFirstCharacterCodeOfCurrentPiece = Asc(Left(strCurrentPiece, 1))
-            intLastCharacterCodeOfCurrentPiece = Asc(Right(strCurrentPiece, 1))
-            bolCurrentPieceToKeep = True
-            ' test if 1st character is numeric
-            If ((intFirstCharacterCodeOfCurrentPiece >= Asc("0")) And (intFirstCharacterCodeOfCurrentPiece <= Asc("9"))) Then
-                ' test if last character is numeric
-                If ((intLastCharacterCodeOfCurrentPiece >= Asc("0")) And (intLastCharacterCodeOfCurrentPiece <= Asc("9"))) Then
-                    bolCurrentPieceToKeep = False
+Function BuildInsertOrUpdateSQLstructure(aryFieldNames, aryFieldValues, strInsertOrUpdate)
+    Counter = 0
+    strUpdateSQLstructure = ""
+    Select Case strInsertOrUpdate
+        Case "InsertFields"
+            aryFieldValuesMySQL = Split(CSVfieldNamesIntoSQLfieldName(aryFieldNames), "|")
+            strUpdateSQLstructure = "`" & Join(aryFieldValuesMySQL, "`, `") & "`"
+        Case "InsertValues"
+            strUpdateSQLstructure = "'" & Join(aryFieldValues, "', '") & "'"
+        Case "Update"
+            aryFieldValuesMySQL = Split(CSVfieldNamesIntoSQLfieldName(aryFieldNames), "|")
+            intFieldNumbered = UBound(aryFieldValuesMySQL)
+            For Each strFieldName In aryFieldValuesMySQL 
+                If (Counter <= (intFieldNumbered - 2)) Then 'last 2 fields are part of PK so will not be used
+                    If (Counter > 0) Then
+                        strUpdateSQLstructure = strUpdateSQLstructure & ", "
+                    End If
+                    strUpdateSQLstructure = strUpdateSQLstructure & "`" & strFieldName & "` = '" & aryFieldValues(Counter) & "'"
                 End If
-            End If
-        End If
-        If (bolCurrentPieceToKeep) Then
-            strCleanedString = Trim(strCleanedString & " " & strCurrentPiece)
-        End If
-    Next
-    CleanStringOfNumericPiece = strCleanedString
+                Counter = Counter + 1
+            Next
+    End Select
+    BuildInsertOrUpdateSQLstructure = Replace(Replace(strUpdateSQLstructure, "'NULL'", "NULL"), "\", "\\")
 End Function
-Function CleanStringBeforeOrAfterNumber(strFullStringToClean, strBeforeOrAfter, aryBlackList, strStringToReplaceWith)
-    ' break entire string into pieces with space as separator
-    aryFullStringToClean = Split(strFullStringToClean, " ")
-    strCleanedString = ""
-    intPieceCounter = 0
-    intLastPieceNumber = UBound(aryFullStringToClean)
-    For Each strBlackListPiece In aryBlackList 
-        For Each strCurrentPiece In aryFullStringToClean 
-            ' first or last piece does not need any cleaning as cannot be followed by a numbers or anything else
-            If ((intPieceCounter = 0) Or (intPieceCounter = intLastPieceNumber)) Then
-                bolCurrentPieceToKeep = True
-            Else
-                bolCurrentPieceToKeep = True
-                If (strCurrentPiece = strBlackListPiece) Then
-                    Select Case strBeforeOrAfter
-                        Case "After"
-                            If (IsNumeric(aryFullStringToClean((intPieceCounter - 1)))) Then
-                                bolCurrentPieceToKeep = False
-                            End If
-                        Case "Before"
-                            If (IsNumeric(aryFullStringToClean((intPieceCounter + 1)))) Then
-                                bolCurrentPieceToKeep = False
-                            End If
-                    End Select
-                End If
-            End If
-            If (bolCurrentPieceToKeep) Then
-                strCleanedString = Trim(strCleanedString & " " & strCurrentPiece)
-            End If
-            intPieceCounter = intPieceCounter + 1
-        Next
-    Next
-    CleanStringBeforeOrAfterNumber = strCleanedString
-End Function
-Function checkSoftware(strComputer, bolWriteHeader, strKey) 
+Function CheckSoftware(strComputer, bolWriteHeader, strKey) 
     Dim aryJSONinformationCSV(5)
     Dim aryJSONinformationSQL(5)
     Const HKLM = &H80000002 'HKEY_LOCAL_MACHINE
@@ -356,7 +274,85 @@ Function checkSoftware(strComputer, bolWriteHeader, strKey)
     If (LCase(strResultFileType) = ".sql") Then
         ReportFile.WriteLine "INSERT `version_details` (`FullVersion`) SELECT `FullVersion` FROM `in_windows_software_list` WHERE (`HostName` = '" & strComputer & "') AND (`FullVersion` IS NOT NULL) AND (`FullVersion` NOT IN (SELECT `FullVersion` FROM `version_details` GROUP BY `FullVersion`)) GROUP BY `FullVersion`;"
     End If
-End Function 
+End Function
+Function CleanStringOfNumericPiece(strFullStringToClean)
+    ' break entire string into pieces with space as separator
+    aryFullStringToClean = Split(strFullStringToClean, " ")
+    strCleanedString = ""
+    For Each strCurrentPiece In aryFullStringToClean 
+        ' if strCurrentPiece is amoung whitelisted values, does not have to be removed
+        If (InArray(strCurrentPiece, Array("360", "365"))) Then
+            bolCurrentPieceToKeep = True
+        Else
+            intFirstCharacterCodeOfCurrentPiece = Asc(Left(strCurrentPiece, 1))
+            intLastCharacterCodeOfCurrentPiece = Asc(Right(strCurrentPiece, 1))
+            bolCurrentPieceToKeep = True
+            ' test if 1st character is numeric
+            If ((intFirstCharacterCodeOfCurrentPiece >= Asc("0")) And (intFirstCharacterCodeOfCurrentPiece <= Asc("9"))) Then
+                ' test if last character is numeric
+                If ((intLastCharacterCodeOfCurrentPiece >= Asc("0")) And (intLastCharacterCodeOfCurrentPiece <= Asc("9"))) Then
+                    bolCurrentPieceToKeep = False
+                End If
+            End If
+        End If
+        If (bolCurrentPieceToKeep) Then
+            strCleanedString = Trim(strCleanedString & " " & strCurrentPiece)
+        End If
+    Next
+    CleanStringOfNumericPiece = strCleanedString
+End Function
+Function CleanStringStartEnd(strFullStringToClean, strStartCleanSubString, strEndCleanSubString)
+    intStartCleanPosition = InStr(1, strFullStringToClean, strStartCleanSubString, vbTextCompare)
+    intEndCleanPosition = InStr(1, strFullStringToClean, strEndCleanSubString, vbTextCompare)
+    If ((intStartCleanPosition > 0) And (intEndCleanPosition > 0)) Then
+        strCleanedString = Trim(Replace(Left(strFullStringToClean, (intStartCleanPosition - 1)) & " " & Right(strFullStringToClean, (Len(strFullStringToClean) - intEndCleanPosition)), "  ", " "))
+        strCleanedString = CleanStringStartEnd(strCleanedString, strStartCleanSubString, strEndCleanSubString) ' to ensure if more then 1 occurence of identifiers is being taken care of
+    Else
+        strCleanedString = strFullStringToClean
+    End If
+    CleanStringStartEnd = strCleanedString
+End Function
+Function CleanStringWithBlacklistArray(strFullStringToClean, aryBlackList, strStringToReplaceWith)
+    strCleanedString = strFullStringToClean
+    For Each strBlackListPiece In aryBlackList 
+        strCleanedString = Replace(Replace(strCleanedString, strBlackListPiece, strStringToReplaceWith), "  ", " ")
+    Next
+    CleanStringWithBlacklistArray = Trim(strCleanedString)
+End Function
+Function CleanStringBeforeOrAfterNumber(strFullStringToClean, strBeforeOrAfter, aryBlackList, strStringToReplaceWith)
+    ' break entire string into pieces with space as separator
+    aryFullStringToClean = Split(strFullStringToClean, " ")
+    strCleanedString = ""
+    intPieceCounter = 0
+    intLastPieceNumber = UBound(aryFullStringToClean)
+    For Each strBlackListPiece In aryBlackList 
+        For Each strCurrentPiece In aryFullStringToClean 
+            ' first or last piece does not need any cleaning as cannot be followed by a numbers or anything else
+            If ((intPieceCounter = 0) Or (intPieceCounter = intLastPieceNumber)) Then
+                bolCurrentPieceToKeep = True
+            Else
+                bolCurrentPieceToKeep = True
+                If (strCurrentPiece = strBlackListPiece) Then
+                    Select Case strBeforeOrAfter
+                        Case "After"
+                            If (IsNumeric(aryFullStringToClean((intPieceCounter - 1)))) Then
+                                bolCurrentPieceToKeep = False
+                            End If
+                        Case "Before"
+                            If (IsNumeric(aryFullStringToClean((intPieceCounter + 1)))) Then
+                                bolCurrentPieceToKeep = False
+                            End If
+                    End Select
+                End If
+            End If
+            If (bolCurrentPieceToKeep) Then
+                strCleanedString = Trim(strCleanedString & " " & strCurrentPiece)
+            End If
+            intPieceCounter = intPieceCounter + 1
+        Next
+    Next
+    CleanStringBeforeOrAfterNumber = strCleanedString
+End Function
 Function CSVfieldNamesIntoSQLfieldName(aryFieldNames)
     strFieldListForMySQLinsert = Join(aryFieldNames, "|")
     strFieldListForMySQLinsert = CleanStringWithBlacklistArray(strFieldListForMySQLinsert, Array("[bytes]"), "Bytes")
@@ -364,30 +360,34 @@ Function CSVfieldNamesIntoSQLfieldName(aryFieldNames)
     strFieldListForMySQLinsert = CleanStringWithBlacklistArray(strFieldListForMySQLinsert, Array(" "), "")
     CSVfieldNamesIntoSQLfieldName = strFieldListForMySQLinsert
 End Function
-Function BuildInsertOrUpdateSQLstructure(aryFieldNames, aryFieldValues, strInsertOrUpdate)
-    Counter = 0
-    strUpdateSQLstructure = ""
-    Select Case strInsertOrUpdate
-        Case "InsertFields"
-            aryFieldValuesMySQL = Split(CSVfieldNamesIntoSQLfieldName(aryFieldNames), "|")
-            strUpdateSQLstructure = "`" & Join(aryFieldValuesMySQL, "`, `") & "`"
-        Case "InsertValues"
-            strUpdateSQLstructure = "'" & Join(aryFieldValues, "', '") & "'"
-        Case "Update"
-            aryFieldValuesMySQL = Split(CSVfieldNamesIntoSQLfieldName(aryFieldNames), "|")
-            intFieldNumbered = UBound(aryFieldValuesMySQL)
-            For Each strFieldName In aryFieldValuesMySQL 
-                If (Counter <= (intFieldNumbered - 2)) Then 'last 2 fields are part of PK so will not be used
-                    If (Counter > 0) Then
-                        strUpdateSQLstructure = strUpdateSQLstructure & ", "
-                    End If
-                    strUpdateSQLstructure = strUpdateSQLstructure & "`" & strFieldName & "` = '" & aryFieldValues(Counter) & "'"
-                End If
-                Counter = Counter + 1
-            Next
-    End Select
-    BuildInsertOrUpdateSQLstructure = Replace(Replace(strUpdateSQLstructure, "'NULL'", "NULL"), "\", "\\")
-End Function 
+Function CurrentDateTime2SqlFormat()
+    CurrentDateTime2SqlFormat = CurrentDateToSqlFormat() & _
+        " " & Number2Digits(DatePart("h", Now())) & _
+        ":" & Number2Digits(DatePart("n", Now())) & _
+        ":" & Number2Digits(DatePart("s", Now()))
+End Function
+Function CurrentDateToSqlFormat()
+    CurrentDateToSqlFormat = DatePart("yyyy", Now()) & _
+        "-" & Number2Digits(DatePart("m", Now())) & _
+        "-" & Number2Digits(DatePart("d", Now()))
+End Function
+Function InArray(Haystack, GivenArray)
+    Dim bReturn
+    bReturn = False
+    For Each elmnt In GivenArray
+        If (cStr(Haystack) = elmnt) Then 
+            bReturn = True
+        End If
+    Next
+    InArray = bReturn
+End Function
+Function Number2Digits(InputNo)
+    If (InputNo < 10) Then
+        Number2Digits = "0" & InputNo
+    Else
+        Number2Digits = InputNo
+    End If
+End Function
 Function PublishersHarmonized(strPublisherName)
     aryPublishersTemplate = Array(_
         Array("Dell", "Dell Inc."), _
