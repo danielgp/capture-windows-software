@@ -102,10 +102,11 @@ Else
     Loop
     SrvListFile.Close
     EndTime = Timer()
-    MsgBox "This script has completed processing from Windows Management Instrumentation (WMI) current Device Details and from Windows Registry entire list of installed software under current Windows installation (in just " & FormatNumber(EndTime - StartTime, 0) & " seconds), please consult generated files:" & vbNewLine & _
-        "  - " & strCurDir & "\" & strResultFileNameSoftware & strResultFileType & _ 
-        "  - " & strCurDir & "\" & strResultFileNameDeviceDetails & strResultFileType & _ 
-        vbNewLine & vbNewLine & "Thank you for using this script, hope to see you back soon!", vbOKOnly + vbInformation, "Script end"
+    MsgBox "This script has completed processing from Windows Management Instrumentation (WMI) current Device Details and from Windows Registry entire list of installed software under current Windows installation (in just " & FormatNumber(EndTime - StartTime, 0) & " seconds)." & vbNewLine & _
+        "Consult results stored within following files:" & vbNewLine & _
+        "  - " & strCurDir & "\" & strResultFileNameSoftware & strResultFileType & vbNewLine & _ 
+        "  - " & strCurDir & "\" & strResultFileNameDeviceDetails & strResultFileType & vbNewLine & _ 
+        vbNewLine & "Thank you for using this script, hope to see you back soon!", vbOKOnly + vbInformation, "Script end"
 End If
 '-----------------------------------------------------------------------------------------------------------------------
 Function BuildInsertOrUpdateSQLstructure(aryFieldNames, aryFieldValues, strInsertOrUpdate)
