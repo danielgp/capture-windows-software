@@ -242,6 +242,12 @@ Function CheckSoftware(strComputer, bolWriteHeader, ReportFile, objReg, strKey)
             If (intReturnV <> 0) Then
                 strDisplayVersion = "-"
                 strDisplayVersionCleaned = "NULL"
+                ' as LAME software is an just an encoder for MP3 the version seem to require special handling for both FullVersion and Publisher
+                If (strSoftwareNameCleaned = "LAME") Then
+                    aryDisplayName = Split(strDisplayName, " ")
+                    strPublisherName = aryDisplayName(1)
+                    strDisplayVersionCleaned = aryDisplayName(2)
+                End If
             Else
                 ' In some cases DisplayVersion has a date before the version so we're going to take in consideration only the very last group of continuous string splitted by space
                 strDisplayVersionPieces = Split(CStr(Replace(Replace(strDisplayVersion, "a", "."), " beta ", ".")), " ")
@@ -428,6 +434,7 @@ Function HarmonizedPublisher(strPublisherName)
         Array("Microsoft", "Microsoft Corporation"), _
         Array("Oracle", "Oracle Corporation"), _
         Array("Qualcomm Atheros", "Qualcomm Atheros Communications"), _
+        Array("Realtek", "Realtek Semiconductor Corp."), _
         Array("SAP", "SAP AG"), _
         Array("SAP SE", "SAP AG"), _
         Array("Symantec Corp.", "Symantec Corporation") _
