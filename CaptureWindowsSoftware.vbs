@@ -117,9 +117,14 @@ End If
 '-----------------------------------------------------------------------------------------------------------------------
 Function ApplySoftwareNormalization(strComputer, strResultFileType, ReportFile)
     If (LCase(strResultFileType) = ".sql") Then
+        ReportFile.WriteLine "/* Following sequence of MySQL queries will ensure Software List normalization and data retention so a complete traceability would be ensured for each hostnames/devices included */"
         ReportFile.WriteLine "INSERT `publisher_details` (`PublisherName`) SELECT `PublisherName` FROM `in_windows_software_list` WHERE (`HostName` = '" & strComputer & "') AND (`PublisherName` IS NOT NULL) AND (`PublisherName` NOT IN (SELECT `PublisherName` FROM `publisher_details` GROUP BY `PublisherName`)) GROUP BY `PublisherName`;"
         ReportFile.WriteLine "INSERT `software_details` (`SoftwareName`) SELECT `SoftwareName` FROM `in_windows_software_list` WHERE (`HostName` = '" & strComputer & "') AND (`SoftwareName` IS NOT NULL) AND (`SoftwareName` NOT IN (SELECT `SoftwareName` FROM `software_details` GROUP BY `SoftwareName`)) GROUP BY `SoftwareName`;"
         ReportFile.WriteLine "INSERT `version_details` (`FullVersion`) SELECT `FullVersion` FROM `in_windows_software_list` WHERE (`HostName` = '" & strComputer & "') AND (`FullVersion` IS NOT NULL) AND (`FullVersion` NOT IN (SELECT `FullVersion` FROM `version_details` GROUP BY `FullVersion`)) GROUP BY `FullVersion`;"
+        ReportFile.WriteLine "INSERT INTO `evaluation_headers` (`DeviceId`) SELECT `DeviceId` FROM `device_details` WHERE (`DeviceName` = '" & strComputer & "');"
+        ReportFile.WriteLine "SELECT LAST_INSERT_ID() INTO @EvaluationId;"
+        ReportFile.WriteLine "INSERT INTO `evaluation_lines` (`EvaluationId`, `PublisherId`, `SoftwareId`, `VersionId`, `InstallationDate`) SELECT DISTINCT @EvaluationId, `PublisherId`, `SoftwareId`, `VersionId`, MAX(`InstallationDate`) FROM `in_windows_software_list` `iwsl` INNER JOIN `publisher_details` `pd` ON `iwsl`.`PublisherName` = `pd`.`PublisherName` INNER JOIN `software_details` `sd` ON `iwsl`.`SoftwareName` = `sd`.`SoftwareName` INNER JOIN `version_details` `vd` ON `iwsl`.`FullVersion` = `vd`.`FullVersion` WHERE (`iwsl`.`HostName` = '" & strComputer & "') GROUP BY `pd`.`PublisherId`, `sd`.`SoftwareId`, `vd`.`VersionId` ORDER BY `pd`.`PublisherId`, `sd`.`SoftwareId`, `vd`.`VersionId`;"
+        ReportFile.WriteLine "UPDATE `evaluation_headers` SET `DateOfGatheringTimestamp` = (SELECT MAX(`EvaluationTimestamp`) FROM `in_windows_software_list` WHERE (`iwsl`.`HostName` = '" & strComputer & "')) WHERE (`EvaluationId` = @EvaluationId);"
     End If
 End Function
 Function BuildInsertOrUpdateSQLstructure(aryFieldNames, aryFieldValues, strInsertOrUpdate)

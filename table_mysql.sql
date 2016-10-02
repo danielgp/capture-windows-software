@@ -9,6 +9,48 @@ CREATE TABLE IF NOT EXISTS `device_details` (
   UNIQUE INDEX `ndx_dd_DeviceName_UNIQUE` (`DeviceName` ASC)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
+CREATE TABLE IF NOT EXISTS `evaluation_headers` (
+  `EvaluationId` MEDIUMINT(8) UNSIGNED NOT NULL AUTO_INCREMENT,
+  `DeviceId` SMALLINT(5) UNSIGNED NOT NULL,
+  `EvaluationTimestamp` DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+  `DateOfGatheringTimestamp` DATETIME(6) DEFAULT NULL,
+  PRIMARY KEY (`EvaluationId`),
+  CONSTRAINT `FK_eh_DeviceId`
+    FOREIGN KEY (`DeviceId`)
+    REFERENCES `device_details` (`DeviceId`)
+    ON DELETE RESTRICT
+    ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+CREATE TABLE IF NOT EXISTS `evaluation_lines` (
+  `EvaluationId` MEDIUMINT(8) UNSIGNED NOT NULL,
+  `PublisherId` SMALLINT(5) UNSIGNED NOT NULL,
+  `SoftwareId` SMALLINT(5) UNSIGNED NOT NULL,
+  `VersionId` SMALLINT(5) UNSIGNED NOT NULL,
+  `InstallationDate` date DEFAULT NULL,
+  CONSTRAINT `FK_el_EvaluationId`
+    FOREIGN KEY (`EvaluationId`)
+    REFERENCES `evaluation_headers` (`EvaluationId`)
+    ON DELETE RESTRICT
+    ON UPDATE CASCADE,
+  CONSTRAINT `FK_el_PublisherId`
+    FOREIGN KEY (`PublisherId`)
+    REFERENCES `publisher_details` (`PublisherId`)
+    ON DELETE RESTRICT
+    ON UPDATE CASCADE,
+  CONSTRAINT `FK_el_SoftwareId`
+    FOREIGN KEY (`SoftwareId`)
+    REFERENCES `software_details` (`SoftwareId`)
+    ON DELETE RESTRICT
+    ON UPDATE CASCADE,
+  CONSTRAINT `FK_el_VersionId`
+    FOREIGN KEY (`VersionId`)
+    REFERENCES `version_details` (`VersionId`)
+    ON DELETE RESTRICT
+    ON UPDATE CASCADE,
+  UNIQUE INDEX `ndx_el_PublisherName_UNIQUE` (`EvaluationId` ASC, `PublisherId` ASC, `SoftwareId` ASC, `VersionId` ASC)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
 CREATE TABLE `in_windows_software_list` (
   `EvaluationTimestamp` datetime NOT NULL,
   `HostName` varchar(64) NOT NULL,
@@ -16,8 +58,6 @@ CREATE TABLE `in_windows_software_list` (
   `SoftwareName` varchar(80) NOT NULL,
   `FullVersion` varchar(30) DEFAULT NULL,
   `InstallationDate` date DEFAULT NULL,
-  `InstallLocation` text DEFAULT NULL,
-  `SizeBytes` mediumint(8) unsigned DEFAULT NULL,
   `OtherInfo` JSON NULL DEFAULT NULL,
   `RegistryKeyTrunk` ENUM('Microsoft', 'Wow6432Node') NOT NULL,
   `RegistrySubKey` varchar(100) NOT NULL,
@@ -51,9 +91,11 @@ CREATE TABLE IF NOT EXISTS `software_details` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 CREATE TABLE `version_details` (
+    `VersionId` SMALLINT(5) UNSIGNED NOT NULL AUTO_INCREMENT,
     `FullVersion` varchar(30) NOT NULL,
     `FullVersionParts` JSON GENERATED ALWAYS AS (CONCAT('{ "Major": ', (CASE WHEN (`FullVersion` IS NULL) THEN NULL ELSE CAST(REPLACE((CASE WHEN (LOCATE(".", `FullVersion`) = 0) THEN `FullVersion` ELSE SUBSTRING_INDEX(`FullVersion`, '.', 1) END), "v", "") AS UNSIGNED) END), ', "Minor": ', (CASE WHEN (`FullVersion` IS NULL) THEN 0 ELSE CAST((CASE WHEN (LOCATE(".", `FullVersion`) = 0) THEN 0 ELSE REPLACE(SUBSTRING_INDEX(`FullVersion`, '.', 2), CONCAT(SUBSTRING_INDEX(`FullVersion`, '.', 1), '.'), '') END) AS UNSIGNED) END), ', "Build": ',(CASE WHEN (`FullVersion` IS NULL) THEN 0 ELSE CAST((CASE WHEN (LOCATE(".", `FullVersion`) = 0) THEN 0 WHEN ((CHAR_LENGTH(`FullVersion`) - CHAR_LENGTH(REPLACE(`FullVersion`, '.', ''))) < 2) THEN 0 ELSE REPLACE(SUBSTRING_INDEX(`FullVersion`, '.', 3), CONCAT(SUBSTRING_INDEX(`FullVersion`, '.', 2), '.'), '') END) AS UNSIGNED) END), ', "Revision": ', (CASE WHEN (`FullVersion` IS NULL) THEN 0 ELSE CAST((CASE WHEN (LOCATE(".", `FullVersion`) = 0) THEN 0 WHEN ((CHAR_LENGTH(`FullVersion`) - CHAR_LENGTH(REPLACE(`FullVersion`, '.', ''))) < 3) THEN 0 ELSE REPLACE(SUBSTRING_INDEX(`FullVersion`, '.', 4), CONCAT(SUBSTRING_INDEX(`FullVersion`, '.', 3), '.'), '') END) AS UNSIGNED) END), ' }')) STORED,
     `FullVersionNumeric` BIGINT(20) UNSIGNED ZEROFILL GENERATED ALWAYS AS (CASE WHEN (`FullVersion` IS NULL) THEN NULL ELSE (CAST(JSON_EXTRACT(`FullVersionParts`, '$.Major') AS UNSIGNED) * POW(10, 14) + CAST(JSON_EXTRACT(`FullVersionParts`, '$.Minor') AS UNSIGNED) * POW(10, 10) + CAST(JSON_EXTRACT(`FullVersionParts`, '$.Build') AS UNSIGNED) * POW(10, 5) + CAST(JSON_EXTRACT(`FullVersionParts`, '$.Revision') AS UNSIGNED)) END) STORED,
-    PRIMARY KEY(`FullVersion`),
+    PRIMARY KEY(`VersionId`),
+    UNIQUE INDEX `ndx_vd_FullVersion_UNIQUE` (`FullVersion` ASC),
     KEY `FullVersionNumeric` (`FullVersionNumeric`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
