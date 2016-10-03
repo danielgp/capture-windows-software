@@ -100,6 +100,7 @@ Else
         End Select
         objResultDeviceDetails.Close
         Set objResultSoftware = objFSO.OpenTextFile(strCurDir & "\" & strResultFileNameSoftware & strResultFileType, ForAppending, True)
+        objResultSoftware.WriteLine "DELETE FROM `in_windows_software_list` WHERE (`HostName` = '" & strComputer & "');"
         Set objRegistry = GetObject("winmgmts:{impersonationLevel=impersonate}!\\" & strComputer & "\root\default:StdRegProv")
         objRegistry.GetStringValue HKLM, "SYSTEM\CurrentControlSet\Control\Session Manager\Environment", "PROCESSOR_ARCHITECTURE", strOStype
         CheckSoftware strComputer, bolFileSoftwareHeaderToAdd, objResultSoftware, objRegistry, "SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\"
@@ -128,7 +129,8 @@ Function ApplySoftwareNormalization(strComputer, strResultFileType, ReportFile)
         ReportFile.WriteLine "INSERT INTO `evaluation_headers` (`DeviceId`) SELECT `DeviceId` FROM `device_details` WHERE (`DeviceName` = '" & strComputer & "');"
         ReportFile.WriteLine "SELECT LAST_INSERT_ID() INTO @EvaluationId;"
         ReportFile.WriteLine "INSERT INTO `evaluation_lines` (`EvaluationId`, `PublisherId`, `SoftwareId`, `VersionId`, `InstallationDate`) SELECT DISTINCT @EvaluationId, `PublisherId`, `SoftwareId`, `VersionId`, MAX(`InstallationDate`) FROM `in_windows_software_list` `iwsl` INNER JOIN `publisher_details` `pd` ON `iwsl`.`PublisherName` = `pd`.`PublisherName` INNER JOIN `software_details` `sd` ON `iwsl`.`SoftwareName` = `sd`.`SoftwareName` INNER JOIN `version_details` `vd` ON `iwsl`.`FullVersion` = `vd`.`FullVersion` WHERE (`iwsl`.`HostName` = '" & strComputer & "') GROUP BY `pd`.`PublisherId`, `sd`.`SoftwareId`, `vd`.`VersionId` ORDER BY `pd`.`PublisherId`, `sd`.`SoftwareId`, `vd`.`VersionId`;"
-        ReportFile.WriteLine "UPDATE `evaluation_headers` SET `DateOfGatheringTimestamp` = (SELECT MAX(`EvaluationTimestamp`) FROM `in_windows_software_list` WHERE (`iwsl`.`HostName` = '" & strComputer & "')) WHERE (`EvaluationId` = @EvaluationId);"
+        ReportFile.WriteLine "UPDATE `evaluation_headers` SET `DateOfGatheringTimestamp` = (SELECT MAX(`EvaluationTimestamp`) FROM `in_windows_software_list` WHERE (`HostName` = '" & strComputer & "')) WHERE (`EvaluationId` = @EvaluationId);"
+        ReportFile.WriteLine "UPDATE `device_details` SET `MostRecentEvaluationId` = @EvaluationId, `LastSeen` = `LastSeen` WHERE (`DeviceName` = '" & strComputer & "');"
     End If
 End Function
 Function BuildInsertOrUpdateSQLstructure(aryFieldNames, aryFieldValues, strInsertOrUpdate)
