@@ -64,6 +64,7 @@ Else
         strDetailsCPU = Split(ReadWMI__Win32_Processor(objWMIService, strComputer, strResultFileType, strFieldSeparator), "||")
         strDetailsBaseBoard = Split(ReadWMI__Win32_BaseBoard(objWMIService, strComputer, strResultFileType, strFieldSeparator), "||")
         strDetailsDiskDrive = Split(ReadWMI__Win32_DiskDrive(objWMIService, strComputer, strResultFileType, strFieldSeparator), "||")
+        strDetailsBIOS = Split(ReadWMI__Win32_BIOS(objWMIService, strComputer, strResultFileType, strFieldSeparator), "||")
         Set objResultDeviceDetails = objFSO.OpenTextFile(strCurDir & "\" & strResultFileNameDeviceDetails & strResultFileType, ForAppending, True) 
         Select Case LCase(strResultFileType)
             Case ".csv"
@@ -71,12 +72,14 @@ Else
                     objResultDeviceDetails.WriteLine strDetailsCS(0) & _
                         strFieldSeparator & strDetailsCPU(0) & _
                         strFieldSeparator & strDetailsBaseBoard(0) & _
-                        strFieldSeparator & strDetailsDiskDrive(0)
+                        strFieldSeparator & strDetailsDiskDrive(0) & _
+                        strFieldSeparator & strDetailsBIOS(0)
                 End If
                 objResultDeviceDetails.WriteLine strDetailsCS(1) & _
                     strFieldSeparator & strDetailsCPU(1) & _
                     strFieldSeparator & strDetailsBaseBoard(1) & _
-                    strFieldSeparator & strDetailsDiskDrive(1)
+                    strFieldSeparator & strDetailsDiskDrive(1) & _
+                    strFieldSeparator & strDetailsBIOS(1)
             Case ".sql"
                 objResultDeviceDetails.WriteLine strDetailsCS(0)
                 JSONinformationComputerSystemSQL = "{ " & strDetailsCS(1) & " }"
@@ -84,6 +87,7 @@ Else
                 JSONinformationHardwareSQL = "{ ""CPU"": { " & strDetailsCPU(1) & " }" & _
                     ", ""Motherboard"": { " & strDetailsBaseBoard(1) & " }" & _
                     ", ""Disk Drive"": { " & strDetailsDiskDrive(1) & " }" & _
+                    ", ""BIOS"": { " & strDetailsBIOS(1) & " }" & _
                     " }"
                 objResultDeviceDetails.WriteLine "INSERT INTO `device_details` " & _
                     "(`DeviceName`, `DeviceOSdetails`, `DeviceHardwareDetails`) VALUES(" & _
@@ -889,6 +893,68 @@ Function ReadWMI__Win32_BaseBoard(objWMIService, strComputer, strResultFileType,
         End Select
     Next
     ReadWMI__Win32_BaseBoard = Join(aryDetailsToReturn, "||")
+End Function
+Function ReadWMI__Win32_BIOS(objWMIService, strComputer, strResultFileType, strFieldSeparator)
+    Dim aryDetailsToReturn(1)
+    Dim aryJSONinformationSQL(17)
+    aryFieldsBIOS = Array(_
+        "Build Number", _
+        "Caption", _
+        "Current Language", _
+        "Description", _
+        "Identification Code", _
+        "Installable Languages", _
+        "Manufacturer", _
+        "Name", _
+        "Primary BIOS", _
+        "Serial Number", _
+        "SMBIOS BIOS Version", _
+        "SMBIOS Major Version", _
+        "SMBIOS Minor Version", _
+        "SMBIOS Present", _
+        "Status", _
+        "System Bios Major Version", _
+        "System Bios Minor Version", _
+        "Version" _
+    )
+    Set objBIOS = objWMIService.ExecQuery("Select * from Win32_BIOS")
+    For Each crtObjBIOS in objBIOS
+        aryValuesBIOS = Array(_
+            crtObjBIOS.BuildNumber, _
+            crtObjBIOS.Caption, _
+            crtObjBIOS.CurrentLanguage, _
+            crtObjBIOS.Description, _
+            crtObjBIOS.IdentificationCode, _
+            crtObjBIOS.InstallableLanguages, _
+            crtObjBIOS.Manufacturer, _
+            crtObjBIOS.Name, _
+            crtObjBIOS.PrimaryBIOS, _
+            crtObjBIOS.SerialNumber, _
+            crtObjBIOS.SMBIOSBIOSVersion, _
+            crtObjBIOS.SMBIOSMajorVersion, _
+            crtObjBIOS.SMBIOSMinorVersion, _
+            crtObjBIOS.SMBIOSPresent, _
+            crtObjBIOS.Status, _
+            crtObjBIOS.SystemBiosMajorVersion, _
+            crtObjBIOS.SystemBiosMinorVersion, _
+            crtObjBIOS.Version _
+        )
+        Select Case LCase(strResultFileType)
+            Case ".csv"
+                aryDetailsToReturn(0) = "BIOS " & Join(aryFieldsBIOS, strFieldSeparator & "BIOS ")
+                aryDetailsToReturn(1) = Join(aryValuesBIOS, strFieldSeparator)
+            Case ".sql"
+                aryDetailsToReturn(0) = "/* " & strComputer & " - Details BIOS results for MySQL */"
+                intCounter = 0
+                For Each crtField in aryFieldsBIOS
+                    aryJSONinformationSQL(intCounter) = """" & crtField & """: " & _
+                        """" & aryValuesBIOS(intCounter) & """"
+                    intCounter = intCounter + 1
+                Next
+                aryDetailsToReturn(1) = Replace(Join(aryJSONinformationSQL, ", "), "\", "\\\\")
+        End Select
+    Next
+    ReadWMI__Win32_BIOS = Join(aryDetailsToReturn, "||")
 End Function
 Function ReadWMI__Win32_ComputerSystem(objWMIService, strComputer, strResultFileType, strFieldSeparator)
     Dim aryDetailsToReturn(1)
