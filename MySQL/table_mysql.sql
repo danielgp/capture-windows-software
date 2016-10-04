@@ -31,22 +31,36 @@ CREATE TABLE IF NOT EXISTS `in_windows_software_list` (
 CREATE TABLE IF NOT EXISTS `publisher_details` (
   `PublisherId` SMALLINT(5) UNSIGNED NOT NULL AUTO_INCREMENT,
   `PublisherName` VARCHAR(80) NOT NULL,
-  `PublisherMainWebsite` VARCHAR(250) NULL DEFAULT NULL,
   `FirstSeen` DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
   `LastSeen` DATETIME(6) DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP(6),
   PRIMARY KEY (`PublisherId`),
   UNIQUE INDEX `ndx_pd_PublisherName_UNIQUE` (`PublisherName` ASC)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
+CREATE TABLE IF NOT EXISTS `publisher_known` (
+  `PublisherName` VARCHAR(80) NOT NULL,
+  `PublisherMainWebsite` VARCHAR(250) NULL DEFAULT NULL,
+  `FirstSeen` DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+  `LastSeen` DATETIME(6) DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP(6),
+  PRIMARY KEY (`PublisherName`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
 CREATE TABLE IF NOT EXISTS `software_details` (
   `SoftwareId` SMALLINT(5) UNSIGNED NOT NULL AUTO_INCREMENT,
+  `SoftwareName` VARCHAR(80) NOT NULL,
+  `FirstSeen` DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+  `LastSeen` DATETIME(6) DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP(6),
+  PRIMARY KEY (`SoftwareId`),
+  UNIQUE INDEX `ndx_sd_SoftwareName_UNIQUE` (`SoftwareName` ASC)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS `software_known` (
   `SoftwareName` VARCHAR(80) NOT NULL,
   `SoftwareDescription` TEXT NULL DEFAULT NULL,
   `SoftwareMainWebsite` VARCHAR(250) NULL DEFAULT NULL,
   `FirstSeen` DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
   `LastSeen` DATETIME(6) DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP(6),
-  PRIMARY KEY (`SoftwareId`),
-  UNIQUE INDEX `ndx_sd_SoftwareName_UNIQUE` (`SoftwareName` ASC)
+  PRIMARY KEY (`SoftwareName`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE IF NOT EXISTS `version_details` (
@@ -125,23 +139,49 @@ SELECT
     REPLACE(json_extract(`device_details`.`DeviceOSdetails`,'$."Locale Description"'),'"','') AS `Locale` 
 FROM `device_details`;
 
-CREATE ALGORITHM=UNDEFINED SQL SECURITY DEFINER VIEW `view__version_assesment` AS  
+CREATE ALGORITHM=UNDEFINED SQL SECURITY DEFINER VIEW `view__evaluations` AS  
 SELECT
+	`el`.`EvaluationId`,
+	`dd`.`DeviceId`,
+    `dd`.`DeviceName`,
+    `pd`.`PublisherId`,
     `pd`.`PublisherName`,
     `sd`.`SoftwareId`,
     `sd`.`SoftwareName`,
-    GROUP_CONCAT(DISTINCT CONCAT(`vd`.`FullVersion`, '_', `dd`.`DeviceName`) ORDER BY `dd`.`DeviceName` SEPARATOR "     ") AS `Version Details`,
-    GROUP_CONCAT(DISTINCT `eh`.`EvaluationId` SEPARATOR "; ") AS `Evaluations`,
-    MAX(`vd`.`FullVersionNumeric`) AS `Newest`, 
-    MIN(`vd`.`FullVersionNumeric`) AS `Oldest`,
-    (CASE WHEN (SUM(CASE WHEN (`eh`.`DeviceId` = 3) THEN `vd`.`FullVersionNumeric` ELSE NULL END) IS NULL) THEN "---" WHEN SUM(CASE WHEN (`eh`.`DeviceId` = 3) THEN `vd`.`FullVersionNumeric` ELSE NULL END) = MAX(`vd`.`FullVersionNumeric`) THEN 'Ok' ELSE 'OLD' END) AS `PC2016`,
-    (CASE WHEN (SUM(CASE WHEN (`eh`.`DeviceId` = 1) THEN `vd`.`FullVersionNumeric` ELSE NULL END) IS NULL) THEN "---" WHEN SUM(CASE WHEN (`eh`.`DeviceId` = 1) THEN `vd`.`FullVersionNumeric` ELSE NULL END) = MAX(`vd`.`FullVersionNumeric`) THEN 'Ok' ELSE 'OLD' END) AS `PC2014`,
-    (CASE WHEN (SUM(CASE WHEN (`eh`.`DeviceId` = 5) THEN `vd`.`FullVersionNumeric` ELSE NULL END) IS NULL) THEN "---" WHEN SUM(CASE WHEN (`eh`.`DeviceId` = 5) THEN `vd`.`FullVersionNumeric` ELSE NULL END) = MAX(`vd`.`FullVersionNumeric`) THEN 'Ok' ELSE 'OLD' END) AS `PC2011`,
-    (CASE WHEN MIN(`vd`.`FullVersionNumeric`) = MAX(`vd`.`FullVersionNumeric`) THEN "Everything up-to-date" ELSE "Differences..." END) AS `Assesment` 
+    (CASE WHEN (`sd`.`SoftwareName` IN ('Intel® Processor Graphics', 'Microsoft redistributable runtime DLLs', 'Microsoft Visual C++ Additional Runtime', 'Microsoft Visual C++ Minimum Runtime', 'Microsoft Visual C++ Redistributable', 'Microsoft Visual Studio Tools for Office Runtime', 'Office Click-to-Run Extensibility Component', 'Office Click-to-Run Licensing Component', 'Office Click-to-Run Localization Component', 'Security Update for Microsoft .NET Framework')) THEN JSON_EXTRACT(`vd`.`FullVersionParts`, '$.Major') WHEN (`sd`.`SoftwareName` = 'Intel® Management Engine Components') THEN (CASE WHEN (JSON_EXTRACT(`vd`.`FullVersionParts`, '$.Major') = 1) THEN 1 ELSE "non 1" END) ELSE NULL END) AS `RelevantMajorVersion`,
+    `vd`.`VersionId`,
+    `vd`.`FullVersion`,
+    `vd`.`FullVersionNumeric` 
 FROM `evaluation_lines` `el`
     INNER JOIN `evaluation_headers` `eh` ON `el`.`EvaluationId` = `eh`.`EvaluationId`
     INNER JOIN `device_details` `dd` ON ((`eh`.`EvaluationId` = `dd`.`MostRecentEvaluationId`) AND (`eh`.`DeviceId` = `dd`.`DeviceId`))
     INNER JOIN `publisher_details` `pd` ON `el`.`PublisherId` = `pd`.`PublisherId`
     INNER JOIN `software_details` `sd` ON `el`.`SoftwareId` = `sd`.`SoftwareId`
-    INNER JOIN `version_details` `vd` ON `el`.`VersionId` = `vd`.`VersionId`
-GROUP BY `sd`.`SoftwareName`;
+    INNER JOIN `version_details` `vd` ON `el`.`VersionId` = `vd`.`VersionId`;
+
+CREATE ALGORITHM=UNDEFINED SQL SECURITY DEFINER VIEW `view__version_assesment` AS  
+SELECT
+    `ve`.`PublisherName`,
+    `ve`.`SoftwareName`,
+    `ve`.`RelevantMajorVersion` AS `RMV`,
+    GROUP_CONCAT(DISTINCT CONCAT(`ve`.`DeviceName`, '_', `ve`.`FullVersion`) ORDER BY `ve`.`DeviceName` SEPARATOR "
+") AS `Version Details`,
+    (CASE WHEN (SUM(CASE WHEN (`ve`.`DeviceId` = 3) THEN `ve`.`FullVersionNumeric` ELSE NULL END) IS NULL) THEN '---' WHEN SUM(CASE WHEN (`ve`.`DeviceId` = 3) THEN `ve`.`FullVersionNumeric` ELSE NULL END) = MAX(`ve`.`FullVersionNumeric`) THEN 'Ok' ELSE 'OLD' END) AS `PC2016`,
+    (CASE WHEN (SUM(CASE WHEN (`ve`.`DeviceId` = 1) THEN `ve`.`FullVersionNumeric` ELSE NULL END) IS NULL) THEN '---' WHEN SUM(CASE WHEN (`ve`.`DeviceId` = 1) THEN `ve`.`FullVersionNumeric` ELSE NULL END) = MAX(`ve`.`FullVersionNumeric`) THEN 'Ok' ELSE 'OLD' END) AS `PC2014`,
+    (CASE WHEN (SUM(CASE WHEN (`ve`.`DeviceId` = 5) THEN `ve`.`FullVersionNumeric` ELSE NULL END) IS NULL) THEN '---' WHEN SUM(CASE WHEN (`ve`.`DeviceId` = 5) THEN `ve`.`FullVersionNumeric` ELSE NULL END) = MAX(`ve`.`FullVersionNumeric`) THEN 'Ok' ELSE 'OLD' END) AS `PC2011`,
+    MAX(`ve`.`FullVersionNumeric`) AS `Newest`, 
+    MIN(`ve`.`FullVersionNumeric`) AS `Oldest`,
+    GROUP_CONCAT(DISTINCT `ve`.`EvaluationId` SEPARATOR "; ") AS `Evaluations`,
+    `ve`.`SoftwareId`,
+    (CASE WHEN MIN(`ve`.`FullVersionNumeric`) = MAX(`ve`.`FullVersionNumeric`) THEN 'Everything up-to-date' ELSE 'Differences...' END) AS `Assesment` 
+FROM `view__evaluations` `ve`
+WHERE (`ve`.`DeviceId` IN (1, 3, 5))
+GROUP BY `ve`.`SoftwareName`, `ve`.`RelevantMajorVersion`
+HAVING (`Assesment` = 'Differences...');
+
+/* ------------------------------------------------------------------------------------------------------------------ */
+SELECT 8 INTO @crtEvaluationIdToRemove;
+DELETE FROM `evaluation_lines` WHERE (`EvaluationId` = @crtEvaluationIdToRemove);
+UPDATE `device_details` `dd` SET `dd`.`MostRecentEvaluationId` = (SELECT MAX(`eh`.`EvaluationId`) FROM `evaluation_headers` `eh` WHERE (`eh`.`EvaluationId` < @crtEvaluationIdToRemove) AND (`eh`.`DeviceId` = (SELECT `DeviceId` FROM `evaluation_headers` WHERE (`EvaluationId` = @crtEvaluationIdToRemove)))), `LastSeen` = `LastSeen` WHERE (`dd`. `DeviceId` = (SELECT `DeviceId` FROM `evaluation_headers` WHERE (`EvaluationId` = @crtEvaluationIdToRemove)));
+DELETE FROM `evaluation_headers` WHERE (`EvaluationId` = @crtEvaluationIdToRemove);
+ALTER TABLE `evaluation_headers` AUTO_INCREMENT = 1;
