@@ -339,8 +339,15 @@ Function CheckSoftware(strComputer, bolWriteHeader, ReportFile, objReg, strKey)
                 Case ".sql"
                     intCounter = 0
                     For Each crtOtherInfo in aryInformationToExposeOtherInfo
-                        aryJSONinformationSQL(intCounter) = """" & crtOtherInfo & """: " & _
-                            """" & aryValuesToExposeOtherInfo(intCounter) & """"
+                        crtValue = Trim(aryValuesToExposeOtherInfo(intCounter))
+                        If (IsNull(crtValue)) Then
+                            crtValue = "-"
+                        End If
+                        If (IsNumericExtended(crtValue)) Then
+                            aryJSONinformationSQL(intCounter) = """" & crtOtherInfo & """: " & crtValue
+                        Else
+                            aryJSONinformationSQL(intCounter) = """" & crtOtherInfo & """: " & """" & crtValue & """"
+                        End If
                         intCounter = intCounter + 1
                     Next
                     strOtherInfo = "{ " & Join(aryJSONinformationSQL, ", ") & " }"
@@ -477,6 +484,18 @@ Function CurrentOperatingSystemVersionForComparison()
         intOSVersion = CInt(aryVersionParts(0)) * 10 + aryVersionParts(1)
     Next
     CurrentOperatingSystemVersionForComparison = intOSVersion
+End Function
+Function IsNumericExtended(InValueToEvaluate)
+    If (IsNumeric(InValueToEvaluate)) Then
+        intLengthDelta = Len(InValueToEvaluate) - Len(Replace(InValueToEvaluate, ".", ""))
+        If ((Left(InValueToEvaluate, 1) <> "0") And (Left(InValueToEvaluate, 1) <> "F") And (Left(InValueToEvaluate, 1) <> "T") And (intLengthDelta < 2)) Then
+            IsNumericExtended = True
+        Else
+            IsNumericExtended = False
+        End If
+    Else
+        IsNumericExtended = False
+    End If
 End Function
 Function HarmonizedPublisher(strPublisherName)
     aryPublishersTemplate = Array(_
@@ -928,8 +947,15 @@ Function ReadWMI__Win32_BaseBoard(objWMIService, strComputer, strResultFileType,
                 aryDetailsToReturn(0) = "/* " & strComputer & " - Details MBR results for MySQL */"
                 intCounter = 0
                 For Each crtField in aryFieldsBaseBoard
-                    aryJSONinformationSQL(intCounter) = """" & crtField & """: " & _
-                        """" & aryValuesBaseBoard(intCounter) & """"
+                    crtValue = Trim(aryValuesBaseBoard(intCounter))
+                    If (IsNull(crtValue)) Then
+                        crtValue = "-"
+                    End If
+                    If (IsNumericExtended(crtValue)) Then
+                        aryJSONinformationSQL(intCounter) = """" & crtField & """: " & crtValue
+                    Else
+                        aryJSONinformationSQL(intCounter) = """" & crtField & """: " & """" & crtValue & """"
+                    End If
                     intCounter = intCounter + 1
                 Next
                 aryDetailsToReturn(1) = Replace(Join(aryJSONinformationSQL, ", "), "\", "\\\\")
@@ -997,8 +1023,15 @@ Function ReadWMI__Win32_BIOS(objWMIService, strComputer, strResultFileType, strF
                 aryDetailsToReturn(0) = "/* " & strComputer & " - Details BIOS results for MySQL */"
                 intCounter = 0
                 For Each crtField in aryFieldsBIOS
-                    aryJSONinformationSQL(intCounter) = """" & crtField & """: " & _
-                        """" & aryValuesBIOS(intCounter) & """"
+                    crtValue = Trim(aryValuesBIOS(intCounter))
+                    If (IsNull(crtValue)) Then
+                        crtValue = "-"
+                    End If
+                    If (IsNumericExtended(crtValue)) Then
+                        aryJSONinformationSQL(intCounter) = """" & crtField & """: " & crtValue
+                    Else
+                        aryJSONinformationSQL(intCounter) = """" & crtField & """: " & """" & crtValue & """"
+                    End If
                     intCounter = intCounter + 1
                 Next
                 aryDetailsToReturn(1) = Replace(Join(aryJSONinformationSQL, ", "), "\", "\\\\")
@@ -1088,8 +1121,15 @@ Function ReadWMI__Win32_ComputerSystem(objWMIService, strComputer, strResultFile
                         aryDetailsToReturn(0) = "/* " & strComputer & " - Details Computer System results for MySQL */"
                         intCounter = 0
                         For Each crtField in aryFieldsComputerSystem
-                            aryJSONinformationSQL(intCounter) = """" & crtField & """: " & _
-                                """" & aryValuesCS(intCounter) & """"
+                            crtValue = Trim(aryValuesCS(intCounter))
+                            If (IsNull(crtValue)) Then
+                                crtValue = "-"
+                            End If
+                            If (IsNumericExtended(crtValue)) Then
+                                aryJSONinformationSQL(intCounter) = """" & crtField & """: " & crtValue
+                            Else
+                                aryJSONinformationSQL(intCounter) = """" & crtField & """: " & """" & crtValue & """"
+                            End If
                             intCounter = intCounter + 1
                         Next
                         aryDetailsToReturn(1) = Replace(Join(aryJSONinformationSQL, ", "), "\", "\\\\")
@@ -1177,18 +1217,24 @@ Function ReadWMI__Win32_DiskDrive(objWMIService, strComputer, strResultFileType,
                 aryDetailsToReturn(0) = "/* " & strComputer & " - Details Disk results for MySQL */"
                 intCounter = 0
                 For Each crtField in aryFieldsDiskDrive
+                    crtValue = Trim(aryValuesDiskDrive(intCounter))
+                    If (IsNull(crtValue)) Then
+                        crtValue = "-"
+                    End If
                     Select Case crtField
                         Case "Name"
                             aryJSONinformationSQL(intCounter) = """" & crtField & """: " & _
-                                """" & strDiskNameCleaned & """"
+                                """" & Trim(strDiskNameCleaned) & """"
                         Case "Serial Number"
-                            If (StrComp(aryValuesDiskDrive(intCounter), "", 0) <> 0) Then
-                                aryJSONinformationSQL(intCounter) = """" & crtField & """: " & _
-                                    """" & Trim(aryValuesDiskDrive(intCounter))     & """"
+                            If (StrComp(crtValue, "", 0) <> 0) Then
+                                aryJSONinformationSQL(intCounter) = """" & crtField & """: " & """" & crtValue & """"
                             End If
                         Case Else
-                            aryJSONinformationSQL(intCounter) = """" & crtField & """: " & _
-                                """" & Trim(aryValuesDiskDrive(intCounter)) & """"
+                            If (IsNumericExtended(crtValue)) Then
+                                aryJSONinformationSQL(intCounter) = """" & crtField & """: " & crtValue
+                            Else
+                                aryJSONinformationSQL(intCounter) = """" & crtField & """: " & """" & crtValue & """"
+                            End If
                     End Select
                     If (crtField = "Name") Then
                     Else
@@ -1274,8 +1320,15 @@ Function ReadWMI__Win32_PhysicalMemoryArray(objWMIService, strComputer, strResul
                 aryDetailsToReturn(0) = "/* " & strComputer & " - Details RAM details for MySQL */"
                 intCounter = 0
                 For Each crtField in aryFieldsPMA
-                    aryJSONinformationSQL(intCounter) = """" & crtField & """: " & _
-                        """" & aryValuesPMA(intCounter) & """"
+                    crtValue = Trim(aryValuesPMA(intCounter))
+                    If (IsNull(crtValue)) Then
+                        crtValue = "-"
+                    End If
+                    If (IsNumericExtended(crtValue)) Then
+                        aryJSONinformationSQL(intCounter) = """" & crtField & """: " & crtValue
+                    Else
+                        aryJSONinformationSQL(intCounter) = """" & crtField & """: " & """" & crtValue & """"
+                    End If
                     intCounter = intCounter + 1
                 Next
                 aryDetailsToReturn(1) = Replace(Join(aryJSONinformationSQL, ", "), "\", "\\\\")
@@ -1395,8 +1448,15 @@ Function ReadWMI__Win32_Processor(objWMIService, strComputer, strResultFileType,
                 aryDetailsToReturn(0) = "/* " & strComputer & " - Details CPU results for MySQL */"
                 intCounter = 0
                 For Each crtField in aryFieldsCPU
-                    aryJSONinformationSQL(intCounter) = """" & crtField & """: " & _
-                        """" & aryValuesCPU(intCounter) & """"
+                    crtValue = Trim(aryValuesCPU(intCounter))
+                    If (IsNull(crtValue)) Then
+                        crtValue = "-"
+                    End If
+                    If (IsNumericExtended(crtValue)) Then
+                        aryJSONinformationSQL(intCounter) = """" & crtField & """: " & crtValue
+                    Else
+                        aryJSONinformationSQL(intCounter) = """" & crtField & """: " & """" & crtValue & """"
+                    End If
                     intCounter = intCounter + 1
                 Next
                 aryDetailsToReturn(1) = Replace(Join(aryJSONinformationSQL, ", "), "\", "\\\\")
@@ -1508,8 +1568,15 @@ Function ReadWMI__Win32_VideoController(objWMIService, strComputer, strResultFil
                 aryDetailsToReturn(0) = "/* " & strComputer & " - Details RAM details for MySQL */"
                 intCounter = 0
                 For Each crtField in aryFieldsVideoController
-                    aryJSONinformationSQL(intCounter) = """" & crtField & """: " & _
-                        """" & aryValuesVideoController(intCounter) & """"
+                    crtValue = Trim(aryValuesVideoController(intCounter))
+                    If (IsNull(crtValue)) Then
+                        crtValue = "-"
+                    End If
+                    If (IsNumericExtended(crtValue)) Then
+                        aryJSONinformationSQL(intCounter) = """" & crtField & """: " & crtValue
+                    Else
+                        aryJSONinformationSQL(intCounter) = """" & crtField & """: " & """" & crtValue & """"
+                    End If
                     intCounter = intCounter + 1
                 Next
                 If (aryDetailsToReturn(1) = "") Then
