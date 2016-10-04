@@ -148,7 +148,7 @@ SELECT
     `pd`.`PublisherName`,
     `sd`.`SoftwareId`,
     `sd`.`SoftwareName`,
-    (CASE WHEN (`sd`.`SoftwareName` IN ('Intel® Processor Graphics', 'Microsoft redistributable runtime DLLs', 'Microsoft Visual C++ Additional Runtime', 'Microsoft Visual C++ Minimum Runtime', 'Microsoft Visual C++ Redistributable', 'Microsoft Visual Studio Tools for Office Runtime', 'Office Click-to-Run Extensibility Component', 'Office Click-to-Run Licensing Component', 'Office Click-to-Run Localization Component', 'Security Update for Microsoft .NET Framework')) THEN JSON_EXTRACT(`vd`.`FullVersionParts`, '$.Major') WHEN (`sd`.`SoftwareName` = 'Intel® Management Engine Components') THEN (CASE WHEN (JSON_EXTRACT(`vd`.`FullVersionParts`, '$.Major') = 1) THEN 1 ELSE "non 1" END) ELSE NULL END) AS `RelevantMajorVersion`,
+    (CASE WHEN (`sd`.`SoftwareName` IN ('Intel® Processor Graphics', 'Maxx Audio Installer', 'Microsoft redistributable runtime DLLs', 'Microsoft Visual C++ Additional Runtime', 'Microsoft Visual C++ Minimum Runtime', 'Microsoft Visual C++ Redistributable', 'Microsoft Visual Studio Tools for Office Runtime', 'Office Click-to-Run Extensibility Component', 'Office Click-to-Run Licensing Component', 'Office Click-to-Run Localization Component', 'Security Update for Microsoft .NET Framework')) THEN JSON_EXTRACT(`vd`.`FullVersionParts`, '$.Major') WHEN (`sd`.`SoftwareName` = 'Intel® Management Engine Components') THEN (CASE WHEN (JSON_EXTRACT(`vd`.`FullVersionParts`, '$.Major') = 1) THEN 1 ELSE "non 1" END) ELSE NULL END) AS `RelevantMajorVersion`,
     `vd`.`VersionId`,
     `vd`.`FullVersion`,
     `vd`.`FullVersionNumeric` 
