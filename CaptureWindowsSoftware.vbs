@@ -46,7 +46,7 @@ Else
         Select Case InputResultType
             Case vbYes
                 strResultFileType = ".csv"
-                If (objFSO.FileExists(strCurDir & "\" & strResultFileNameDevice & strResultFileType)) Then
+                If (objFSO.FileExists(strCurDir & "\" & strResultFileNameDeviceDetails & strResultFileType)) Then
                     bolFileDeviceHeaderToAdd = False
                 Else
                     bolFileDeviceHeaderToAdd = True
@@ -63,8 +63,10 @@ Else
         strDetailsCS = Split(ReadWMI__Win32_ComputerSystem(objWMIService, strComputer, strResultFileType, strFieldSeparator), "||")
         strDetailsCPU = Split(ReadWMI__Win32_Processor(objWMIService, strComputer, strResultFileType, strFieldSeparator), "||")
         strDetailsBaseBoard = Split(ReadWMI__Win32_BaseBoard(objWMIService, strComputer, strResultFileType, strFieldSeparator), "||")
-        strDetailsDiskDrive = Split(ReadWMI__Win32_DiskDrive(objWMIService, strComputer, strResultFileType, strFieldSeparator), "||")
         strDetailsBIOS = Split(ReadWMI__Win32_BIOS(objWMIService, strComputer, strResultFileType, strFieldSeparator), "||")
+        strDetailsDiskDrive = Split(ReadWMI__Win32_DiskDrive(objWMIService, strComputer, strResultFileType, strFieldSeparator), "||")
+        strDetailsRAM = Split(ReadWMI__Win32_PhysicalMemoryArray(objWMIService, strComputer, strResultFileType, strFieldSeparator), "||")
+        strDetailsVideoController = Split(ReadWMI__Win32_VideoController(objWMIService, strComputer, strResultFileType, strFieldSeparator), "||")
         Set objResultDeviceDetails = objFSO.OpenTextFile(strCurDir & "\" & strResultFileNameDeviceDetails & strResultFileType, ForAppending, True) 
         Select Case LCase(strResultFileType)
             Case ".csv"
@@ -72,22 +74,28 @@ Else
                     objResultDeviceDetails.WriteLine strDetailsCS(0) & _
                         strFieldSeparator & strDetailsCPU(0) & _
                         strFieldSeparator & strDetailsBaseBoard(0) & _
+                        strFieldSeparator & strDetailsBIOS(0) & _
                         strFieldSeparator & strDetailsDiskDrive(0) & _
-                        strFieldSeparator & strDetailsBIOS(0)
+                        strFieldSeparator & strDetailsRAM(0) & _
+                        strFieldSeparator & strDetailsVideoController(0)
                 End If
                 objResultDeviceDetails.WriteLine strDetailsCS(1) & _
                     strFieldSeparator & strDetailsCPU(1) & _
                     strFieldSeparator & strDetailsBaseBoard(1) & _
+                    strFieldSeparator & strDetailsBIOS(1) & _
                     strFieldSeparator & strDetailsDiskDrive(1) & _
-                    strFieldSeparator & strDetailsBIOS(1)
+                    strFieldSeparator & strDetailsRAM(1) & _
+                    strFieldSeparator & strDetailsVideoController(1)
             Case ".sql"
                 objResultDeviceDetails.WriteLine strDetailsCS(0)
                 JSONinformationComputerSystemSQL = "{ " & strDetailsCS(1) & " }"
                 objResultDeviceDetails.WriteLine strDetailsCPU(0)
                 JSONinformationHardwareSQL = "{ ""CPU"": { " & strDetailsCPU(1) & " }" & _
                     ", ""Motherboard"": { " & strDetailsBaseBoard(1) & " }" & _
-                    ", ""Disk Drive"": { " & strDetailsDiskDrive(1) & " }" & _
                     ", ""BIOS"": { " & strDetailsBIOS(1) & " }" & _
+                    ", ""Disk Drive"": { " & strDetailsDiskDrive(1) & " }" & _
+                    ", ""RAM"": { " & strDetailsRAM(1) & " }" & _
+                    ", ""Video Controller"": { " & strDetailsVideoController(1) & " }" & _
                     " }"
                 objResultDeviceDetails.WriteLine "INSERT INTO `device_details` " & _
                     "(`DeviceName`, `DeviceOSdetails`, `DeviceHardwareDetails`) VALUES(" & _
@@ -100,7 +108,9 @@ Else
         End Select
         objResultDeviceDetails.Close
         Set objResultSoftware = objFSO.OpenTextFile(strCurDir & "\" & strResultFileNameSoftware & strResultFileType, ForAppending, True)
-        objResultSoftware.WriteLine "DELETE FROM `in_windows_software_list` WHERE (`HostName` = '" & strComputer & "');"
+        If (LCase(strResultFileType) = ".sql") Then
+            objResultSoftware.WriteLine "DELETE FROM `in_windows_software_list` WHERE (`HostName` = '" & strComputer & "');"
+        End If
         Set objRegistry = GetObject("winmgmts:{impersonationLevel=impersonate}!\\" & strComputer & "\root\default:StdRegProv")
         objRegistry.GetStringValue HKLM, "SYSTEM\CurrentControlSet\Control\Session Manager\Environment", "PROCESSOR_ARCHITECTURE", strOStype
         CheckSoftware strComputer, bolFileSoftwareHeaderToAdd, objResultSoftware, objRegistry, "SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\"
@@ -120,6 +130,20 @@ Else
         vbNewLine & "Thank you for using this script, hope to see you back soon!", vbOKOnly + vbInformation, "Script end"
 End If
 '-----------------------------------------------------------------------------------------------------------------------
+Function AdjustEmptyValueWithinArrayAndGlueIt(aryEntryArray, strValueToReplace, strGlue)
+    strFinal = strGlue
+    Counter = 0
+    For Each crtValue in aryEntryArray
+        strFinal = strFinal & strGlue
+        If ((crtValue = "") Or (IsNull(crtValue))) Then
+            strFinal = strFinal & strValueToReplace
+        Else
+            strFinal = strFinal & Trim(Replace(crtValue, "||", "|"))
+        End If
+        Counter = Counter + 1
+    Next
+    AdjustEmptyValueWithinArrayAndGlueIt = Replace(strFinal, strGlue & strGlue, "")
+End Function
 Function ApplySoftwareNormalization(strComputer, strResultFileType, ReportFile)
     If (LCase(strResultFileType) = ".sql") Then
         ReportFile.WriteLine "/* Following sequence of MySQL queries will ensure Software List normalization and data retention so a complete traceability would be ensured for each hostnames/devices included */"
@@ -443,6 +467,16 @@ Function CurrentDateToSqlFormat()
     CurrentDateToSqlFormat = DatePart("yyyy", Now()) & _
         "-" & NumberWithTwoDigits(DatePart("m", Now())) & _
         "-" & NumberWithTwoDigits(DatePart("d", Now()))
+End Function
+Function CurrentOperatingSystemVersionForComparison()
+    intOSVersion = 0
+    ' only required to be able to differentiate a few attributes present only in modern OS versions
+    Set objOperatingSystem = objWMIService.ExecQuery("Select * from Win32_OperatingSystem")
+    For Each crtObjOS in objOperatingSystem
+        aryVersionParts = Split(crtObjOS.Version, ".")
+        intOSVersion = CInt(aryVersionParts(0)) * 10 + aryVersionParts(1)
+    Next
+    CurrentOperatingSystemVersionForComparison = intOSVersion
 End Function
 Function HarmonizedPublisher(strPublisherName)
     aryPublishersTemplate = Array(_
@@ -889,7 +923,7 @@ Function ReadWMI__Win32_BaseBoard(objWMIService, strComputer, strResultFileType,
         Select Case LCase(strResultFileType)
             Case ".csv"
                 aryDetailsToReturn(0) = "MBR " & Join(aryFieldsBaseBoard, strFieldSeparator & "MBR ")
-                aryDetailsToReturn(1) = Join(aryValuesBaseBoard, strFieldSeparator)
+                aryDetailsToReturn(1) = AdjustEmptyValueWithinArrayAndGlueIt(aryValuesBaseBoard, "-", strFieldSeparator)
             Case ".sql"
                 aryDetailsToReturn(0) = "/* " & strComputer & " - Details MBR results for MySQL */"
                 intCounter = 0
@@ -928,6 +962,13 @@ Function ReadWMI__Win32_BIOS(objWMIService, strComputer, strResultFileType, strF
     )
     Set objBIOS = objWMIService.ExecQuery("Select * from Win32_BIOS")
     For Each crtObjBIOS in objBIOS
+        strSystemBiosMajorVersion = "N/A"
+        strSystemBiosMinorVersion = "N/A"
+        ' for Windows 10 and Server 2016 or newer
+        If (intOSVersion >= 100) Then
+            strSystemBiosMajorVersion = crtObjBIOS.SystemBiosMajorVersion
+            strSystemBiosMinorVersion = crtObjBIOS.SystemBiosMinorVersion
+        End If
         aryValuesBIOS = Array(_
             crtObjBIOS.BuildNumber, _
             crtObjBIOS.Caption, _
@@ -944,14 +985,14 @@ Function ReadWMI__Win32_BIOS(objWMIService, strComputer, strResultFileType, strF
             crtObjBIOS.SMBIOSMinorVersion, _
             crtObjBIOS.SMBIOSPresent, _
             crtObjBIOS.Status, _
-            crtObjBIOS.SystemBiosMajorVersion, _
-            crtObjBIOS.SystemBiosMinorVersion, _
+            strSystemBiosMajorVersion, _
+            strSystemBiosMinorVersion, _
             crtObjBIOS.Version _
         )
         Select Case LCase(strResultFileType)
             Case ".csv"
                 aryDetailsToReturn(0) = "BIOS " & Join(aryFieldsBIOS, strFieldSeparator & "BIOS ")
-                aryDetailsToReturn(1) = Join(aryValuesBIOS, strFieldSeparator)
+                aryDetailsToReturn(1) = AdjustEmptyValueWithinArrayAndGlueIt(aryValuesBIOS, "-", strFieldSeparator)
             Case ".sql"
                 aryDetailsToReturn(0) = "/* " & strComputer & " - Details BIOS results for MySQL */"
                 intCounter = 0
@@ -1042,7 +1083,7 @@ Function ReadWMI__Win32_ComputerSystem(objWMIService, strComputer, strResultFile
                 Select Case LCase(strResultFileType)
                     Case ".csv"
                         aryDetailsToReturn(0) = Join(aryFieldsComputerSystem, strFieldSeparator)
-                        aryDetailsToReturn(1) = Join(aryValuesCS, strFieldSeparator)
+                        aryDetailsToReturn(1) = AdjustEmptyValueWithinArrayAndGlueIt(aryValuesCS, "-", strFieldSeparator)
                     Case ".sql"
                         aryDetailsToReturn(0) = "/* " & strComputer & " - Details Computer System results for MySQL */"
                         intCounter = 0
@@ -1127,10 +1168,10 @@ Function ReadWMI__Win32_DiskDrive(objWMIService, strComputer, strResultFileType,
                 End If
                 If (aryDetailsToReturn(1) = "") Then
                     aryDetailsToReturn(1) = _
-                        Join(aryValuesDiskDrive, strFieldSeparator)
+                        AdjustEmptyValueWithinArrayAndGlueIt(aryValuesDiskDrive, "-", strFieldSeparator)
                 Else
                     aryDetailsToReturn(1) = aryDetailsToReturn(1) & strFieldSeparator & _ 
-                        Join(aryValuesDiskDrive, strFieldSeparator)
+                        AdjustEmptyValueWithinArrayAndGlueIt(aryValuesDiskDrive, "-", strFieldSeparator)
                 End If
             Case ".sql"
                 aryDetailsToReturn(0) = "/* " & strComputer & " - Details Disk results for MySQL */"
@@ -1169,6 +1210,78 @@ Function ReadWMI__Win32_DiskDrive(objWMIService, strComputer, strResultFileType,
         End Select
     Next
     ReadWMI__Win32_DiskDrive = Join(aryDetailsToReturn, "||")
+End Function
+Function ReadWMI__Win32_PhysicalMemoryArray(objWMIService, strComputer, strResultFileType, strFieldSeparator)
+    Dim aryDetailsToReturn(1)
+    Dim aryJSONinformationSQL(18)
+    aryFieldsPMA = Array(_
+        "Caption", _
+        "Depth", _
+        "Description", _
+        "Height", _
+        "Hot Swappable", _
+        "Install Date", _
+        "Manufacturer", _
+        "Max Capacity", _
+        "Memory Devices", _
+        "Memory Error Correction", _
+        "Model", _
+        "Name", _
+        "Other Identifying Info", _
+        "Serial Number", _
+        "SKU", _
+        "Status", _
+        "Version", _
+        "Weight", _
+        "Width" _
+    )
+    ' only required to be able to differentiate a few attributes present only in modern OS versions
+    intOSVersion = CurrentOperatingSystemVersionForComparison()
+    ' actual Win32_Processor determination
+    Set objPMA = objWMIService.ExecQuery("Select * from Win32_PhysicalMemoryArray")
+    For Each crtObjPMA in objPMA
+        strMaxCapacityEx = "N/A"
+        ' for Windows 7 and Server 2012 or newer
+        If (intOSVersion >= 61) Then
+            strMaxCapacityEx = crtObjPMA.MaxCapacityEx
+        End If
+        aryValuesPMA = Array(_
+            crtObjPMA.Caption, _
+            crtObjPMA.Depth, _
+            crtObjPMA.Description, _
+            crtObjPMA.Height, _
+            crtObjPMA.HotSwappable, _
+            crtObjPMA.InstallDate, _
+            crtObjPMA.Manufacturer, _
+            strMaxCapacityEx, _
+            crtObjPMA.MemoryDevices, _
+            crtObjPMA.MemoryErrorCorrection, _
+            crtObjPMA.Model, _
+            crtObjPMA.Name, _
+            crtObjPMA.OtherIdentifyingInfo, _
+            crtObjPMA.SerialNumber, _
+            crtObjPMA.SKU, _
+            crtObjPMA.Status, _
+            crtObjPMA.Version, _
+            crtObjPMA.Weight, _
+            crtObjPMA.Width _
+        )
+        Select Case LCase(strResultFileType)
+            Case ".csv"
+                aryDetailsToReturn(0) = "RAM " & Join(aryFieldsPMA, strFieldSeparator & "RAM ")
+                aryDetailsToReturn(1) = AdjustEmptyValueWithinArrayAndGlueIt(aryValuesPMA, "-", strFieldSeparator)
+            Case ".sql"
+                aryDetailsToReturn(0) = "/* " & strComputer & " - Details RAM details for MySQL */"
+                intCounter = 0
+                For Each crtField in aryFieldsPMA
+                    aryJSONinformationSQL(intCounter) = """" & crtField & """: " & _
+                        """" & aryValuesPMA(intCounter) & """"
+                    intCounter = intCounter + 1
+                Next
+                aryDetailsToReturn(1) = Replace(Join(aryJSONinformationSQL, ", "), "\", "\\\\")
+        End Select
+    Next
+    ReadWMI__Win32_PhysicalMemoryArray = Join(aryDetailsToReturn, "||")
 End Function
 Function ReadWMI__Win32_Processor(objWMIService, strComputer, strResultFileType, strFieldSeparator)
     Dim aryDetailsToReturn(1)
@@ -1211,11 +1324,7 @@ Function ReadWMI__Win32_Processor(objWMIService, strComputer, strResultFileType,
         "VMMonitor Mode Extensions" _
     )
     ' only required to be able to differentiate a few attributes present only in modern OS versions
-    Set objOperatingSystem = objWMIService.ExecQuery("Select * from Win32_OperatingSystem")
-    For Each crtObjOS in objOperatingSystem
-        aryVersionParts = Split(crtObjOS.Version, ".")
-        intOSVersion = CInt(aryVersionParts(0)) * 10 + aryVersionParts(1)
-    Next
+    intOSVersion = CurrentOperatingSystemVersionForComparison()
     ' actual Win32_Processor determination
     Set objCPU = objWMIService.ExecQuery("Select * from Win32_Processor")
     For Each crtObjCPU in objCPU    
@@ -1227,7 +1336,7 @@ Function ReadWMI__Win32_Processor(objWMIService, strComputer, strResultFileType,
         strPartNumber = "N/A"
         strThreadCount = "N/A"
         strSerialNumber = "N/A"
-        ' for Windows 8 and Server 2012 or newer
+        ' for Windows 8 and Server 2012 R2 or newer
         If (intOSVersion >= 62) Then
             strSecondLevelAddressTranslationExtensions = crtObjCPU.SecondLevelAddressTranslationExtensions
             strVirtualizationFirmwareEnabled = crtObjCPU.VirtualizationFirmwareEnabled
@@ -1281,7 +1390,7 @@ Function ReadWMI__Win32_Processor(objWMIService, strComputer, strResultFileType,
         Select Case LCase(strResultFileType)
             Case ".csv"
                 aryDetailsToReturn(0) = "CPU " & Join(aryFieldsCPU, strFieldSeparator & "CPU ")
-                aryDetailsToReturn(1) = Join(aryValuesCPU, strFieldSeparator)
+                aryDetailsToReturn(1) = AdjustEmptyValueWithinArrayAndGlueIt(aryValuesCPU, "-", strFieldSeparator)
             Case ".sql"
                 aryDetailsToReturn(0) = "/* " & strComputer & " - Details CPU results for MySQL */"
                 intCounter = 0
@@ -1294,5 +1403,129 @@ Function ReadWMI__Win32_Processor(objWMIService, strComputer, strResultFileType,
         End Select
     Next
     ReadWMI__Win32_Processor = Join(aryDetailsToReturn, "||")
+End Function
+Function ReadWMI__Win32_VideoController(objWMIService, strComputer, strResultFileType, strFieldSeparator)
+    Dim aryDetailsToReturn(1)
+    Dim aryJSONinformationSQL(34)
+    aryFieldsVideoController = Array(_
+        "Adapter Compatibility", _
+        "Adapter DAC Type", _
+        "Adapter RAM", _
+        "Availability", _
+        "Caption", _
+        "Color Table Entries", _
+        "Current Bits PerPixel", _
+        "Current Horizontal Resolution", _
+        "Current Number Of Colors", _
+        "Current Refresh Rate", _
+        "Current Scan Mode", _
+        "Current Vertical Resolution", _
+        "Description", _
+        "Device ID", _
+        "Dither Type", _
+        "Driver Date", _
+        "Driver Version", _
+        "ICM Intent", _
+        "ICM Method", _
+        "Inf Filename", _
+        "Inf Section", _
+        "Install Date", _
+        "Installed Display Drivers", _
+        "Max Memory Supported [MB]", _
+        "Max Refresh Rate", _
+        "Min Refresh Rate", _
+        "Monochrome", _
+        "Number Of Color Planes", _
+        "Number Of Video Pages", _
+        "Power Management Supported", _
+        "Specification Version", _
+        "Video Architecture", _
+        "Video Memory Type", _
+        "Video Mode Description", _
+        "Video Processor" _
+    )
+    aryDetailsToReturn(0) = ""
+    aryDetailsToReturn(1) = ""
+    intVideoController = 0
+    Set objVideoController = objWMIService.ExecQuery("Select * from Win32_VideoController")
+    For Each crtObjVideoController in objVideoController
+        If (IsNull(crtObjVideoController.MaxMemorySupported)) Then
+            strMaxMemorySupported = 0
+        Else
+            strMaxMemorySupported = Round(crtObjVideoController.MaxMemorySupported / 1024 / 1024, 0)
+        End If
+        aryValuesVideoController = Array(_
+            crtObjVideoController.AdapterCompatibility, _
+            crtObjVideoController.AdapterDACType, _
+            crtObjVideoController.AdapterRAM, _
+            crtObjVideoController.Availability, _
+            crtObjVideoController.Caption, _
+            crtObjVideoController.ColorTableEntries, _
+            crtObjVideoController.CurrentBitsPerPixel, _
+            crtObjVideoController.CurrentHorizontalResolution, _
+            crtObjVideoController.CurrentNumberOfColors, _
+            crtObjVideoController.CurrentRefreshRate, _
+            crtObjVideoController.CurrentScanMode, _
+            crtObjVideoController.CurrentVerticalResolution, _
+            crtObjVideoController.Description, _
+            crtObjVideoController.DeviceID, _
+            crtObjVideoController.DitherType, _
+            crtObjVideoController.DriverDate, _
+            crtObjVideoController.DriverVersion, _
+            crtObjVideoController.ICMIntent, _
+            crtObjVideoController.ICMMethod, _
+            crtObjVideoController.InfFilename, _
+            crtObjVideoController.InfSection, _
+            crtObjVideoController.InstallDate, _
+            crtObjVideoController.InstalledDisplayDrivers, _
+            strMaxMemorySupported, _
+            crtObjVideoController.MaxRefreshRate, _
+            crtObjVideoController.MinRefreshRate, _
+            crtObjVideoController.Monochrome, _
+            crtObjVideoController.NumberOfColorPlanes, _
+            crtObjVideoController.NumberOfVideoPages, _
+            crtObjVideoController.PowerManagementSupported, _
+            crtObjVideoController.SpecificationVersion, _
+            crtObjVideoController.VideoArchitecture, _
+            crtObjVideoController.VideoMemoryType, _
+            crtObjVideoController.VideoModeDescription, _
+            crtObjVideoController.VideoProcessor _
+        )
+        Select Case LCase(strResultFileType)
+            Case ".csv"
+                If (aryDetailsToReturn(0) = "") Then
+                    aryDetailsToReturn(0) = _
+                        "Video " & Join(aryFieldsVideoController, strFieldSeparator & "Video ")
+                    aryDetailsToReturn(1) = _
+                        AdjustEmptyValueWithinArrayAndGlueIt(aryValuesVideoController, "-", strFieldSeparator)
+                Else
+                    aryDetailsToReturn(0) = aryDetailsToReturn(0) & strFieldSeparator & _
+                        "Video " & Join(aryFieldsVideoController, strFieldSeparator & "Video ")
+                    aryDetailsToReturn(1) = aryDetailsToReturn(1) & strFieldSeparator & _
+                        AdjustEmptyValueWithinArrayAndGlueIt(aryValuesVideoController, "-", strFieldSeparator)
+                End If
+            Case ".sql"
+                aryDetailsToReturn(0) = "/* " & strComputer & " - Details RAM details for MySQL */"
+                intCounter = 0
+                For Each crtField in aryFieldsVideoController
+                    aryJSONinformationSQL(intCounter) = """" & crtField & """: " & _
+                        """" & aryValuesVideoController(intCounter) & """"
+                    intCounter = intCounter + 1
+                Next
+                If (aryDetailsToReturn(1) = "") Then
+                    aryDetailsToReturn(1) = _
+                        """Video " & intVideoController & """: { " & _ 
+                        Replace(Join(aryJSONinformationSQL, ", "), "\", "\\\\") & _
+                        " }"
+                Else
+                    aryDetailsToReturn(1) = aryDetailsToReturn(1) & ", " & _
+                        """Video " & intVideoController & """: { " & _ 
+                        Replace(Join(aryJSONinformationSQL, ", "), "\", "\\\\") & _
+                        " }"
+                End If
+        End Select
+        intVideoController = intVideoController + 1
+    Next
+    ReadWMI__Win32_VideoController = Join(aryDetailsToReturn, "||")
 End Function
 '-----------------------------------------------------------------------------------------------------------------------
