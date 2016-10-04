@@ -40,6 +40,7 @@ CREATE TABLE IF NOT EXISTS `publisher_details` (
 CREATE TABLE IF NOT EXISTS `publisher_known` (
   `PublisherName` VARCHAR(80) NOT NULL,
   `PublisherMainWebsite` VARCHAR(250) NULL DEFAULT NULL,
+  `PublisherExtendedInformation` JSON NULL DEFAULT NULL,
   `FirstSeen` DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
   `LastSeen` DATETIME(6) DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP(6),
   PRIMARY KEY (`PublisherName`)
