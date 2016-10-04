@@ -267,13 +267,20 @@ Function CheckSoftware(strComputer, bolWriteHeader, ReportFile, objReg, strKey)
                         strDisplayVersionCleaned = aryDisplayName(2)
                 End Select
             Else
-                ' In some cases DisplayVersion has a date before the version so we're going to take in consideration only the very last group of continuous string splitted by space
-                strDisplayVersionPieces = Split(CStr(Replace(Replace(strDisplayVersion, "a", "."), " beta ", ".")), " ")
-                For Each strDisplayVersionPieceValue In strDisplayVersionPieces
-                    If (IsNumeric(strDisplayVersionPieceValue)) Then
-                        strDisplayVersionCleaned = strVersionPrefix & strDisplayVersionPieceValue
-                    End If
-                Next
+                Select Case strSoftwareNameCleaned
+                    ' AIMP seems to store DisplayVersion as "vX.XX.XXXX, Date" so needs special handling to get only the first part without the ","
+                    Case "AIMP"
+                        aryDisplayVersion = Split(strDisplayVersion, ", ")
+                        strDisplayVersionCleaned = aryDisplayVersion(0)
+                    Case Else
+                        ' In some cases DisplayVersion has a date before the version so we're going to take in consideration only the very last group of continuous string splitted by space
+                        strDisplayVersionPieces = Split(CStr(Replace(Replace(strDisplayVersion, "a", "."), " beta ", ".")), " ")
+                        For Each strDisplayVersionPieceValue In strDisplayVersionPieces
+                            If (IsNumeric(strDisplayVersionPieceValue)) Then
+                                strDisplayVersionCleaned = strVersionPrefix & strDisplayVersionPieceValue
+                            End If
+                        Next
+                End Select
             End If
             If ((intReturnU <> 0) Or (IsNull(strURLInfoAbout)) Or (Len(Trim(strURLInfoAbout)) = 0)) Then
                 strURLInfoAbout = "-"
