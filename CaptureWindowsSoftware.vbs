@@ -1226,7 +1226,7 @@ Function ReadWMI__Win32_DiskDrive(objWMIService, strComputer, strResultFileType,
                             aryJSONinformationSQL(intCounter) = """" & crtField & """: " & _
                                 """" & Trim(strDiskNameCleaned) & """"
                         Case "Serial Number"
-                            If (StrComp(crtValue, "", 0) <> 0) Then
+                            If ((StrComp(crtValue, "", 0) <> 0) And (StrComp(crtValue, "", 0) <> 0)) Then
                                 aryJSONinformationSQL(intCounter) = """" & crtField & """: " & """" & crtValue & """"
                             End If
                         Case Else
