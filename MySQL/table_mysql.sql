@@ -129,21 +129,26 @@ CREATE TABLE IF NOT EXISTS `evaluation_lines` (
 
 CREATE ALGORITHM=UNDEFINED SQL SECURITY DEFINER VIEW `view__devices` AS  
 SELECT 
-    `device_details`.`DeviceId` AS `DeviceId`,
-    `device_details`.`DeviceName` AS `DeviceName`,
-    REPLACE(json_extract(`device_details`.`DeviceOSdetails`,'$."Caption"'),'"','') AS `Caption`,
-    REPLACE(json_extract(`device_details`.`DeviceOSdetails`,'$."OS Architecture"'),'"','') AS `OS_Architecture`,
-    REPLACE(json_extract(`device_details`.`DeviceOSdetails`,'$."Version"'),'"','') AS `Version`,
-    REPLACE(json_extract(`device_details`.`DeviceOSdetails`,'$."Total Visible Memory [MB]"'),'"','') AS `TotalVisibleMemoryMB`,
-    REPLACE(json_extract(`device_details`.`DeviceOSdetails`,'$."Current Time Zone Description"'),'"','') AS `CurrentTimeZone`,
-    REPLACE(json_extract(`device_details`.`DeviceOSdetails`,'$."OS Language Description"'),'"','') AS `OS_Language`,
-    REPLACE(json_extract(`device_details`.`DeviceOSdetails`,'$."Locale Description"'),'"','') AS `Locale` 
-FROM `device_details`;
+    `dd`.`DeviceId` AS `DeviceId`,
+    `dd`.`DeviceName` AS `DeviceName`,
+    REPLACE(json_extract(`dd`.`DeviceOSdetails`,'$."Caption"'),'"','') AS `Caption`,
+    REPLACE(json_extract(`dd`.`DeviceOSdetails`,'$."OS Architecture"'),'"','') AS `OS_Architecture`,
+    REPLACE(json_extract(`dd`.`DeviceOSdetails`,'$."Version"'),'"','') AS `Version`,
+    ROUND(CAST(REPLACE(json_extract(`dd`.`DeviceOSdetails`,'$."Total Visible Memory [MB]"'),'"','') AS UNSIGNED) / 1024, 0) AS `RAM [GB]`,
+    REPLACE(json_extract(`dd`.`DeviceOSdetails`,'$."Current Time Zone Description"'),'"','') AS `CurrentTimeZone`,
+    REPLACE(json_extract(`dd`.`DeviceOSdetails`,'$."OS Language Description"'),'"','') AS `OS_Language`,
+    REPLACE(json_extract(`dd`.`DeviceOSdetails`,'$."Locale Description"'),'"','') AS `Locale`,
+    COUNT(`eh`.`EvaluationId`) AS `Number of Evaluations`, 
+    MAX(`eh`.`DateOfGatheringTimestamp`) AS `Most Recent Evaluation Timestamp`, 
+    DATEDIFF(NOW(), MAX(`eh`.`DateOfGatheringTimestamp`)) AS `Most Recent Evaluation Aging` 
+FROM `device_details` `dd`
+    LEFT JOIN `evaluation_headers` `eh` ON `dd`.`DeviceId` = `eh`.`DeviceId`
+GROUP BY `dd`.`DeviceId`, `dd`.`DeviceName`;
 
 CREATE ALGORITHM=UNDEFINED SQL SECURITY DEFINER VIEW `view__evaluations` AS  
 SELECT
-	`el`.`EvaluationId`,
-	`dd`.`DeviceId`,
+    `el`.`EvaluationId`,
+    `dd`.`DeviceId`,
     `dd`.`DeviceName`,
     `pd`.`PublisherId`,
     `pd`.`PublisherName`,
@@ -167,16 +172,18 @@ SELECT
     `ve`.`RelevantMajorVersion` AS `RMV`,
     GROUP_CONCAT(DISTINCT CONCAT(`ve`.`DeviceName`, '_', `ve`.`FullVersion`) ORDER BY `ve`.`DeviceName` SEPARATOR "
 ") AS `Version Details`,
-    (CASE WHEN (SUM(CASE WHEN (`ve`.`DeviceId` = 3) THEN `ve`.`FullVersionNumeric` ELSE NULL END) IS NULL) THEN '---' WHEN SUM(CASE WHEN (`ve`.`DeviceId` = 3) THEN `ve`.`FullVersionNumeric` ELSE NULL END) = MAX(`ve`.`FullVersionNumeric`) THEN 'Ok' ELSE 'OLD' END) AS `PC2016`,
-    (CASE WHEN (SUM(CASE WHEN (`ve`.`DeviceId` = 1) THEN `ve`.`FullVersionNumeric` ELSE NULL END) IS NULL) THEN '---' WHEN SUM(CASE WHEN (`ve`.`DeviceId` = 1) THEN `ve`.`FullVersionNumeric` ELSE NULL END) = MAX(`ve`.`FullVersionNumeric`) THEN 'Ok' ELSE 'OLD' END) AS `PC2014`,
-    (CASE WHEN (SUM(CASE WHEN (`ve`.`DeviceId` = 5) THEN `ve`.`FullVersionNumeric` ELSE NULL END) IS NULL) THEN '---' WHEN SUM(CASE WHEN (`ve`.`DeviceId` = 5) THEN `ve`.`FullVersionNumeric` ELSE NULL END) = MAX(`ve`.`FullVersionNumeric`) THEN 'Ok' ELSE 'OLD' END) AS `PC2011`,
+    (CASE WHEN (SUM(CASE WHEN (`ve`.`DeviceId` = 3) THEN `ve`.`FullVersionNumeric` ELSE NULL END) IS NULL) THEN '---' WHEN SUM(CASE WHEN (`ve`.`DeviceId` = 3) THEN `ve`.`FullVersionNumeric` ELSE NULL END) = MAX(`ve`.`FullVersionNumeric`) THEN 'Ok' ELSE 'OLD' END) AS `PC_2016`,
+    (CASE WHEN (SUM(CASE WHEN (`ve`.`DeviceId` = 2) THEN `ve`.`FullVersionNumeric` ELSE NULL END) IS NULL) THEN '---' WHEN SUM(CASE WHEN (`ve`.`DeviceId` = 2) THEN `ve`.`FullVersionNumeric` ELSE NULL END) = MAX(`ve`.`FullVersionNumeric`) THEN 'Ok' ELSE 'OLD' END) AS `PC_2014`,
+    (CASE WHEN (SUM(CASE WHEN (`ve`.`DeviceId` = 1) THEN `ve`.`FullVersionNumeric` ELSE NULL END) IS NULL) THEN '---' WHEN SUM(CASE WHEN (`ve`.`DeviceId` = 1) THEN `ve`.`FullVersionNumeric` ELSE NULL END) = MAX(`ve`.`FullVersionNumeric`) THEN 'Ok' ELSE 'OLD' END) AS `PC_2013`,
+    (CASE WHEN (SUM(CASE WHEN (`ve`.`DeviceId` = 5) THEN `ve`.`FullVersionNumeric` ELSE NULL END) IS NULL) THEN '---' WHEN SUM(CASE WHEN (`ve`.`DeviceId` = 5) THEN `ve`.`FullVersionNumeric` ELSE NULL END) = MAX(`ve`.`FullVersionNumeric`) THEN 'Ok' ELSE 'OLD' END) AS `Web_Server_H`,
+    (CASE WHEN (SUM(CASE WHEN (`ve`.`DeviceId` = 4) THEN `ve`.`FullVersionNumeric` ELSE NULL END) IS NULL) THEN '---' WHEN SUM(CASE WHEN (`ve`.`DeviceId` = 4) THEN `ve`.`FullVersionNumeric` ELSE NULL END) = MAX(`ve`.`FullVersionNumeric`) THEN 'Ok' ELSE 'OLD' END) AS `Web_Server_M`,
     MAX(`ve`.`FullVersionNumeric`) AS `Newest`, 
     MIN(`ve`.`FullVersionNumeric`) AS `Oldest`,
     GROUP_CONCAT(DISTINCT `ve`.`EvaluationId` SEPARATOR "; ") AS `Evaluations`,
     `ve`.`SoftwareId`,
     (CASE WHEN MIN(`ve`.`FullVersionNumeric`) = MAX(`ve`.`FullVersionNumeric`) THEN 'Everything up-to-date' ELSE 'Differences...' END) AS `Assesment` 
 FROM `view__evaluations` `ve`
-WHERE (`ve`.`DeviceId` IN (1, 3, 5))
+WHERE (`ve`.`DeviceId` IN (1, 2, 3, 4, 5))
 GROUP BY `ve`.`SoftwareName`, `ve`.`RelevantMajorVersion`
 HAVING (`Assesment` = 'Differences...');
 
