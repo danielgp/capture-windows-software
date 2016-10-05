@@ -62,77 +62,11 @@ Else
         End Select
         Set objWMIService = GetObject("winmgmts:{impersonationLevel=impersonate}!\\" & strComputer & "\root\cimv2")
         ' section for Device Details
-        strDetailsCS = Split(ReadWMI__Win32_ComputerSystem(objWMIService, strComputer, strResultFileType, strFieldSeparator), "||")
-        strDetailsCPU = Split(ReadWMI__Win32_Processor(objWMIService, strComputer, strResultFileType, strFieldSeparator), "||")
-        strDetailsBaseBoard = Split(ReadWMI__Win32_BaseBoard(objWMIService, strComputer, strResultFileType, strFieldSeparator), "||")
-        strDetailsBIOS = Split(ReadWMI__Win32_BIOS(objWMIService, strComputer, strResultFileType, strFieldSeparator), "||")
-        strDetailsDiskDrive = Split(ReadWMI__Win32_DiskDrive(objWMIService, strComputer, strResultFileType, strFieldSeparator), "||")
-        strDetailsRAM = Split(ReadWMI__Win32_PhysicalMemoryArray(objWMIService, strComputer, strResultFileType, strFieldSeparator), "||")
-        strDetailsVideoController = Split(ReadWMI__Win32_VideoController(objWMIService, strComputer, strResultFileType, strFieldSeparator), "||")
-        Set objResultDeviceDetails = objFSO.OpenTextFile(strCurDir & "\" & strResultFileNameDeviceDetails & strResultFileType, ForAppending, True)
-        Select Case LCase(strResultFileType)
-            Case ".csv"
-                If (bolFileDeviceHeaderToAdd) Then
-                    objResultDeviceDetails.WriteLine strDetailsCS(0) & _
-                        strFieldSeparator & strDetailsCPU(0) & _
-                        strFieldSeparator & strDetailsBaseBoard(0) & _
-                        strFieldSeparator & strDetailsBIOS(0) & _
-                        strFieldSeparator & strDetailsDiskDrive(0) & _
-                        strFieldSeparator & strDetailsRAM(0) & _
-                        strFieldSeparator & strDetailsVideoController(0)
-                End If
-                objResultDeviceDetails.WriteLine strDetailsCS(1) & _
-                    strFieldSeparator & strDetailsCPU(1) & _
-                    strFieldSeparator & strDetailsBaseBoard(1) & _
-                    strFieldSeparator & strDetailsBIOS(1) & _
-                    strFieldSeparator & strDetailsDiskDrive(1) & _
-                    strFieldSeparator & strDetailsRAM(1) & _
-                    strFieldSeparator & strDetailsVideoController(1)
-            Case ".sql"
-                objResultDeviceDetails.WriteLine strDetailsCS(0)
-                JSONinformationComputerSystemSQL = "{ " & strDetailsCS(1) & " }"
-                objResultDeviceDetails.WriteLine strDetailsCPU(0)
-                JSONinformationHardwareSQL = "{ ""CPU"": { " & strDetailsCPU(1) & " }" & _
-                    ", ""Motherboard"": { " & strDetailsBaseBoard(1) & " }" & _
-                    ", ""BIOS"": { " & strDetailsBIOS(1) & " }" & _
-                    ", ""Disk Drive"": { " & strDetailsDiskDrive(1) & " }" & _
-                    ", ""RAM"": { " & strDetailsRAM(1) & " }" & _
-                    ", ""Video Controller"": { " & strDetailsVideoController(1) & " }" & _
-                    " }"
-                objResultDeviceDetails.WriteLine "INSERT INTO `device_details` " & _
-                    "(`DeviceName`, `DeviceOSdetails`, `DeviceHardwareDetails`) VALUES(" & _
-                    "'" & strComputer & "', '" & JSONinformationComputerSystemSQL & "', '" & JSONinformationHardwareSQL & "') " & _
-                    "ON DUPLICATE KEY UPDATE " & _
-                    "`DeviceOSdetails` = '" & JSONinformationComputerSystemSQL & "', " & _
-                    "`DeviceHardwareDetails` = '" & JSONinformationHardwareSQL & "'" & _
-                    ";"
-                objResultDeviceDetails.WriteLine "ALTER TABLE `device_details` AUTO_INCREMENT = 1;"
-        End Select
-        objResultDeviceDetails.Close
+        ReadWMI_All objWMIService, strComputer, strResultFileType, strFieldSeparator, objFSO, strCurDir, strResultFileNameDeviceDetails, ForAppending, bolFileDeviceHeaderToAdd
         ' section for Device Volumes
-        If (objFSO.FileExists(strCurDir & "\" & strResultFileNameDeviceVolumes & strResultFileType)) Then
-            bolFileDeviceVolumeHeaderToAdd = False
-        Else
-            bolFileDeviceVolumeHeaderToAdd = True
-        End If
-        Set objResultDeviceVolumes = objFSO.OpenTextFile(strCurDir & "\" & strResultFileNameDeviceVolumes & strResultFileType, ForAppending, True)
-        ReadWMI__Win32_LogicalDisk objWMIService, strComputer, strResultFileType, strFieldSeparator, objResultDeviceVolumes
-        objResultDeviceVolumes.WriteLine "ALTER TABLE `device_volumes` AUTO_INCREMENT = 1;"
-        objResultDeviceVolumes.Close
+        ReadWMI_DeviceVolumes objWMIService, strComputer, strResultFileType, strFieldSeparator, objFSO, strCurDir, strResultFileNameDeviceVolumes, ForAppending
         ' section for Software List
-        Set objResultSoftware = objFSO.OpenTextFile(strCurDir & "\" & strResultFileNameSoftware & strResultFileType, ForAppending, True)
-        If (LCase(strResultFileType) = ".sql") Then
-            objResultSoftware.WriteLine "DELETE FROM `in_windows_software_list` WHERE (`HostName` = '" & strComputer & "');"
-        End If
-        Set objRegistry = GetObject("winmgmts:{impersonationLevel=impersonate}!\\" & strComputer & "\root\default:StdRegProv")
-        objRegistry.GetStringValue HKLM, "SYSTEM\CurrentControlSet\Control\Session Manager\Environment", "PROCESSOR_ARCHITECTURE", strOStype
-        CheckSoftware strComputer, bolFileSoftwareHeaderToAdd, objResultSoftware, objRegistry, "SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\"
-        ' if Windows is 64-bit an additional Registry Key has to be analyzed
-        If (strOStype = "AMD64") Then
-            CheckSoftware strComputer, False, objResultSoftware, objRegistry, "SOFTWARE\Wow6432Node\Microsoft\Windows\CurrentVersion\Uninstall\"
-        End If
-        ApplySoftwareNormalization strComputer, strResultFileType, objResultSoftware
-        objResultSoftware.Close
+        ReadRegistry_SofwareInstalled strComputer, strResultFileType, strFieldSeparator, objFSO, strCurDir, strResultFileNameSoftware, ForAppending
     Loop
     SrvListFile.Close
     EndTime = Timer()
@@ -158,17 +92,15 @@ Function AdjustEmptyValueWithinArrayAndGlueIt(aryEntryArray, strValueToReplace, 
     AdjustEmptyValueWithinArrayAndGlueIt = Replace(strFinal, strGlue & strGlue, "")
 End Function
 Function ApplySoftwareNormalization(strComputer, strResultFileType, ReportFile)
-    If (LCase(strResultFileType) = ".sql") Then
-        ReportFile.WriteLine "/* Following sequence of MySQL queries will ensure Software List normalization and data retention so a complete traceability would be ensured for each hostnames/devices included */"
-        ReportFile.WriteLine "INSERT `publisher_details` (`PublisherName`) SELECT `PublisherName` FROM `in_windows_software_list` WHERE (`HostName` = '" & strComputer & "') AND (`PublisherName` IS NOT NULL) AND (`PublisherName` NOT IN (SELECT `PublisherName` FROM `publisher_details` GROUP BY `PublisherName`)) GROUP BY `PublisherName`;"
-        ReportFile.WriteLine "INSERT `software_details` (`SoftwareName`) SELECT `SoftwareName` FROM `in_windows_software_list` WHERE (`HostName` = '" & strComputer & "') AND (`SoftwareName` IS NOT NULL) AND (`SoftwareName` NOT IN (SELECT `SoftwareName` FROM `software_details` GROUP BY `SoftwareName`)) GROUP BY `SoftwareName`;"
-        ReportFile.WriteLine "INSERT `version_details` (`FullVersion`) SELECT `FullVersion` FROM `in_windows_software_list` WHERE (`HostName` = '" & strComputer & "') AND (`FullVersion` IS NOT NULL) AND (`FullVersion` NOT IN (SELECT `FullVersion` FROM `version_details` GROUP BY `FullVersion`)) GROUP BY `FullVersion`;"
-        ReportFile.WriteLine "INSERT INTO `evaluation_headers` (`DeviceId`) SELECT `DeviceId` FROM `device_details` WHERE (`DeviceName` = '" & strComputer & "');"
-        ReportFile.WriteLine "SELECT LAST_INSERT_ID() INTO @EvaluationId;"
-        ReportFile.WriteLine "INSERT INTO `evaluation_lines` (`EvaluationId`, `PublisherId`, `SoftwareId`, `VersionId`, `InstallationDate`) SELECT DISTINCT @EvaluationId, `PublisherId`, `SoftwareId`, `VersionId`, MAX(`InstallationDate`) FROM `in_windows_software_list` `iwsl` INNER JOIN `publisher_details` `pd` ON `iwsl`.`PublisherName` = `pd`.`PublisherName` INNER JOIN `software_details` `sd` ON `iwsl`.`SoftwareName` = `sd`.`SoftwareName` INNER JOIN `version_details` `vd` ON `iwsl`.`FullVersion` = `vd`.`FullVersion` WHERE (`iwsl`.`HostName` = '" & strComputer & "') GROUP BY `pd`.`PublisherId`, `sd`.`SoftwareId`, `vd`.`VersionId` ORDER BY `pd`.`PublisherId`, `sd`.`SoftwareId`, `vd`.`VersionId`;"
-        ReportFile.WriteLine "UPDATE `evaluation_headers` SET `DateOfGatheringTimestamp` = (SELECT MAX(`EvaluationTimestamp`) FROM `in_windows_software_list` WHERE (`HostName` = '" & strComputer & "')) WHERE (`EvaluationId` = @EvaluationId);"
-        ReportFile.WriteLine "UPDATE `device_details` SET `MostRecentEvaluationId` = @EvaluationId, `LastSeen` = `LastSeen` WHERE (`DeviceName` = '" & strComputer & "');"
-    End If
+    ReportFile.WriteLine "/* Following sequence of MySQL queries will ensure Software List normalization and data retention so a complete traceability would be ensured for each hostnames/devices included */"
+    ReportFile.WriteLine "INSERT `publisher_details` (`PublisherName`) SELECT `PublisherName` FROM `in_windows_software_list` WHERE (`HostName` = '" & strComputer & "') AND (`PublisherName` IS NOT NULL) AND (`PublisherName` NOT IN (SELECT `PublisherName` FROM `publisher_details` GROUP BY `PublisherName`)) GROUP BY `PublisherName`;"
+    ReportFile.WriteLine "INSERT `software_details` (`SoftwareName`) SELECT `SoftwareName` FROM `in_windows_software_list` WHERE (`HostName` = '" & strComputer & "') AND (`SoftwareName` IS NOT NULL) AND (`SoftwareName` NOT IN (SELECT `SoftwareName` FROM `software_details` GROUP BY `SoftwareName`)) GROUP BY `SoftwareName`;"
+    ReportFile.WriteLine "INSERT `version_details` (`FullVersion`) SELECT `FullVersion` FROM `in_windows_software_list` WHERE (`HostName` = '" & strComputer & "') AND (`FullVersion` IS NOT NULL) AND (`FullVersion` NOT IN (SELECT `FullVersion` FROM `version_details` GROUP BY `FullVersion`)) GROUP BY `FullVersion`;"
+    ReportFile.WriteLine "INSERT INTO `evaluation_headers` (`DeviceId`) SELECT `DeviceId` FROM `device_details` WHERE (`DeviceName` = '" & strComputer & "');"
+    ReportFile.WriteLine "SELECT LAST_INSERT_ID() INTO @EvaluationId;"
+    ReportFile.WriteLine "INSERT INTO `evaluation_lines` (`EvaluationId`, `PublisherId`, `SoftwareId`, `VersionId`, `InstallationDate`) SELECT DISTINCT @EvaluationId, `PublisherId`, `SoftwareId`, `VersionId`, MAX(`InstallationDate`) FROM `in_windows_software_list` `iwsl` INNER JOIN `publisher_details` `pd` ON `iwsl`.`PublisherName` = `pd`.`PublisherName` INNER JOIN `software_details` `sd` ON `iwsl`.`SoftwareName` = `sd`.`SoftwareName` INNER JOIN `version_details` `vd` ON `iwsl`.`FullVersion` = `vd`.`FullVersion` WHERE (`iwsl`.`HostName` = '" & strComputer & "') GROUP BY `pd`.`PublisherId`, `sd`.`SoftwareId`, `vd`.`VersionId` ORDER BY `pd`.`PublisherId`, `sd`.`SoftwareId`, `vd`.`VersionId`;"
+    ReportFile.WriteLine "UPDATE `evaluation_headers` SET `DateOfGatheringTimestamp` = (SELECT MAX(`EvaluationTimestamp`) FROM `in_windows_software_list` WHERE (`HostName` = '" & strComputer & "')) WHERE (`EvaluationId` = @EvaluationId);"
+    ReportFile.WriteLine "UPDATE `device_details` SET `MostRecentEvaluationId` = @EvaluationId, `LastSeen` = `LastSeen` WHERE (`DeviceName` = '" & strComputer & "');"
 End Function
 Function BuildInsertOrUpdateSQLstructure(aryFieldNames, aryFieldValues, strInsertOrUpdate, intFirstNumberOfFieldsToIgnore, intLastNumberOfFieldsToIgnore)
     Counter = 0
@@ -974,6 +906,23 @@ Function NumberWithTwoDigits(InputNo)
     Else
         NumberWithTwoDigits = InputNo
     End If
+End Function
+Function ReadRegistry_SofwareInstalled(strComputer, strResultFileType, strFieldSeparator, objFSO, strCurDir, strResultFileNameSoftware, ForAppending)
+    Set objResultSoftware = objFSO.OpenTextFile(strCurDir & "\" & strResultFileNameSoftware & strResultFileType, ForAppending, True)
+    If (LCase(strResultFileType) = ".sql") Then
+        objResultSoftware.WriteLine "DELETE FROM `in_windows_software_list` WHERE (`HostName` = '" & strComputer & "');"
+    End If
+    Set objRegistry = GetObject("winmgmts:{impersonationLevel=impersonate}!\\" & strComputer & "\root\default:StdRegProv")
+    objRegistry.GetStringValue HKLM, "SYSTEM\CurrentControlSet\Control\Session Manager\Environment", "PROCESSOR_ARCHITECTURE", strOStype
+    CheckSoftware strComputer, bolFileSoftwareHeaderToAdd, objResultSoftware, objRegistry, "SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\"
+    ' if Windows is 64-bit an additional Registry Key has to be analyzed
+    If (strOStype = "AMD64") Then
+        CheckSoftware strComputer, False, objResultSoftware, objRegistry, "SOFTWARE\Wow6432Node\Microsoft\Windows\CurrentVersion\Uninstall\"
+    End If
+    If (LCase(strResultFileType) = ".sql") Then
+        ApplySoftwareNormalization strComputer, strResultFileType, objResultSoftware
+    End If
+    objResultSoftware.Close
 End Function
 Function ReadWMI__Win32_BaseBoard(objWMIService, strComputer, strResultFileType, strFieldSeparator)
     Dim aryDetailsToReturn(1)
@@ -1794,5 +1743,66 @@ Function ReadWMI__Win32_VideoController(objWMIService, strComputer, strResultFil
         intVideoController = intVideoController + 1
     Next
     ReadWMI__Win32_VideoController = Join(aryDetailsToReturn, "||")
+End Function
+Function ReadWMI_All(objWMIService, strComputer, strResultFileType, strFieldSeparator, objFSO, strCurDir, strResultFileNameDeviceDetails, ForAppending, bolFileDeviceHeaderToAdd)
+    strDetailsCS = Split(ReadWMI__Win32_ComputerSystem(objWMIService, strComputer, strResultFileType, strFieldSeparator), "||")
+    strDetailsCPU = Split(ReadWMI__Win32_Processor(objWMIService, strComputer, strResultFileType, strFieldSeparator), "||")
+    strDetailsBaseBoard = Split(ReadWMI__Win32_BaseBoard(objWMIService, strComputer, strResultFileType, strFieldSeparator), "||")
+    strDetailsBIOS = Split(ReadWMI__Win32_BIOS(objWMIService, strComputer, strResultFileType, strFieldSeparator), "||")
+    strDetailsDiskDrive = Split(ReadWMI__Win32_DiskDrive(objWMIService, strComputer, strResultFileType, strFieldSeparator), "||")
+    strDetailsRAM = Split(ReadWMI__Win32_PhysicalMemoryArray(objWMIService, strComputer, strResultFileType, strFieldSeparator), "||")
+    strDetailsVideoController = Split(ReadWMI__Win32_VideoController(objWMIService, strComputer, strResultFileType, strFieldSeparator), "||")
+    Set objResultDeviceDetails = objFSO.OpenTextFile(strCurDir & "\" & strResultFileNameDeviceDetails & strResultFileType, ForAppending, True)
+    Select Case LCase(strResultFileType)
+        Case ".csv"
+            If (bolFileDeviceHeaderToAdd) Then
+                objResultDeviceDetails.WriteLine strDetailsCS(0) & _
+                    strFieldSeparator & strDetailsCPU(0) & _
+                    strFieldSeparator & strDetailsBaseBoard(0) & _
+                    strFieldSeparator & strDetailsBIOS(0) & _
+                    strFieldSeparator & strDetailsDiskDrive(0) & _
+                    strFieldSeparator & strDetailsRAM(0) & _
+                    strFieldSeparator & strDetailsVideoController(0)
+            End If
+            objResultDeviceDetails.WriteLine strDetailsCS(1) & _
+                strFieldSeparator & strDetailsCPU(1) & _
+                strFieldSeparator & strDetailsBaseBoard(1) & _
+                strFieldSeparator & strDetailsBIOS(1) & _
+                strFieldSeparator & strDetailsDiskDrive(1) & _
+                strFieldSeparator & strDetailsRAM(1) & _
+                strFieldSeparator & strDetailsVideoController(1)
+        Case ".sql"
+            objResultDeviceDetails.WriteLine strDetailsCS(0)
+            JSONinformationComputerSystemSQL = "{ " & strDetailsCS(1) & " }"
+            objResultDeviceDetails.WriteLine strDetailsCPU(0)
+            JSONinformationHardwareSQL = "{ ""CPU"": { " & strDetailsCPU(1) & " }" & _
+                ", ""Motherboard"": { " & strDetailsBaseBoard(1) & " }" & _
+                ", ""BIOS"": { " & strDetailsBIOS(1) & " }" & _
+                ", ""Disk Drive"": { " & strDetailsDiskDrive(1) & " }" & _
+                ", ""RAM"": { " & strDetailsRAM(1) & " }" & _
+                ", ""Video Controller"": { " & strDetailsVideoController(1) & " }" & _
+                " }"
+            objResultDeviceDetails.WriteLine "INSERT INTO `device_details` " & _
+                "(`DeviceName`, `DeviceOSdetails`, `DeviceHardwareDetails`) VALUES('" & strComputer & "', " & _
+                "'" & JSONinformationComputerSystemSQL & "', " & _
+                "'" & JSONinformationHardwareSQL & "') " & _
+                "ON DUPLICATE KEY UPDATE " & _
+                "`DeviceOSdetails` = '" & JSONinformationComputerSystemSQL & "', " & _
+                "`DeviceHardwareDetails` = '" & JSONinformationHardwareSQL & "'" & _
+                ";"
+            objResultDeviceDetails.WriteLine "ALTER TABLE `device_details` AUTO_INCREMENT = 1;"
+    End Select
+    objResultDeviceDetails.Close
+End Function
+Function ReadWMI_DeviceVolumes(objWMIService, strComputer, strResultFileType, strFieldSeparator, objFSO, strCurDir, strResultFileNameDeviceVolumes, ForAppending)
+    If (objFSO.FileExists(strCurDir & "\" & strResultFileNameDeviceVolumes & strResultFileType)) Then
+        bolFileDeviceVolumeHeaderToAdd = False
+    Else
+        bolFileDeviceVolumeHeaderToAdd = True
+    End If
+    Set objResultDeviceVolumes = objFSO.OpenTextFile(strCurDir & "\" & strResultFileNameDeviceVolumes & strResultFileType, ForAppending, True)
+    ReadWMI__Win32_LogicalDisk objWMIService, strComputer, strResultFileType, strFieldSeparator, objResultDeviceVolumes
+    objResultDeviceVolumes.WriteLine "ALTER TABLE `device_volumes` AUTO_INCREMENT = 1;"
+    objResultDeviceVolumes.Close
 End Function
 '-----------------------------------------------------------------------------------------------------------------------
