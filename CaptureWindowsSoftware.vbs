@@ -28,6 +28,7 @@ Const strFieldSeparator = ";"
 Const strVersionPrefix = "v"
 Const strResultFileNameSoftware = "ResultWindowsSoftwareList"
 Const strResultFileNameDeviceDetails = "ResultWindowsDeviceDetails"
+Const strResultFileNameDeviceVolumes = "ResultWindowsDeviceVolumes"
 Dim strResultFileType
 Set objFSO = CreateObject("Scripting.FileSystemObject")
 Set WshShell = WScript.CreateObject("WScript.Shell")
@@ -60,6 +61,7 @@ Else
                 strResultFileType = ".sql"
         End Select
         Set objWMIService = GetObject("winmgmts:{impersonationLevel=impersonate}!\\" & strComputer & "\root\cimv2")
+        ' section for Device Details
         strDetailsCS = Split(ReadWMI__Win32_ComputerSystem(objWMIService, strComputer, strResultFileType, strFieldSeparator), "||")
         strDetailsCPU = Split(ReadWMI__Win32_Processor(objWMIService, strComputer, strResultFileType, strFieldSeparator), "||")
         strDetailsBaseBoard = Split(ReadWMI__Win32_BaseBoard(objWMIService, strComputer, strResultFileType, strFieldSeparator), "||")
@@ -67,7 +69,7 @@ Else
         strDetailsDiskDrive = Split(ReadWMI__Win32_DiskDrive(objWMIService, strComputer, strResultFileType, strFieldSeparator), "||")
         strDetailsRAM = Split(ReadWMI__Win32_PhysicalMemoryArray(objWMIService, strComputer, strResultFileType, strFieldSeparator), "||")
         strDetailsVideoController = Split(ReadWMI__Win32_VideoController(objWMIService, strComputer, strResultFileType, strFieldSeparator), "||")
-        Set objResultDeviceDetails = objFSO.OpenTextFile(strCurDir & "\" & strResultFileNameDeviceDetails & strResultFileType, ForAppending, True) 
+        Set objResultDeviceDetails = objFSO.OpenTextFile(strCurDir & "\" & strResultFileNameDeviceDetails & strResultFileType, ForAppending, True)
         Select Case LCase(strResultFileType)
             Case ".csv"
                 If (bolFileDeviceHeaderToAdd) Then
@@ -107,6 +109,17 @@ Else
                 objResultDeviceDetails.WriteLine "ALTER TABLE `device_details` AUTO_INCREMENT = 1;"
         End Select
         objResultDeviceDetails.Close
+        ' section for Device Volumes
+        If (objFSO.FileExists(strCurDir & "\" & strResultFileNameDeviceVolumes & strResultFileType)) Then
+            bolFileDeviceVolumeHeaderToAdd = False
+        Else
+            bolFileDeviceVolumeHeaderToAdd = True
+        End If
+        Set objResultDeviceVolumes = objFSO.OpenTextFile(strCurDir & "\" & strResultFileNameDeviceVolumes & strResultFileType, ForAppending, True)
+        ReadWMI__Win32_LogicalDisk objWMIService, strComputer, strResultFileType, strFieldSeparator, objResultDeviceVolumes
+        objResultDeviceVolumes.WriteLine "ALTER TABLE `device_volumes` AUTO_INCREMENT = 1;"
+        objResultDeviceVolumes.Close
+        ' section for Software List
         Set objResultSoftware = objFSO.OpenTextFile(strCurDir & "\" & strResultFileNameSoftware & strResultFileType, ForAppending, True)
         If (LCase(strResultFileType) = ".sql") Then
             objResultSoftware.WriteLine "DELETE FROM `in_windows_software_list` WHERE (`HostName` = '" & strComputer & "');"
@@ -157,7 +170,7 @@ Function ApplySoftwareNormalization(strComputer, strResultFileType, ReportFile)
         ReportFile.WriteLine "UPDATE `device_details` SET `MostRecentEvaluationId` = @EvaluationId, `LastSeen` = `LastSeen` WHERE (`DeviceName` = '" & strComputer & "');"
     End If
 End Function
-Function BuildInsertOrUpdateSQLstructure(aryFieldNames, aryFieldValues, strInsertOrUpdate)
+Function BuildInsertOrUpdateSQLstructure(aryFieldNames, aryFieldValues, strInsertOrUpdate, intFirstNumberOfFieldsToIgnore, intLastNumberOfFieldsToIgnore)
     Counter = 0
     strUpdateSQLstructure = ""
     Select Case strInsertOrUpdate
@@ -170,8 +183,8 @@ Function BuildInsertOrUpdateSQLstructure(aryFieldNames, aryFieldValues, strInser
             aryFieldValuesMySQL = Split(CSVfieldNamesIntoSQLfieldName(aryFieldNames), "|")
             intFieldNumbered = UBound(aryFieldValuesMySQL)
             For Each strFieldName In aryFieldValuesMySQL 
-                If (Counter <= (intFieldNumbered - 2)) Then 'last 2 fields are part of PK so will not be used
-                    If (Counter > 0) Then
+                If ((Counter >= intFirstNumberOfFieldsToIgnore) And (Counter <= (intFieldNumbered - intLastNumberOfFieldsToIgnore))) Then
+                    If (Counter > intFirstNumberOfFieldsToIgnore) Then
                         strUpdateSQLstructure = strUpdateSQLstructure & ", "
                     End If
                     strUpdateSQLstructure = strUpdateSQLstructure & "`" & strFieldName & "` = '" & aryFieldValues(Counter) & "'"
@@ -368,11 +381,11 @@ Function CheckSoftware(strComputer, bolWriteHeader, ReportFile, objReg, strKey)
                     ReportFile.WriteLine Join(aryValuesToExpose, strFieldSeparator)
                 Case ".sql"
                     ReportFile.WriteLine "INSERT INTO `in_windows_software_list` (" & _
-                        BuildInsertOrUpdateSQLstructure(aryInformationToExpose, aryValuesToExpose, "InsertFields") & _
+                        BuildInsertOrUpdateSQLstructure(aryInformationToExpose, aryValuesToExpose, "InsertFields", 0, 2) & _
                         ") VALUES(" & _
-                        BuildInsertOrUpdateSQLstructure(aryInformationToExpose, aryValuesToExpose, "InsertValues") & _
+                        BuildInsertOrUpdateSQLstructure(aryInformationToExpose, aryValuesToExpose, "InsertValues", 0, 2) & _
                         ") ON DUPLICATE KEY UPDATE " & _
-                        BuildInsertOrUpdateSQLstructure(aryInformationToExpose, aryValuesToExpose, "Update") & _
+                        BuildInsertOrUpdateSQLstructure(aryInformationToExpose, aryValuesToExpose, "Update", 0, 2) & _
                         ";"
             End Select
         End If 
@@ -555,6 +568,22 @@ Function InArray(Haystack, GivenArray)
         End If
     Next
     InArray = bReturn
+End Function
+Function MappingDriveTypeCodeInDescriptionOut(InputDriveType)
+    aryDriveTypes = Array(_
+        Array(0, "Unknown"), _
+        Array(1, "No Root Directory"), _
+        Array(2, "Removable Disk"), _
+        Array(3, "Local Disk"), _
+        Array(4, "Network Drive"), _
+        Array(5, "Compact Disc"), _
+        Array(6, "RAM Disk") _
+    )
+    For Each crtDriveType In aryDriveTypes
+        If (InputDriveType = crtDriveType(0)) Then
+            MappingDriveTypeCodeInDescriptionOut = crtDriveType(1)
+        End If
+    Next
 End Function
 Function MappingLanguageLCIDinDescriptionOut(GivenElement, GivenValue, FeedbackElement)
     aryLanguageCodes = Array(_
@@ -833,6 +862,38 @@ Function MappingLanguageLCIDinDescriptionOut(GivenElement, GivenValue, FeedbackE
                         End If
                 End Select
         End Select
+    Next
+End Function
+Function MappingMediaTypeCodeInDescriptionOut(InputMediaType)
+    aryMediaTypes = Array(_
+        Array(0, "Format is unknown"), _
+        Array(1, "5¼-Inch Floppy Disk - 1.2 MB - 512 bytes/sector"), _
+        Array(2, "3½-Inch Floppy Disk - 1.44 MB -512 bytes/sector"), _
+        Array(3, "3½-Inch Floppy Disk - 2.88 MB - 512 bytes/sector"), _
+        Array(4, "3½-Inch Floppy Disk - 20.8 MB - 512 bytes/sector"), _
+        Array(5, "3½-Inch Floppy Disk - 720 KB - 512 bytes/sector"), _
+        Array(6, "5¼-Inch Floppy Disk - 360 KB - 512 bytes/sector"), _
+        Array(7, "5¼-Inch Floppy Disk - 360 KB - 512 bytes/sector"), _
+        Array(8, "5¼-Inch Floppy Disk - 360 KB - 1024 bytes/sector"), _
+        Array(9, "5¼-Inch Floppy Disk - 180 KB - 512 bytes/sector"), _
+        Array(10, "5¼-Inch Floppy Disk - 160 KB - 512 bytes/sector"), _
+        Array(11, "Removable media other than floppy"), _
+        Array(12, "Fixed hard disk media"), _
+        Array(13, "3½-Inch Floppy Disk - 120 MB - 512 bytes/sector"), _
+        Array(14, "3½-Inch Floppy Disk - 640 KB - 512 bytes/sector"), _
+        Array(15, "5¼-Inch Floppy Disk - 640 KB - 512 bytes/sector"), _
+        Array(16, "5¼-Inch Floppy Disk - 720 KB - 512 bytes/sector"), _
+        Array(17, "3½-Inch Floppy Disk - 1.2 MB - 512 bytes/sector"), _
+        Array(18, "3½-Inch Floppy Disk - 1.23 MB - 1024 bytes/sector"), _
+        Array(19, "5¼-Inch Floppy Disk - 1.23 MB - 1024 bytes/sector"), _
+        Array(20, "3½-Inch Floppy Disk - 128 MB - 512 bytes/sector"), _
+        Array(21, "3½-Inch Floppy Disk - 230 MB - 512 bytes/sector"), _
+        Array(22, "8-Inch Floppy Disk - 256 KB - 128 bytes/sector") _
+    )
+    For Each crtMediaType In aryMediaTypes
+        If (InputMediaType = crtMediaType(0)) Then
+            MappingMediaTypeCodeInDescriptionOut = crtMediaType(1)
+        End If
     Next
 End Function
 Function MappingOSTypeCodeInDescriptionOut(InputOSTypeCode)
@@ -1228,6 +1289,8 @@ Function ReadWMI__Win32_DiskDrive(objWMIService, strComputer, strResultFileType,
                         Case "Serial Number"
                             If ((StrComp(crtValue, "", 0) <> 0) And (StrComp(crtValue, "", 0) <> 0)) Then
                                 aryJSONinformationSQL(intCounter) = """" & crtField & """: " & """" & crtValue & """"
+                            Else
+                                aryJSONinformationSQL(intCounter) = """" & crtField & """: " & """-"""
                             End If
                         Case Else
                             If (IsNumericExtended(crtValue)) Then
@@ -1256,6 +1319,143 @@ Function ReadWMI__Win32_DiskDrive(objWMIService, strComputer, strResultFileType,
         End Select
     Next
     ReadWMI__Win32_DiskDrive = Join(aryDetailsToReturn, "||")
+End Function
+Function ReadWMI__Win32_LogicalDisk(objWMIService, strComputer, strResultFileType, strFieldSeparator, ReportFile)
+    Dim aryDetailsToReturn(1)
+    Dim aryJSONinformationSQL(39)
+    aryFieldsLogicalDiskMain = Array(_
+        "Volume Serial Number", _
+        "Detailed Information" _
+    )
+    aryFieldsLogicalDisk = Array(_
+        "Access", _
+        "Availability", _
+        "Block Size", _
+        "Caption", _
+        "Compressed", _
+        "Config Manager Error Code", _
+        "Config Manager User Config", _
+        "Creation Class Name", _
+        "Description", _
+        "Device ID", _
+        "Drive Type Code", _
+        "Drive Type Description", _
+        "Error Cleared", _
+        "Error Description", _
+        "Error Methodology", _
+        "File System", _
+        "Free Space", _
+        "Install Date", _
+        "Last Error Code", _
+        "Maximum Component Length", _
+        "Media Type Code", _
+        "Media Type Description", _
+        "Name", _
+        "Number Of Blocks", _
+        "PNP Device ID", _
+        "Power Management Supported", _
+        "Provider Name", _
+        "Purpose", _
+        "Quotas Disabled", _
+        "Quotas Incomplete", _
+        "Quotas Rebuilding", _
+        "Size", _
+        "Status", _
+        "Status Info", _
+        "Supports Disk Quotas", _
+        "Supports File Based Compression", _
+        "System Name", _
+        "Volume Dirty", _
+        "Volume Name", _
+        "Volume Serial Number" _
+    )
+    Set objLogicalDisk = objWMIService.ExecQuery("Select * from Win32_LogicalDisk")
+    aryDetailsToReturn(0) = ""
+    aryDetailsToReturn(1) = ""
+    For Each crtObjLogicalDisk in objLogicalDisk
+        aryValuesLogicalDisk = Array(_
+            crtObjLogicalDisk.Access, _
+            crtObjLogicalDisk.Availability, _
+            crtObjLogicalDisk.BlockSize, _
+            crtObjLogicalDisk.Caption, _
+            crtObjLogicalDisk.Compressed, _
+            crtObjLogicalDisk.ConfigManagerErrorCode, _
+            crtObjLogicalDisk.ConfigManagerUserConfig, _
+            crtObjLogicalDisk.CreationClassName, _
+            crtObjLogicalDisk.Description, _
+            crtObjLogicalDisk.DeviceID, _
+            crtObjLogicalDisk.DriveType, _
+            MappingDriveTypeCodeInDescriptionOut(crtObjLogicalDisk.DriveType), _
+            crtObjLogicalDisk.ErrorCleared, _
+            crtObjLogicalDisk.ErrorDescription, _
+            crtObjLogicalDisk.ErrorMethodology, _
+            crtObjLogicalDisk.FileSystem, _
+            crtObjLogicalDisk.FreeSpace, _
+            crtObjLogicalDisk.InstallDate, _
+            crtObjLogicalDisk.LastErrorCode, _
+            crtObjLogicalDisk.MaximumComponentLength, _
+            crtObjLogicalDisk.MediaType, _
+            MappingMediaTypeCodeInDescriptionOut(crtObjLogicalDisk.MediaType), _
+            crtObjLogicalDisk.Name, _
+            crtObjLogicalDisk.NumberOfBlocks, _
+            crtObjLogicalDisk.PNPDeviceID, _
+            crtObjLogicalDisk.PowerManagementSupported, _
+            crtObjLogicalDisk.ProviderName, _
+            crtObjLogicalDisk.Purpose, _
+            crtObjLogicalDisk.QuotasDisabled, _
+            crtObjLogicalDisk.QuotasIncomplete, _
+            crtObjLogicalDisk.QuotasRebuilding, _
+            crtObjLogicalDisk.Size, _
+            crtObjLogicalDisk.Status, _
+            crtObjLogicalDisk.StatusInfo, _
+            crtObjLogicalDisk.SupportsDiskQuotas, _
+            crtObjLogicalDisk.SupportsFileBasedCompression, _
+            crtObjLogicalDisk.SystemName, _
+            crtObjLogicalDisk.VolumeDirty, _
+            crtObjLogicalDisk.VolumeName, _
+            crtObjLogicalDisk.VolumeSerialNumber _
+        )
+        strDiskNameCleaned = crtObjLogicalDisk.VolumeSerialNumber
+        Select Case LCase(strResultFileType)
+            Case ".csv"
+                If (bolFileDeviceVolumeHeaderToAdd) Then
+                    ReportFile.WriteLine Join(aryFieldsLogicalDisk, strFieldSeparator)
+                    bolFileDeviceVolumeHeaderToAdd = False
+                End If
+                ReportFile.WriteLine AdjustEmptyValueWithinArrayAndGlueIt(aryValuesLogicalDisk, "-", strFieldSeparator)
+            Case ".sql"
+                intCounter = 0
+                For Each crtField in aryFieldsLogicalDisk
+                    crtValue = Trim(aryValuesLogicalDisk(intCounter))
+                    Select Case crtField
+                        Case "Volume Serial Number"
+                            aryJSONinformationSQL(intCounter) = """" & crtField & """: " & """" & crtValue & """"
+                        Case Else
+                            If (IsNull(crtValue)) Then
+                                crtValue = "-"
+                            End If
+                            If (IsNumericExtended(crtValue)) Then
+                                aryJSONinformationSQL(intCounter) = """" & crtField & """: " & crtValue
+                            Else
+                                aryJSONinformationSQL(intCounter) = """" & crtField & """: " & """" & crtValue & """"
+                            End If
+                    End Select
+                    intCounter = intCounter + 1
+                Next
+                aryValuesToExpose = Null
+                aryValuesToExpose = Array(_
+                    crtObjLogicalDisk.VolumeSerialNumber, _
+                    "{ " & Replace(Join(aryJSONinformationSQL, ", "), "\", "\\\\") & " }" _
+                )
+                ReportFile.WriteLine "INSERT INTO `device_volumes` (" & _
+                    BuildInsertOrUpdateSQLstructure(aryFieldsLogicalDiskMain, aryValuesToExpose, "InsertFields", 0, 0) & _
+                    ") VALUES(" & _
+                    BuildInsertOrUpdateSQLstructure(aryFieldsLogicalDiskMain, aryValuesToExpose, "InsertValues", 0, 0) & _
+                    ") ON DUPLICATE KEY UPDATE " & _
+                    BuildInsertOrUpdateSQLstructure(aryFieldsLogicalDiskMain, aryValuesToExpose, "Update", 1, 0) & _
+                    ";"
+        End Select
+    Next
 End Function
 Function ReadWMI__Win32_PhysicalMemoryArray(objWMIService, strComputer, strResultFileType, strFieldSeparator)
     Dim aryDetailsToReturn(1)

@@ -10,6 +10,16 @@ CREATE TABLE IF NOT EXISTS `device_details` (
   UNIQUE INDEX `ndx_dd_DeviceName_UNIQUE` (`DeviceName` ASC)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
+CREATE TABLE IF NOT EXISTS `device_volumes` (
+  `DeviceVolumeId` SMALLINT(5) UNSIGNED NOT NULL AUTO_INCREMENT,
+  `VolumeSerialNumber` VARCHAR(60) NULL,
+  `DetailedInformation` JSON NULL DEFAULT NULL,
+  `FirstSeen` DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+  `LastSeen` DATETIME(6) DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP(6),
+  PRIMARY KEY (`DeviceVolumeId`),
+  UNIQUE INDEX `ndx_dd_VolumeSerialNumber_UNIQUE` (`VolumeSerialNumber` ASC)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
 CREATE TABLE IF NOT EXISTS `in_windows_software_list` (
   `EvaluationTimestamp` datetime NOT NULL,
   `HostName` varchar(64) NOT NULL,
