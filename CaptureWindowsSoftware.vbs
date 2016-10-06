@@ -1,18 +1,18 @@
 '-----------------------------------------------------------------------------------------------------------------------
 ' IT License
-' 
+'
 ' Copyright (c) 2016 Daniel Popiniuc
-' 
+'
 ' Permission is hereby granted, free of charge, to any person obtaining a copy
 ' of this software and associated documentation files (the "Software"), to deal
 ' in the Software without restriction, including without limitation the rights
 ' to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 ' copies of the Software, and to permit persons to whom the Software is
 ' furnished to do so, subject to the following conditions:
-' 
+'
 ' The above copyright notice and this permission notice shall be included in all
 ' copies or substantial portions of the Software.
-' 
+'
 ' THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 ' IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 ' FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -36,7 +36,7 @@ Set WshShell = WScript.CreateObject("WScript.Shell")
 Set dtmConvertedDate = CreateObject("WbemScripting.SWbemDateTime")
 '-----------------------------------------------------------------------------------------------------------------------
 MsgBox "This script will read from Windows Management Instrumentation (WMI) current Device Details and from Windows Registry the entire list of installed software and export it in a file with a pre-configured name!" & vbNewLine & vbNewLine & "please wait until script is completed...", vbOKOnly + vbInformation, "Start feedback"
-InputResultType = MsgBox("This is a script intended to read from Windows Registry all your installed software applications under current Windows installation!" & vbNewLine & vbNewLine & "Do you want to store obtained results into CSV format file?" & vbNewLine & vbNewLine & "if you choose No a SQL file will be used instead" & vbNewLine & "otherwise choosing Cancel will end current script without any processing and result.", vbYesNoCancel + vbQuestion, "Choose processing result type")
+InputResultType = MsgBox("This is a script will read Windows Management Instrumentation (WMI) current Device Details and from Windows Registry all your installed software applications under current Windows installation!" & vbNewLine & vbNewLine & "Do you want to store obtained results into CSV format file?" & vbNewLine & vbNewLine & "if you choose No a SQL file will be used instead" & vbNewLine & "otherwise choosing Cancel will end current script without any processing and result.", vbYesNoCancel + vbQuestion, "Choose processing result type")
 If (InputResultType = vbCancel) Then
     MsgBox "This is a script intended to read from Windows Management Instrumentation (WMI) current Device Details and from Windows Registry all your installed software applications under current Windows installation!" & vbNewLine & vbNewLine & "You have chosen to terminate execution without any processing and no result, should you arrive at this point by mistake just re-execute it and pay greater attention to previous options dialogue, otherwise thanks for your attention!", vbOKOnly + vbExclamation, "Script end"
 Else
@@ -71,10 +71,10 @@ Else
     EndTime = Timer()
     MsgBox "This script has completed processing from Windows Management Instrumentation (WMI) current Device Details and from Windows Registry entire list of installed software under current Windows installation (in just " & FormatNumber(EndTime - StartTime, 0) & " seconds)." & vbNewLine & _
         "Consult results stored within following files:" & vbNewLine & _
-        "  - " & strCurDir & "\" & strResultFileNameDeviceDetails & strResultFileType & vbNewLine & _ 
-        "  - " & strCurDir & "\" & strResultFileNameDeviceVolumes & strResultFileType & vbNewLine & _ 
-        "  - " & strCurDir & "\" & strResultFileNameSoftware & strResultFileType & vbNewLine & _ 
-        "  - " & strCurDir & "\" & strResultFileNamePortableSoftware & strResultFileType & vbNewLine & _ 
+        "  - " & strCurDir & "\" & strResultFileNameDeviceDetails & strResultFileType & vbNewLine & _
+        "  - " & strCurDir & "\" & strResultFileNameDeviceVolumes & strResultFileType & vbNewLine & _
+        "  - " & strCurDir & "\" & strResultFileNameSoftware & strResultFileType & vbNewLine & _
+        "  - " & strCurDir & "\" & strResultFileNamePortableSoftware & strResultFileType & vbNewLine & _
         vbNewLine & "Thank you for using this script, hope to see you back soon!", vbOKOnly + vbInformation, "Script end"
 End If
 '-----------------------------------------------------------------------------------------------------------------------
@@ -92,16 +92,40 @@ Function AdjustEmptyValueWithinArrayAndGlueIt(aryEntryArray, strValueToReplace, 
     Next
     AdjustEmptyValueWithinArrayAndGlueIt = Replace(strFinal, strGlue & strGlue, "")
 End Function
-Function ApplySoftwareNormalization(strComputer, strResultFileType, ReportFile)
-    ReportFile.WriteLine "/* Following sequence of MySQL queries will ensure Software List normalization and data retention so a complete traceability would be ensured for each hostnames/devices included */"
-    ReportFile.WriteLine "INSERT `publisher_details` (`PublisherName`) SELECT `PublisherName` FROM `in_windows_software_list` WHERE (`HostName` = '" & strComputer & "') AND (`PublisherName` IS NOT NULL) AND (`PublisherName` NOT IN (SELECT `PublisherName` FROM `publisher_details` GROUP BY `PublisherName`)) GROUP BY `PublisherName`;"
-    ReportFile.WriteLine "INSERT `software_details` (`SoftwareName`) SELECT `SoftwareName` FROM `in_windows_software_list` WHERE (`HostName` = '" & strComputer & "') AND (`SoftwareName` IS NOT NULL) AND (`SoftwareName` NOT IN (SELECT `SoftwareName` FROM `software_details` GROUP BY `SoftwareName`)) GROUP BY `SoftwareName`;"
-    ReportFile.WriteLine "INSERT `version_details` (`FullVersion`) SELECT `FullVersion` FROM `in_windows_software_list` WHERE (`HostName` = '" & strComputer & "') AND (`FullVersion` IS NOT NULL) AND (`FullVersion` NOT IN (SELECT `FullVersion` FROM `version_details` GROUP BY `FullVersion`)) GROUP BY `FullVersion`;"
-    ReportFile.WriteLine "INSERT INTO `evaluation_headers` (`DeviceId`) SELECT `DeviceId` FROM `device_details` WHERE (`DeviceName` = '" & strComputer & "');"
-    ReportFile.WriteLine "SELECT LAST_INSERT_ID() INTO @EvaluationId;"
-    ReportFile.WriteLine "INSERT INTO `evaluation_lines` (`EvaluationId`, `PublisherId`, `SoftwareId`, `VersionId`, `InstallationDate`) SELECT DISTINCT @EvaluationId, `PublisherId`, `SoftwareId`, `VersionId`, MAX(`InstallationDate`) FROM `in_windows_software_list` `iwsl` INNER JOIN `publisher_details` `pd` ON `iwsl`.`PublisherName` = `pd`.`PublisherName` INNER JOIN `software_details` `sd` ON `iwsl`.`SoftwareName` = `sd`.`SoftwareName` INNER JOIN `version_details` `vd` ON `iwsl`.`FullVersion` = `vd`.`FullVersion` WHERE (`iwsl`.`HostName` = '" & strComputer & "') GROUP BY `pd`.`PublisherId`, `sd`.`SoftwareId`, `vd`.`VersionId` ORDER BY `pd`.`PublisherId`, `sd`.`SoftwareId`, `vd`.`VersionId`;"
-    ReportFile.WriteLine "UPDATE `evaluation_headers` SET `DateOfGatheringTimestamp` = (SELECT MAX(`EvaluationTimestamp`) FROM `in_windows_software_list` WHERE (`HostName` = '" & strComputer & "')) WHERE (`EvaluationId` = @EvaluationId);"
-    ReportFile.WriteLine "UPDATE `device_details` SET `MostRecentEvaluationId` = @EvaluationId, `LastSeen` = `LastSeen` WHERE (`DeviceName` = '" & strComputer & "');"
+Function ApplySoftwareNormalizationForLogicalDisks(ReportFile)
+    ReportFile.WriteLine "ALTER TABLE `device_details` AUTO_INCREMENT = 1; /* Ensure no end gaps are present in the auto incrementing sequence for Device */"
+    ReportFile.WriteLine "INSERT INTO `device_details` " & _
+        "(`DeviceName`, `DeviceOSdetails`, `DeviceHardwareDetails`) " & _
+        "SELECT `dv`.`VolumeSerialNumber`, NULL, `dv`.`DetailedInformation` " & _
+        "FROM `device_volumes` `dv` ON DUPLICATE KEY UPDATE `DeviceHardwareDetails` = `dv`.`DetailedInformation`;"
+    ReportFile.WriteLine "ALTER TABLE `device_details` AUTO_INCREMENT = 1; /* Ensure no end gaps are present in the auto incrementing sequence for Device */"
+End Function
+Function ApplySoftwareNormalizationForSoftwareInstalled(strComputer, ReportFile)
+    ReportFile.WriteLine "/* Following sequence of MySQL queries will ensure Software List normalization and data retention, so a complete traceability would be ensured for each hostnames/devices included */"
+    ReportFile.WriteLine "ALTER TABLE `publisher_details` AUTO_INCREMENT = 1; /* Making sure the Publisher table do not have a ending gap for ID auto numbering sequence */"
+    ReportFile.WriteLine "INSERT `publisher_details` (`PublisherName`) SELECT `PublisherName` FROM `in_windows_software_installed` WHERE (`HostName` = '" & strComputer & "') AND (`PublisherName` IS NOT NULL) AND (`PublisherName` NOT IN (SELECT `PublisherName` FROM `publisher_details` GROUP BY `PublisherName`)) GROUP BY `PublisherName`; /* Publishers consolidation */"
+    ReportFile.WriteLine "ALTER TABLE `software_details` AUTO_INCREMENT = 1; /* Making sure the Software table do not have a ending gap for ID auto numbering sequence */"
+    ReportFile.WriteLine "INSERT `software_details` (`SoftwareName`) SELECT `SoftwareName` FROM `in_windows_software_installed` WHERE (`HostName` = '" & strComputer & "') AND (`SoftwareName` IS NOT NULL) AND (`SoftwareName` NOT IN (SELECT `SoftwareName` FROM `software_details` GROUP BY `SoftwareName`)) GROUP BY `SoftwareName`; /* Software consolidation */"
+    ReportFile.WriteLine "ALTER TABLE `version_details` AUTO_INCREMENT = 1; /* Making sure the Version table do not have a ending gap for ID auto numbering sequence */"
+    ReportFile.WriteLine "INSERT `version_details` (`FullVersion`) SELECT `FullVersion` FROM `in_windows_software_installed` WHERE (`HostName` = '" & strComputer & "') AND (`FullVersion` IS NOT NULL) AND (`FullVersion` NOT IN (SELECT `FullVersion` FROM `version_details` GROUP BY `FullVersion`)) GROUP BY `FullVersion`; /* Version consolidation */"
+    ReportFile.WriteLine "INSERT INTO `evaluation_headers` (`DeviceId`) SELECT `dd`.`DeviceId`, MIN(`iwsl`.`EvaluationTimestamp`), MAX(`iwsl`.`EvaluationTimestamp`) FROM `device_details` `dd` INNER JOIN `in_windows_software_installed` `iwsl` ON `dd`.`DeviceName` = `iwsl`.`HostName` WHERE (`dd`.`DeviceName` = '" & strComputer & "'); /* Evaluation initiation */"
+    ReportFile.WriteLine "SELECT LAST_INSERT_ID() INTO @EvaluationId; /* Capture the Id for current evaluation captured to be used later on */"
+    ReportFile.WriteLine "INSERT INTO `evaluation_lines` (`EvaluationId`, `PublisherId`, `SoftwareId`, `VersionId`, `InstallationDate`) SELECT DISTINCT @EvaluationId, `PublisherId`, `SoftwareId`, `VersionId`, MAX(`InstallationDate`) FROM `in_windows_software_installed` `iwsl` INNER JOIN `publisher_details` `pd` ON `iwsl`.`PublisherName` = `pd`.`PublisherName` INNER JOIN `software_details` `sd` ON `iwsl`.`SoftwareName` = `sd`.`SoftwareName` INNER JOIN `version_details` `vd` ON `iwsl`.`FullVersion` = `vd`.`FullVersion` WHERE (`iwsl`.`HostName` = '" & strComputer & "') GROUP BY `pd`.`PublisherId`, `sd`.`SoftwareId`, `vd`.`VersionId` ORDER BY `pd`.`PublisherId`, `sd`.`SoftwareId`, `vd`.`VersionId`; /* Populate the software installed in the structure that ensures traceability over time */"
+    ReportFile.WriteLine "UPDATE `device_details` SET `MostRecentEvaluationId` = @EvaluationId, `LastSeen` = `LastSeen` WHERE (`DeviceName` = '" & strComputer & "'); /* Sets the most recent evaluation against relevant device to make easier software version comparison(s) between considering the latest details */"
+End Function
+Function ApplySoftwareNormalizationForSoftwarePortable(ReportFile)
+    ReportFile.WriteLine "/* Following sequence of MySQL queries will ensure Portable Software List normalization and data retention, so a complete traceability would be ensured for each hostnames/devices included */"
+    ReportFile.WriteLine "ALTER TABLE `publisher_details` AUTO_INCREMENT = 1; /* Making sure the Publisher table do not have a ending gap for ID auto numbering sequence */"
+    ReportFile.WriteLine "INSERT `publisher_details` (`PublisherName`) SELECT `PublisherName` FROM `software_files` WHERE (`PublisherName` IS NOT NULL) AND (`PublisherName` NOT IN (SELECT `PublisherName` FROM `publisher_details` GROUP BY `PublisherName`)) GROUP BY `PublisherName`; /* Publishers consolidation */"
+    ReportFile.WriteLine "ALTER TABLE `software_details` AUTO_INCREMENT = 1; /* Making sure the Software table do not have a ending gap for ID auto numbering sequence */"
+    ReportFile.WriteLine "INSERT `software_details` (`SoftwareName`) SELECT `SoftwareName` FROM `software_files` WHERE (`SoftwareName` IS NOT NULL) AND (`SoftwareName` NOT IN (SELECT `SoftwareName` FROM `software_details` GROUP BY `SoftwareName`)) GROUP BY `SoftwareName`; /* Software consolidation */"
+    ReportFile.WriteLine "ALTER TABLE `version_details` AUTO_INCREMENT = 1; /* Making sure the Version table do not have a ending gap for ID auto numbering sequence */"
+    ReportFile.WriteLine "INSERT `version_details` (`FullVersion`) SELECT `FileVersionFound` FROM `in_windows_software_portable` WHERE (`FileVersionFound` IS NOT NULL) AND (`FileVersionFound` NOT IN('', 'v', 'v0', 'v0.0', 'v0.0.0', 'v0.0.0.0')) AND (`FileVersionFound` NOT IN (SELECT `FullVersion` FROM `version_details` GROUP BY `FullVersion`)) GROUP BY `FileVersionFound`; /* Version consolidation */"
+    ReportFile.WriteLine "ALTER TABLE `evaluation_headers` AUTO_INCREMENT = 1; /* Making sure the Evaluation header table do not have a ending gap for ID auto numbering sequence */"
+    ReportFile.WriteLine "INSERT INTO `evaluation_headers` (`DeviceId`, `DateOfGatheringTimestampFirst`, `DateOfGatheringTimestampLast`) SELECT `dd`.`DeviceId`, MIN(`EvaluationTimestamp`), MAX(`EvaluationTimestamp`) FROM `device_details` `dd` INNER JOIN `in_windows_software_portable` `iwsp` ON `dd`.`DeviceName` = `iwsp`.`VolumeSerialNumber` GROUP BY `dd`.`DeviceName`; /* Evaluation initiation */"
+    ReportFile.WriteLine "SELECT LAST_INSERT_ID() INTO @EvaluationId; /* Capture the Id for current evaluation captured to be used later on */"
+'    ReportFile.WriteLine "INSERT INTO `evaluation_lines` (`EvaluationId`, `PublisherId`, `SoftwareId`, `VersionId`, `InstallationDate`) SELECT @EvaluationId, `pd`.`PublisherId`, `sd`.`SoftwareId`, `vd`.`VersionId` .... FROM `in_windows_software_portable` `iwsp` INNER JOIN `version_details` `vd` ON `iwsp`.`FileVersionFound` = `vd`.`FullVersion` INNER JOIN `software_files` `sf` ON ((`sf`.`SoftwareFileName` = `iwsp`.`FileNameSearched`) AND (`vd`.`FullVersionNumeric` BETWEEN `sf`.`SoftwareFileVersionNumericFirst` AND `sf`.`SoftwareFileVersionNumericLast`)) LEFT JOIN `software_details` `sd` ON `sf`.`SoftwareName` = `sd`.`SoftwareName` LEFT JOIN `publisher_details` `pd` ON `sf`.`PublisherName` = `pd`.`PublisherName`;
+'    ReportFile.WriteLine "UPDATE `device_details` SET `MostRecentEvaluationId` = @EvaluationId, `LastSeen` = `LastSeen` WHERE (`DeviceName` = '" & strComputer & "'); /* Sets the most recent evaluation against relevant device to make easier software version comparison(s) between considering the latest details */"
 End Function
 Function BuildInsertOrUpdateSQLstructure(aryFieldNames, aryFieldValues, strInsertOrUpdate, intFirstNumberOfFieldsToIgnore, intLastNumberOfFieldsToIgnore)
     Counter = 0
@@ -115,7 +139,7 @@ Function BuildInsertOrUpdateSQLstructure(aryFieldNames, aryFieldValues, strInser
         Case "Update"
             aryFieldValuesMySQL = Split(CSVfieldNamesIntoSQLfieldName(aryFieldNames), "|")
             intFieldNumbered = UBound(aryFieldValuesMySQL)
-            For Each strFieldName In aryFieldValuesMySQL 
+            For Each strFieldName In aryFieldValuesMySQL
                 If ((Counter >= intFirstNumberOfFieldsToIgnore) And (Counter <= (intFieldNumbered - intLastNumberOfFieldsToIgnore))) Then
                     If (Counter > intFirstNumberOfFieldsToIgnore) Then
                         strUpdateSQLstructure = strUpdateSQLstructure & ", "
@@ -125,9 +149,9 @@ Function BuildInsertOrUpdateSQLstructure(aryFieldNames, aryFieldValues, strInser
                 Counter = Counter + 1
             Next
     End Select
-    BuildInsertOrUpdateSQLstructure = Replace(Replace(strUpdateSQLstructure, "'NULL'", "NULL"), "\", "\\")
+    BuildInsertOrUpdateSQLstructure = Replace(Replace(Replace(strUpdateSQLstructure, "'NULL'", "NULL"), "\", "\\"), "t's", "t\'s")
 End Function
-Function CheckSoftware(strComputer, bolWriteHeader, ReportFile, objReg, strKey) 
+Function CheckSoftware(strComputer, bolWriteHeader, ReportFile, objReg, strKey)
     Dim aryJSONinformationCSV(7)
     Dim aryJSONinformationSQL(7)
     aryInformationToExpose = Array(_
@@ -151,36 +175,36 @@ Function CheckSoftware(strComputer, bolWriteHeader, ReportFile, objReg, strKey)
         "Version Displayed", _
         "URL Info About" _
     )
-    strEntryDisplayName = "DisplayName" 
-    strEntryQuietDisplayName = "QuietDisplayName" 
-    strEntryPublisher = "Publisher" 
-    strEntryInstallLocation = "InstallLocation" 
-    strEntryInstallDate = "InstallDate" 
-    strEntryVersionMajor = "VersionMajor" 
-    strEntryVersionMinor = "VersionMinor" 
-    strEntryEstimatedSize = "EstimatedSize" 
-    strEntryDisplayVersion = "DisplayVersion" 
+    strEntryDisplayName = "DisplayName"
+    strEntryQuietDisplayName = "QuietDisplayName"
+    strEntryPublisher = "Publisher"
+    strEntryInstallLocation = "InstallLocation"
+    strEntryInstallDate = "InstallDate"
+    strEntryVersionMajor = "VersionMajor"
+    strEntryVersionMinor = "VersionMinor"
+    strEntryEstimatedSize = "EstimatedSize"
+    strEntryDisplayVersion = "DisplayVersion"
     strEntryURLInfoAbout = "URLInfoAbout"
     If (LCase(strResultFileType) = ".csv") Then
         If (bolWriteHeader) Then
             ReportFile.writeline Join(aryInformationToExpose, strFieldSeparator)
         End If
     End If
-    objReg.EnumKey HKLM, strKey, arrSubkeys 
-    For Each strSubkey In arrSubkeys 
-        intReturnN = objReg.GetStringValue(HKLM, strKey & strSubkey, strEntryDisplayName, strDisplayName) 
+    objReg.EnumKey HKLM, strKey, arrSubkeys
+    For Each strSubkey In arrSubkeys
+        intReturnN = objReg.GetStringValue(HKLM, strKey & strSubkey, strEntryDisplayName, strDisplayName)
         If (intReturnN <> 0) Then
             objReg.GetStringValue HKLM, strKey & strSubkey, strEntryQuietDisplayName, strDisplayName
         End If
-        If (strDisplayName <> "") Then 
-            intReturnP = objReg.GetStringValue(HKLM, strKey & strSubkey, strEntryPublisher, strPublisher) 
-            intReturnL = objReg.GetStringValue(HKLM, strKey & strSubkey, strEntryInstallLocation, strInstallLocation) 
-            intReturnD = objReg.GetStringValue(HKLM, strKey & strSubkey, strEntryInstallDate, strInstallDate) 
-            objReg.GetDWORDValue HKLM, strKey & strSubkey, strEntryVersionMajor, intValueVersionMajor 
-            objReg.GetDWORDValue HKLM, strKey & strSubkey, strEntryVersionMinor, intValueVersionMinor 
-            objReg.GetDWORDValue HKLM, strKey & strSubkey, strEntryEstimatedSize, intEstimatedSize 
-            intReturnV = objReg.GetStringValue(HKLM, strKey & strSubkey, strEntryDisplayVersion, strDisplayVersion) 
-            intReturnU = objReg.GetStringValue(HKLM, strKey & strSubkey, strEntryURLInfoAbout, strURLInfoAbout) 
+        If (strDisplayName <> "") Then
+            intReturnP = objReg.GetStringValue(HKLM, strKey & strSubkey, strEntryPublisher, strPublisher)
+            intReturnL = objReg.GetStringValue(HKLM, strKey & strSubkey, strEntryInstallLocation, strInstallLocation)
+            intReturnD = objReg.GetStringValue(HKLM, strKey & strSubkey, strEntryInstallDate, strInstallDate)
+            objReg.GetDWORDValue HKLM, strKey & strSubkey, strEntryVersionMajor, intValueVersionMajor
+            objReg.GetDWORDValue HKLM, strKey & strSubkey, strEntryVersionMinor, intValueVersionMinor
+            objReg.GetDWORDValue HKLM, strKey & strSubkey, strEntryEstimatedSize, intEstimatedSize
+            intReturnV = objReg.GetStringValue(HKLM, strKey & strSubkey, strEntryDisplayVersion, strDisplayVersion)
+            intReturnU = objReg.GetStringValue(HKLM, strKey & strSubkey, strEntryURLInfoAbout, strURLInfoAbout)
             If (intReturnP = 0) Then
                 strPublisherName = HarmonizedPublisher(strPublisher)
             Else
@@ -299,7 +323,7 @@ Function CheckSoftware(strComputer, bolWriteHeader, ReportFile, objReg, strKey)
                     strOtherInfo = "{ " & Join(aryJSONinformationSQL, ", ") & " }"
             End Select
             aryValuesToExpose = Array(_
-                CurrentDateTime2SqlFormat(), _ 
+                CurrentDateTimeToSqlFormat(), _
                 strComputer, _
                 strPublisherName, _
                 strSoftwareNameCleaned, _
@@ -313,7 +337,7 @@ Function CheckSoftware(strComputer, bolWriteHeader, ReportFile, objReg, strKey)
                 Case ".csv"
                     ReportFile.WriteLine Join(aryValuesToExpose, strFieldSeparator)
                 Case ".sql"
-                    ReportFile.WriteLine "INSERT INTO `in_windows_software_list` (" & _
+                    ReportFile.WriteLine "INSERT INTO `in_windows_software_installed` (" & _
                         BuildInsertOrUpdateSQLstructure(aryInformationToExpose, aryValuesToExpose, "InsertFields", 0, 2) & _
                         ") VALUES(" & _
                         BuildInsertOrUpdateSQLstructure(aryInformationToExpose, aryValuesToExpose, "InsertValues", 0, 2) & _
@@ -321,14 +345,14 @@ Function CheckSoftware(strComputer, bolWriteHeader, ReportFile, objReg, strKey)
                         BuildInsertOrUpdateSQLstructure(aryInformationToExpose, aryValuesToExpose, "Update", 0, 2) & _
                         ";"
             End Select
-        End If 
+        End If
     Next
 End Function
 Function CleanStringOfNumericPiece(strFullStringToClean)
     ' break entire string into pieces with space as separator
     aryFullStringToClean = Split(strFullStringToClean, " ")
     strCleanedString = ""
-    For Each strCurrentPiece In aryFullStringToClean 
+    For Each strCurrentPiece In aryFullStringToClean
         ' if strCurrentPiece is amoung whitelisted values, does not have to be removed
         If (InArray(strCurrentPiece, Array("360", "365"))) Then
             bolCurrentPieceToKeep = True
@@ -363,7 +387,7 @@ Function CleanStringStartEnd(strFullStringToClean, strStartCleanSubString, strEn
 End Function
 Function CleanStringWithBlacklistArray(strFullStringToClean, aryBlackList, strStringToReplaceWith)
     strCleanedString = strFullStringToClean
-    For Each strBlackListPiece In aryBlackList 
+    For Each strBlackListPiece In aryBlackList
         strCleanedString = Replace(Replace(strCleanedString, strBlackListPiece, strStringToReplaceWith), "  ", " ")
     Next
     CleanStringWithBlacklistArray = Trim(strCleanedString)
@@ -375,7 +399,7 @@ Function CleanStringBeforeOrAfterNumber(strFullStringToClean, strBeforeOrAfter, 
         aryFullStringToClean = Split(strFullStringToClean, " ")
         intLastPieceNumber = UBound(aryFullStringToClean)
         strCleanedString = ""
-        For Each strCurrentPiece In aryFullStringToClean 
+        For Each strCurrentPiece In aryFullStringToClean
             ' first or last piece does not need any cleaning as cannot be followed by a numbers or anything else
             If ((intPieceCounter = 0) Or (intPieceCounter = intLastPieceNumber)) Then
                 bolCurrentPieceToKeep = True
@@ -403,6 +427,17 @@ Function CleanStringBeforeOrAfterNumber(strFullStringToClean, strBeforeOrAfter, 
     Next
     CleanStringBeforeOrAfterNumber = strCleanedString
 End Function
+Function ConvertDateTimeToSqlFormat(dtGivenDate)
+    ConvertDateTimeToSqlFormat = ConvertDateToSqlFormat(dtGivenDate) & _
+        " " & NumberWithTwoDigits(DatePart("h", dtGivenDate)) & _
+        ":" & NumberWithTwoDigits(DatePart("n", dtGivenDate)) & _
+        ":" & NumberWithTwoDigits(DatePart("s", dtGivenDate))
+End Function
+Function ConvertDateToSqlFormat(dtGivenDate)
+    ConvertDateToSqlFormat = DatePart("yyyy", dtGivenDate) & _
+        "-" & NumberWithTwoDigits(DatePart("m", dtGivenDate)) & _
+        "-" & NumberWithTwoDigits(DatePart("d", dtGivenDate))
+End Function
 Function CSVfieldNamesIntoSQLfieldName(aryFieldNames)
     strFieldListForMySQLinsert = Join(aryFieldNames, "|")
     strFieldListForMySQLinsert = CleanStringWithBlacklistArray(strFieldListForMySQLinsert, Array("[bytes]"), "Bytes")
@@ -410,16 +445,11 @@ Function CSVfieldNamesIntoSQLfieldName(aryFieldNames)
     strFieldListForMySQLinsert = CleanStringWithBlacklistArray(strFieldListForMySQLinsert, Array(" "), "")
     CSVfieldNamesIntoSQLfieldName = strFieldListForMySQLinsert
 End Function
-Function CurrentDateTime2SqlFormat()
-    CurrentDateTime2SqlFormat = CurrentDateToSqlFormat() & _
-        " " & NumberWithTwoDigits(DatePart("h", Now())) & _
-        ":" & NumberWithTwoDigits(DatePart("n", Now())) & _
-        ":" & NumberWithTwoDigits(DatePart("s", Now()))
+Function CurrentDateTimeToSqlFormat()
+    CurrentDateTimeToSqlFormat = ConvertDateTimeToSqlFormat(Now())
 End Function
 Function CurrentDateToSqlFormat()
-    CurrentDateToSqlFormat = DatePart("yyyy", Now()) & _
-        "-" & NumberWithTwoDigits(DatePart("m", Now())) & _
-        "-" & NumberWithTwoDigits(DatePart("d", Now()))
+    CurrentDateToSqlFormat = ConvertDateToSqlFormat(Now())
 End Function
 Function CurrentOperatingSystemVersionForComparison()
     intOSVersion = 0
@@ -469,7 +499,7 @@ Function HarmonizedPublisher(strPublisherName)
         Array("Symantec Corp.", "Symantec Corporation") _
     )
     strPublishersHarmonized = ""
-    For Each strCurrentPublisherHarmonized In aryPublishersTemplate 
+    For Each strCurrentPublisherHarmonized In aryPublishersTemplate
         If (strPublisherName = strCurrentPublisherHarmonized(0)) Then
             strPublishersHarmonized = strCurrentPublisherHarmonized(1)
         End If
@@ -500,7 +530,7 @@ Function InArray(Haystack, GivenArray)
     Dim bReturn
     bReturn = False
     For Each elmnt In GivenArray
-        If (cStr(Haystack) = elmnt) Then 
+        If (cStr(Haystack) = elmnt) Then
             bReturn = True
         End If
     Next
@@ -936,19 +966,25 @@ Function NumberWithTwoDigits(InputNo)
     End If
 End Function
 Function ReadLogicalDisk_PortableSoftware(objFSO, objWMIService, strCurDir, ForReading, ForAppending, strResultFileNamePortableSoftware, strResultFileType, strFieldSeparator)
-    If (objFSO.FileExists(strCurDir & "\" & strResultFileNamePortableSoftware & strResultFileType)) Then
-        bolFilePortableSoftwareHeaderToAdd = False
-    Else
-        bolFilePortableSoftwareHeaderToAdd = True
+    If (LCase(strResultFileType) = ".csv") Then
+        If (objFSO.FileExists(strCurDir & "\" & strResultFileNamePortableSoftware & strResultFileType)) Then
+            bolFilePortableSoftwareHeaderToAdd = False
+        Else
+            bolFilePortableSoftwareHeaderToAdd = True
+        End If
     End If
     aryFieldsPortableSoftware = Array(_
         "Evaluation Timestamp", _
         "Volume Serial Number", _
         "File Name Searched", _
+        "Method To Find", _
         "File Path Found", _
         "File Name Found", _
+        "File Date Created", _
+        "File Date Last Modified", _
         "File Version Found", _
-        "File Size Found" _
+        "File Size Found", _
+        "Files Checked For Match Until Found" _
     )
     strFieldsGlued = Join(aryFieldsPortableSoftware, "||")
     Set objResultPortableSoftware = objFSO.OpenTextFile(strCurDir & "\" & strResultFileNamePortableSoftware & strResultFileType, ForAppending, True)
@@ -958,13 +994,13 @@ Function ReadLogicalDisk_PortableSoftware(objFSO, objWMIService, strCurDir, ForR
                 objResultPortableSoftware.WriteLine Join(aryFieldsPortableSoftware, strFieldSeparator)
             End If
         Case ".sql"
-            objResultSoftware.WriteLine "DELETE FROM `in_windows_software_list` WHERE (`HostName` = '" & strComputer & "');"
+            objResultPortableSoftware.WriteLine "DELETE FROM `in_windows_software_portable`;"
     End Select
     Set PortableSoftwareList = objFSO.OpenTextFile(strCurDir & "\PortableSoftwareList.txt", ForReading)
     Do Until PortableSoftwareList.AtEndOfStream
         strFileToAnalyze = PortableSoftwareList.ReadLine
-        ' will only consider lines with at least 10 characters
-        If (Len(strFileToAnalyze) >= 10) Then
+        ' will only consider lines with at least 10 characters AND not starting with ' used for keeping comments
+        If ((Left(strFileToAnalyze, 1) <> "'") And (Len(strFileToAnalyze) >= 10)) Then
             strFilePieces = Split(strFileToAnalyze, "\")
             If (Right(Left(strFileToAnalyze, 2), 1) = ":") Then
                 strDeviceId = Left(strFileToAnalyze, 2)
@@ -975,7 +1011,7 @@ Function ReadLogicalDisk_PortableSoftware(objFSO, objWMIService, strCurDir, ForR
             End If
             PieceCounter = 0
             PiecesCounted = UBound(strFilePieces)
-            For Each strFilePiece In strFilePieces 
+            For Each strFilePiece In strFilePieces
                 If (PieceCounter < PiecesCounted) Then
                     If (PieceCounter = 0) Then
                         strFilePath = strDeviceId 'strFilePiece
@@ -988,24 +1024,28 @@ Function ReadLogicalDisk_PortableSoftware(objFSO, objWMIService, strCurDir, ForR
             Next
             If (objFSO.FolderExists(strFilePath)) Then
                 Set strFolderToSearch = objFSO.GetFolder(strFilePath)
+                intFilesCheckedForMatchUntilFound = 0
                 If (InStr(1, strFileNameToSearch, "*", vbTextCompare)) Then
                         aryFileNamePieces = Split(strFileNameToSearch, "*")
                         If (UBound(aryFileNamePieces) = 1) Then ' only 1 single * is supported
-                            RecursiveFileSearchToFileOutput strFolderToSearch, strFileNameToSearch, strResultFileType, objResultPortableSoftware, strFieldsGlued, strFieldSeparator, crtVolumeSerialNumber
+                            RecursiveFileSearchToFileOutput strFolderToSearch, strFileNameToSearch, strResultFileType, objResultPortableSoftware, strFieldsGlued, strFieldSeparator, crtVolumeSerialNumber, intFilesCheckedForMatchUntilFound
                         End If
                 Else
-                    RecursiveFileSearchToFileOutput strFolderToSearch, strFileNameToSearch, strResultFileType, objResultPortableSoftware, strFieldsGlued, strFieldSeparator, crtVolumeSerialNumber
+                    RecursiveFileSearchToFileOutput strFolderToSearch, strFileNameToSearch, strResultFileType, objResultPortableSoftware, strFieldsGlued, strFieldSeparator, crtVolumeSerialNumber, intFilesCheckedForMatchUntilFound
                 End If
             End If
         End If
-    Loop 
+    Loop
+    If (LCase(strResultFileType) = ".sql") Then
+        ApplySoftwareNormalizationForSoftwarePortable objResultPortableSoftware
+    End If
     objResultPortableSoftware.Close
     PortableSoftwareList.Close
 End Function
 Function ReadRegistry_SofwareInstalled(strComputer, strResultFileType, strFieldSeparator, objFSO, strCurDir, strResultFileNameSoftware, ForAppending)
     Set objResultSoftware = objFSO.OpenTextFile(strCurDir & "\" & strResultFileNameSoftware & strResultFileType, ForAppending, True)
     If (LCase(strResultFileType) = ".sql") Then
-        objResultSoftware.WriteLine "DELETE FROM `in_windows_software_list` WHERE (`HostName` = '" & strComputer & "');"
+        objResultSoftware.WriteLine "DELETE FROM `in_windows_software_installed` WHERE (`HostName` = '" & strComputer & "');"
     End If
     Set objRegistry = GetObject("winmgmts:{impersonationLevel=impersonate}!\\" & strComputer & "\root\default:StdRegProv")
     objRegistry.GetStringValue HKLM, "SYSTEM\CurrentControlSet\Control\Session Manager\Environment", "PROCESSOR_ARCHITECTURE", strOStype
@@ -1015,7 +1055,7 @@ Function ReadRegistry_SofwareInstalled(strComputer, strResultFileType, strFieldS
         CheckSoftware strComputer, False, objResultSoftware, objRegistry, "SOFTWARE\Wow6432Node\Microsoft\Windows\CurrentVersion\Uninstall\"
     End If
     If (LCase(strResultFileType) = ".sql") Then
-        ApplySoftwareNormalization strComputer, strResultFileType, objResultSoftware
+        ApplySoftwareNormalizationForSoftwareInstalled strComputer, objResultSoftware
     End If
     objResultSoftware.Close
 End Function
@@ -1315,7 +1355,7 @@ Function ReadWMI__Win32_DiskDrive(objWMIService, strComputer, strResultFileType,
                     aryDetailsToReturn(1) = _
                         AdjustEmptyValueWithinArrayAndGlueIt(aryValuesDiskDrive, "-", strFieldSeparator)
                 Else
-                    aryDetailsToReturn(1) = aryDetailsToReturn(1) & strFieldSeparator & _ 
+                    aryDetailsToReturn(1) = aryDetailsToReturn(1) & strFieldSeparator & _
                         AdjustEmptyValueWithinArrayAndGlueIt(aryValuesDiskDrive, "-", strFieldSeparator)
                 End If
             Case ".sql"
@@ -1351,12 +1391,12 @@ Function ReadWMI__Win32_DiskDrive(objWMIService, strComputer, strResultFileType,
                 strDiskNameCleanedNice = Replace(strDiskNameCleaned, "PHYSICALDRIVE", "Physical Drive ")
                 If (aryDetailsToReturn(1) = "") Then
                     aryDetailsToReturn(1) = _
-                        """" & strDiskNameCleanedNice & """: { " & _ 
+                        """" & strDiskNameCleanedNice & """: { " & _
                         Replace(Join(aryJSONinformationSQL, ", "), "\", "\\\\") & _
                         " }"
                 Else
                     aryDetailsToReturn(1) = aryDetailsToReturn(1) & ", " & _
-                        """" & strDiskNameCleanedNice & """: { " & _ 
+                        """" & strDiskNameCleanedNice & """: { " & _
                         Replace(Join(aryJSONinformationSQL, ", "), "\", "\\\\") & _
                         " }"
                 End If
@@ -1635,7 +1675,7 @@ Function ReadWMI__Win32_Processor(objWMIService, strComputer, strResultFileType,
     intOSVersion = CurrentOperatingSystemVersionForComparison()
     ' actual Win32_Processor determination
     Set objCPU = objWMIService.ExecQuery("Select * from Win32_Processor")
-    For Each crtObjCPU in objCPU    
+    For Each crtObjCPU in objCPU
         strSecondLevelAddressTranslationExtensions = "N/A"
         strVirtualizationFirmwareEnabled = "N/A"
         strVMMonitorModeExtensions = "N/A"
@@ -1836,12 +1876,12 @@ Function ReadWMI__Win32_VideoController(objWMIService, strComputer, strResultFil
                 Next
                 If (aryDetailsToReturn(1) = "") Then
                     aryDetailsToReturn(1) = _
-                        """Video " & intVideoController & """: { " & _ 
+                        """Video " & intVideoController & """: { " & _
                         Replace(Join(aryJSONinformationSQL, ", "), "\", "\\\\") & _
                         " }"
                 Else
                     aryDetailsToReturn(1) = aryDetailsToReturn(1) & ", " & _
-                        """Video " & intVideoController & """: { " & _ 
+                        """Video " & intVideoController & """: { " & _
                         Replace(Join(aryJSONinformationSQL, ", "), "\", "\\\\") & _
                         " }"
                 End If
@@ -1888,6 +1928,7 @@ Function ReadWMI_All(objWMIService, strComputer, strResultFileType, strFieldSepa
                 ", ""RAM"": { " & strDetailsRAM(1) & " }" & _
                 ", ""Video Controller"": { " & strDetailsVideoController(1) & " }" & _
                 " }"
+            objResultDeviceDetails.WriteLine "ALTER TABLE `device_details` AUTO_INCREMENT = 1; /* Ensure no end gaps are present in the auto incrementing sequence for Device */"
             objResultDeviceDetails.WriteLine "INSERT INTO `device_details` " & _
                 "(`DeviceName`, `DeviceOSdetails`, `DeviceHardwareDetails`) VALUES('" & strComputer & "', " & _
                 "'" & JSONinformationComputerSystemSQL & "', " & _
@@ -1896,7 +1937,7 @@ Function ReadWMI_All(objWMIService, strComputer, strResultFileType, strFieldSepa
                 "`DeviceOSdetails` = '" & JSONinformationComputerSystemSQL & "', " & _
                 "`DeviceHardwareDetails` = '" & JSONinformationHardwareSQL & "'" & _
                 ";"
-            objResultDeviceDetails.WriteLine "ALTER TABLE `device_details` AUTO_INCREMENT = 1;"
+            objResultDeviceDetails.WriteLine "ALTER TABLE `device_details` AUTO_INCREMENT = 1; /* Ensure no end gaps are present in the auto incrementing sequence for Device */"
     End Select
     objResultDeviceDetails.Close
 End Function
@@ -1909,22 +1950,27 @@ Function ReadWMI_DeviceVolumes(objWMIService, strComputer, strResultFileType, st
     Set objResultDeviceVolumes = objFSO.OpenTextFile(strCurDir & "\" & strResultFileNameDeviceVolumes & strResultFileType, ForAppending, True)
     ReadWMI__Win32_LogicalDisk objWMIService, strComputer, strResultFileType, strFieldSeparator, objResultDeviceVolumes, bolFileDeviceVolumeHeaderToAdd
     If (LCase(strResultFileType) = ".sql") Then
-        objResultDeviceVolumes.WriteLine "ALTER TABLE `device_volumes` AUTO_INCREMENT = 1;"
+        ApplySoftwareNormalizationForLogicalDisks objResultDeviceVolumes
     End If
     objResultDeviceVolumes.Close
 End Function
-Function RecursiveFileSearchToFileOutput(strFolderToSearch, strFileNameToSearch, strResultFileType, objResultFile, strFieldsGlued, strFieldSeparator, strVolumeSerialNumber)
+Function RecursiveFileSearchToFileOutput(strFolderToSearch, strFileNameToSearch, strResultFileType, objResultFile, strFieldsGlued, strFieldSeparator, strVolumeSerialNumber, intFilesCheckedForMatchUntilFound)
     Dim oSubFolder, strCurrentFile
     If (InStr(1, strFileNameToSearch, "*", vbTextCompare) > 0) Then
         aryFileNamePieces = Split(strFileNameToSearch, "*")
+        strMethodToFind = "Aproximate"
+    Else
+        strMethodToFind = "Exact"
     End IF
     aryFields = Split(strFieldsGlued, "||")
     If (FolderHasSubFolders(strFolderToSearch)) Then
         For Each oSubFolder In strFolderToSearch.SubFolders
-            RecursiveFileSearchToFileOutput oSubFolder, strFileNameToSearch, strResultFileType, objResultFile, strFieldsGlued, strFieldSeparator, strVolumeSerialNumber
+            RecursiveFileSearchToFileOutput oSubFolder, strFileNameToSearch, strResultFileType, objResultFile, strFieldsGlued, strFieldSeparator, strVolumeSerialNumber, intFilesCheckedForMatchUntilFound
         Next
         For Each strCurrentFile In strFolderToSearch.Files
+            strFileToAnalyzeExact = ""
             strCurrentFileCleaned = Replace(Replace(strCurrentFile, strFolderToSearch, ""), "\", "")
+            intFilesCheckedForMatchUntilFound = intFilesCheckedForMatchUntilFound + 1
             If (InStr(1, strFileNameToSearch, "*", vbTextCompare) > 0) Then
                 If ((InStr(1, strCurrentFileCleaned, aryFileNamePieces(0), vbTextCompare) > 0) And (InStr(1, strCurrentFileCleaned, aryFileNamePieces(1), vbTextCompare) > 0)) Then
                     strFileToAnalyzeExact = strCurrentFileCleaned
@@ -1932,19 +1978,22 @@ Function RecursiveFileSearchToFileOutput(strFolderToSearch, strFileNameToSearch,
             Else
                 If (strCurrentFileCleaned = strFileNameToSearch) Then
                     strFileToAnalyzeExact = strFileNameToSearch
-                Else
-                    strFileToAnalyzeExact = ""
                 End If
             End If
             If (strFileToAnalyzeExact <> "") Then
+                intFilesCheckedForMatchUntilFound = intFilesCheckedForMatchUntilFound - 1
                 aryValues = Array(_
-                    CurrentDateTime2SqlFormat(),
+                    CurrentDateTimeToSqlFormat(), _
                     strVolumeSerialNumber, _
                     strFileNameToSearch, _
+                    strMethodToFind, _
                     strFolderToSearch, _
                     strCurrentFileCleaned, _
-                    objFSO.GetFileVersion(strCurrentFile), _
-                    strCurrentFile.Size _
+                    ConvertDateTimeToSqlFormat(CDate(strCurrentFile.DateCreated)), _
+                    ConvertDateTimeToSqlFormat(CDate(strCurrentFile.DateLastModified)), _
+                    strVersionPrefix & objFSO.GetFileVersion(strCurrentFile), _
+                    strCurrentFile.Size, _
+                    intFilesCheckedForMatchUntilFound _
                 )
                 Select Case LCase(strResultFileType)
                     Case ".csv"
@@ -1956,6 +2005,7 @@ Function RecursiveFileSearchToFileOutput(strFolderToSearch, strFileNameToSearch,
                             BuildInsertOrUpdateSQLstructure(aryFields, aryValues, "InsertValues", 0, 0) & _
                             ");"
                 End Select
+                intFilesCheckedForMatchUntilFound = 0
             End If
         Next
     End If

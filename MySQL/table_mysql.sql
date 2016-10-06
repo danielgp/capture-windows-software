@@ -20,7 +20,7 @@ CREATE TABLE IF NOT EXISTS `device_volumes` (
   UNIQUE INDEX `ndx_dd_VolumeSerialNumber_UNIQUE` (`VolumeSerialNumber` ASC)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
-CREATE TABLE IF NOT EXISTS `in_windows_software_list` (
+CREATE TABLE IF NOT EXISTS `in_windows_software_installed` (
   `EvaluationTimestamp` datetime NOT NULL,
   `HostName` varchar(64) NOT NULL,
   `PublisherName` varchar(80) DEFAULT NULL,
@@ -42,10 +42,14 @@ CREATE TABLE IF NOT EXISTS `in_windows_software_portable` (
   `EvaluationTimestamp` datetime NOT NULL,
   `VolumeSerialNumber` varchar(50) NOT NULL,
   `FileNameSearched` varchar(100) NOT NULL,
-  `FilePathFound` text NOT NULL,
-  `FileNameFound` varchar(100) DEFAULT NULL,
+  `MethodToFind` ENUM('Aproximate', 'Exact') NOT NULL,
+  `FilePathFound` varchar(255) NOT NULL,
+  `FileNameFound` varchar(100) NOT NULL,
+  `FileDateCreated` datetime NOT NULL,
+  `FileDateLastModified` datetime NOT NULL,
   `FileVersionFound` varchar(30) DEFAULT NULL,
   `FileSizeFound` mediumint(8) unsigned DEFAULT NULL,
+  `FilesCheckedForMatchUntilFound` mediumint(8) unsigned NOT NULL,
   PRIMARY KEY(`VolumeSerialNumber`, `FileNameSearched`, `FilePathFound`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
@@ -85,6 +89,19 @@ CREATE TABLE IF NOT EXISTS `software_known` (
   PRIMARY KEY (`SoftwareName`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
+CREATE TABLE IF NOT EXISTS `software_files` (
+  `SoftwareFileName` VARCHAR(100) NOT NULL,
+  `SoftwareFileVersionNumericFirst` BIGINT(20) UNSIGNED ZEROFILL,
+  `SoftwareFileVersionNumericLast` BIGINT(20) UNSIGNED ZEROFILL,
+  `SoftwareName` VARCHAR(80) NOT NULL,
+  `PublisherName` VARCHAR(80) NOT NULL,
+  `FirstSeen` DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+  `LastSeen` DATETIME(6) DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP(6),
+  PRIMARY KEY (`SoftwareName`, `SoftwareFileVersionNumericFirst`, `SoftwareFileVersionNumericLast`),
+  KEY `SoftwareName` (`SoftwareName`),
+  KEY `PublisherName` (`PublisherName`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT 'Known files w/ their standardized Software & relevant Publisher';
+
 CREATE TABLE IF NOT EXISTS `version_details` (
     `VersionId` SMALLINT(5) UNSIGNED NOT NULL AUTO_INCREMENT,
     `FullVersion` varchar(30) NOT NULL,
@@ -101,7 +118,9 @@ CREATE TABLE IF NOT EXISTS `evaluation_headers` (
   `EvaluationId` MEDIUMINT(8) UNSIGNED NOT NULL AUTO_INCREMENT,
   `DeviceId` SMALLINT(5) UNSIGNED NOT NULL,
   `EvaluationTimestamp` DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
-  `DateOfGatheringTimestamp` DATETIME DEFAULT NULL,
+  `DateOfGatheringTimestampFirst` DATETIME DEFAULT NULL,
+  `DateOfGatheringTimestampLast` DATETIME DEFAULT NULL,
+  `GatheringDuration` VARCHAR(50) GENERATED ALWAYS AS (TRIM(CAST((CASE WHEN ((`DateOfGatheringTimestampFirst` IS NOT NULL) AND (`DateOfGatheringTimestampLast` IS NOT NULL)) THEN TIMEDIFF(`DateOfGatheringTimestampLast`, `DateOfGatheringTimestampFirst`) ELSE NULL END) AS CHAR(50)))) STORED,
   PRIMARY KEY (`EvaluationId`),
   CONSTRAINT `FK_eh_DeviceId`
     FOREIGN KEY (`DeviceId`)
@@ -160,8 +179,8 @@ SELECT
     REPLACE(json_extract(`dd`.`DeviceOSdetails`,'$."OS Language Description"'),'"','') AS `OS_Language`,
     REPLACE(json_extract(`dd`.`DeviceOSdetails`,'$."Locale Description"'),'"','') AS `Locale`,
     COUNT(`eh`.`EvaluationId`) AS `Number of Evaluations`, 
-    MAX(`eh`.`DateOfGatheringTimestamp`) AS `Most Recent Evaluation Timestamp`, 
-    DATEDIFF(NOW(), MAX(`eh`.`DateOfGatheringTimestamp`)) AS `Most Recent Evaluation Aging` 
+    MAX(`eh`.`DateOfGatheringTimestampLast`) AS `Most Recent Evaluation Timestamp`, 
+    DATEDIFF(NOW(), MAX(`eh`.`DateOfGatheringTimestampLast`)) AS `Most Recent Evaluation Aging` 
 FROM `device_details` `dd`
     LEFT JOIN `evaluation_headers` `eh` ON `dd`.`DeviceId` = `eh`.`DeviceId`
 GROUP BY `dd`.`DeviceId`, `dd`.`DeviceName`;
