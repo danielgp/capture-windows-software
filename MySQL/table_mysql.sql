@@ -38,6 +38,17 @@ CREATE TABLE IF NOT EXISTS `in_windows_software_list` (
   KEY `InstallationDate` (`InstallationDate`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
+CREATE TABLE IF NOT EXISTS `in_windows_software_portable` (
+  `EvaluationTimestamp` datetime NOT NULL,
+  `VolumeSerialNumber` varchar(50) NOT NULL,
+  `FileNameSearched` varchar(100) NOT NULL,
+  `FilePathFound` text NOT NULL,
+  `FileNameFound` varchar(100) DEFAULT NULL,
+  `FileVersionFound` varchar(30) DEFAULT NULL,
+  `FileSizeFound` mediumint(8) unsigned DEFAULT NULL,
+  PRIMARY KEY(`VolumeSerialNumber`, `FileNameSearched`, `FilePathFound`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
 CREATE TABLE IF NOT EXISTS `publisher_details` (
   `PublisherId` SMALLINT(5) UNSIGNED NOT NULL AUTO_INCREMENT,
   `PublisherName` VARCHAR(80) NOT NULL,

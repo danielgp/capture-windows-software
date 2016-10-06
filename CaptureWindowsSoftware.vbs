@@ -29,6 +29,7 @@ Const strVersionPrefix = "v"
 Const strResultFileNameSoftware = "ResultWindowsSoftwareList"
 Const strResultFileNameDeviceDetails = "ResultWindowsDeviceDetails"
 Const strResultFileNameDeviceVolumes = "ResultWindowsDeviceVolumes"
+Const strResultFileNamePortableSoftware = "ResultPortableSoftwareList"
 Dim strResultFileType
 Set objFSO = CreateObject("Scripting.FileSystemObject")
 Set WshShell = WScript.CreateObject("WScript.Shell")
@@ -61,19 +62,19 @@ Else
                 strResultFileType = ".sql"
         End Select
         Set objWMIService = GetObject("winmgmts:{impersonationLevel=impersonate}!\\" & strComputer & "\root\cimv2")
-        ' section for Device Details
         ReadWMI_All objWMIService, strComputer, strResultFileType, strFieldSeparator, objFSO, strCurDir, strResultFileNameDeviceDetails, ForAppending, bolFileDeviceHeaderToAdd
-        ' section for Device Volumes
         ReadWMI_DeviceVolumes objWMIService, strComputer, strResultFileType, strFieldSeparator, objFSO, strCurDir, strResultFileNameDeviceVolumes, ForAppending
-        ' section for Software List
         ReadRegistry_SofwareInstalled strComputer, strResultFileType, strFieldSeparator, objFSO, strCurDir, strResultFileNameSoftware, ForAppending
+        ReadLogicalDisk_PortableSoftware objFSO, objWMIService, strCurDir, ForReading, ForAppending, strResultFileNamePortableSoftware, strResultFileType, strFieldSeparator
     Loop
     SrvListFile.Close
     EndTime = Timer()
     MsgBox "This script has completed processing from Windows Management Instrumentation (WMI) current Device Details and from Windows Registry entire list of installed software under current Windows installation (in just " & FormatNumber(EndTime - StartTime, 0) & " seconds)." & vbNewLine & _
         "Consult results stored within following files:" & vbNewLine & _
-        "  - " & strCurDir & "\" & strResultFileNameSoftware & strResultFileType & vbNewLine & _ 
         "  - " & strCurDir & "\" & strResultFileNameDeviceDetails & strResultFileType & vbNewLine & _ 
+        "  - " & strCurDir & "\" & strResultFileNameDeviceVolumes & strResultFileType & vbNewLine & _ 
+        "  - " & strCurDir & "\" & strResultFileNameSoftware & strResultFileType & vbNewLine & _ 
+        "  - " & strCurDir & "\" & strResultFileNamePortableSoftware & strResultFileType & vbNewLine & _ 
         vbNewLine & "Thank you for using this script, hope to see you back soon!", vbOKOnly + vbInformation, "Script end"
 End If
 '-----------------------------------------------------------------------------------------------------------------------
@@ -429,6 +430,10 @@ Function CurrentOperatingSystemVersionForComparison()
         intOSVersion = CInt(aryVersionParts(0)) * 10 + aryVersionParts(1)
     Next
     CurrentOperatingSystemVersionForComparison = intOSVersion
+End Function
+Function FolderHasSubfolders(oFolder)
+    On Error Resume Next
+    FolderHasSubfolders = (oFolder.SubFolders.Count >= 0)
 End Function
 Function IsNumericExtended(InValueToEvaluate)
     If (IsNumeric(InValueToEvaluate)) Then
@@ -796,6 +801,29 @@ Function MappingLanguageLCIDinDescriptionOut(GivenElement, GivenValue, FeedbackE
         End Select
     Next
 End Function
+Function MappingLogicalDiskIdToSerialNumberOrViceVersa(objWMIService, strSearchString, strSearchDesired)
+    strInitialLocalDisk = ReadWMI__Win32_LogicalDisk_LightInformationGlued(objWMIService)
+    aryTwoParts = Split(strInitialLocalDisk, "||")
+    aryDeviceId = Split(aryTwoParts(0), " ")
+    aryVolumeSerialNumber = Split(aryTwoParts(1), " ")
+    intCounter = 0
+    Select Case strSearchDesired
+        Case "Device ID"
+            For Each crtVolumeSerialNumber in aryVolumeSerialNumber
+                If (crtVolumeSerialNumber = strSearchString) Then
+                    MappingLogicalDiskIdToSerialNumberOrViceVersa = aryDeviceId(intCounter)
+                End If
+                intCounter = intCounter + 1
+            Next
+        Case "Volume Serial Number"
+            For Each crtDeviceId in aryDeviceId
+                If (crtDeviceId = strSearchString) Then
+                    MappingLogicalDiskIdToSerialNumberOrViceVersa = aryVolumeSerialNumber(intCounter)
+                End If
+                intCounter = intCounter + 1
+            Next
+    End Select
+End Function
 Function MappingMediaTypeCodeInDescriptionOut(InputMediaType)
     aryMediaTypes = Array(_
         Array(0, "Format is unknown"), _
@@ -906,6 +934,73 @@ Function NumberWithTwoDigits(InputNo)
     Else
         NumberWithTwoDigits = InputNo
     End If
+End Function
+Function ReadLogicalDisk_PortableSoftware(objFSO, objWMIService, strCurDir, ForReading, ForAppending, strResultFileNamePortableSoftware, strResultFileType, strFieldSeparator)
+    If (objFSO.FileExists(strCurDir & "\" & strResultFileNamePortableSoftware & strResultFileType)) Then
+        bolFilePortableSoftwareHeaderToAdd = False
+    Else
+        bolFilePortableSoftwareHeaderToAdd = True
+    End If
+    aryFieldsPortableSoftware = Array(_
+        "Evaluation Timestamp", _
+        "Volume Serial Number", _
+        "File Name Searched", _
+        "File Path Found", _
+        "File Name Found", _
+        "File Version Found", _
+        "File Size Found" _
+    )
+    strFieldsGlued = Join(aryFieldsPortableSoftware, "||")
+    Set objResultPortableSoftware = objFSO.OpenTextFile(strCurDir & "\" & strResultFileNamePortableSoftware & strResultFileType, ForAppending, True)
+    Select Case LCase(strResultFileType)
+        Case ".csv"
+            If (bolFilePortableSoftwareHeaderToAdd) Then
+                objResultPortableSoftware.WriteLine Join(aryFieldsPortableSoftware, strFieldSeparator)
+            End If
+        Case ".sql"
+            objResultSoftware.WriteLine "DELETE FROM `in_windows_software_list` WHERE (`HostName` = '" & strComputer & "');"
+    End Select
+    Set PortableSoftwareList = objFSO.OpenTextFile(strCurDir & "\PortableSoftwareList.txt", ForReading)
+    Do Until PortableSoftwareList.AtEndOfStream
+        strFileToAnalyze = PortableSoftwareList.ReadLine
+        ' will only consider lines with at least 10 characters
+        If (Len(strFileToAnalyze) >= 10) Then
+            strFilePieces = Split(strFileToAnalyze, "\")
+            If (Right(Left(strFileToAnalyze, 2), 1) = ":") Then
+                strDeviceId = Left(strFileToAnalyze, 2)
+                crtVolumeSerialNumber = MappingLogicalDiskIdToSerialNumberOrViceVersa(objWMIService, strDeviceId, "Volume Serial Number")
+            Else
+                crtVolumeSerialNumber = strFilePieces(0)
+                strDeviceId = MappingLogicalDiskIdToSerialNumberOrViceVersa(objWMIService, crtVolumeSerialNumber, "Device ID")
+            End If
+            PieceCounter = 0
+            PiecesCounted = UBound(strFilePieces)
+            For Each strFilePiece In strFilePieces 
+                If (PieceCounter < PiecesCounted) Then
+                    If (PieceCounter = 0) Then
+                        strFilePath = strDeviceId 'strFilePiece
+                    Else
+                        strFilePath = strFilePath & "\" & strFilePiece
+                    End If
+                End If
+                PieceCounter = PieceCounter + 1
+                strFileNameToSearch = strFilePiece
+            Next
+            If (objFSO.FolderExists(strFilePath)) Then
+                Set strFolderToSearch = objFSO.GetFolder(strFilePath)
+                If (InStr(1, strFileNameToSearch, "*", vbTextCompare)) Then
+                        aryFileNamePieces = Split(strFileNameToSearch, "*")
+                        If (UBound(aryFileNamePieces) = 1) Then ' only 1 single * is supported
+                            RecursiveFileSearchToFileOutput strFolderToSearch, strFileNameToSearch, strResultFileType, objResultPortableSoftware, strFieldsGlued, strFieldSeparator, crtVolumeSerialNumber
+                        End If
+                Else
+                    RecursiveFileSearchToFileOutput strFolderToSearch, strFileNameToSearch, strResultFileType, objResultPortableSoftware, strFieldsGlued, strFieldSeparator, crtVolumeSerialNumber
+                End If
+            End If
+        End If
+    Loop 
+    objResultPortableSoftware.Close
+    PortableSoftwareList.Close
 End Function
 Function ReadRegistry_SofwareInstalled(strComputer, strResultFileType, strFieldSeparator, objFSO, strCurDir, strResultFileNameSoftware, ForAppending)
     Set objResultSoftware = objFSO.OpenTextFile(strCurDir & "\" & strResultFileNameSoftware & strResultFileType, ForAppending, True)
@@ -1269,7 +1364,18 @@ Function ReadWMI__Win32_DiskDrive(objWMIService, strComputer, strResultFileType,
     Next
     ReadWMI__Win32_DiskDrive = Join(aryDetailsToReturn, "||")
 End Function
-Function ReadWMI__Win32_LogicalDisk(objWMIService, strComputer, strResultFileType, strFieldSeparator, ReportFile)
+Function ReadWMI__Win32_LogicalDisk_LightInformationGlued(objWMIService)
+    Dim aryDetailsToReturn(1)
+    aryDetailsToReturn(0) = ""
+    aryDetailsToReturn(1) = ""
+    Set objLogicalDisk = objWMIService.ExecQuery("Select * from Win32_LogicalDisk")
+    For Each crtObjLogicalDisk in objLogicalDisk
+        aryDetailsToReturn(0) = Trim(aryDetailsToReturn(0) & " " & crtObjLogicalDisk.DeviceID)
+        aryDetailsToReturn(1) = Trim(aryDetailsToReturn(1) & " " & crtObjLogicalDisk.VolumeSerialNumber)
+    Next
+    ReadWMI__Win32_LogicalDisk_LightInformationGlued = Join(aryDetailsToReturn, "||")
+End Function
+Function ReadWMI__Win32_LogicalDisk(objWMIService, strComputer, strResultFileType, strFieldSeparator, ReportFile, bolFileDeviceVolumeHeaderToAdd)
     Dim aryDetailsToReturn(1)
     Dim aryJSONinformationSQL(39)
     aryFieldsLogicalDiskMain = Array(_
@@ -1801,8 +1907,57 @@ Function ReadWMI_DeviceVolumes(objWMIService, strComputer, strResultFileType, st
         bolFileDeviceVolumeHeaderToAdd = True
     End If
     Set objResultDeviceVolumes = objFSO.OpenTextFile(strCurDir & "\" & strResultFileNameDeviceVolumes & strResultFileType, ForAppending, True)
-    ReadWMI__Win32_LogicalDisk objWMIService, strComputer, strResultFileType, strFieldSeparator, objResultDeviceVolumes
-    objResultDeviceVolumes.WriteLine "ALTER TABLE `device_volumes` AUTO_INCREMENT = 1;"
+    ReadWMI__Win32_LogicalDisk objWMIService, strComputer, strResultFileType, strFieldSeparator, objResultDeviceVolumes, bolFileDeviceVolumeHeaderToAdd
+    If (LCase(strResultFileType) = ".sql") Then
+        objResultDeviceVolumes.WriteLine "ALTER TABLE `device_volumes` AUTO_INCREMENT = 1;"
+    End If
     objResultDeviceVolumes.Close
+End Function
+Function RecursiveFileSearchToFileOutput(strFolderToSearch, strFileNameToSearch, strResultFileType, objResultFile, strFieldsGlued, strFieldSeparator, strVolumeSerialNumber)
+    Dim oSubFolder, strCurrentFile
+    If (InStr(1, strFileNameToSearch, "*", vbTextCompare) > 0) Then
+        aryFileNamePieces = Split(strFileNameToSearch, "*")
+    End IF
+    aryFields = Split(strFieldsGlued, "||")
+    If (FolderHasSubFolders(strFolderToSearch)) Then
+        For Each oSubFolder In strFolderToSearch.SubFolders
+            RecursiveFileSearchToFileOutput oSubFolder, strFileNameToSearch, strResultFileType, objResultFile, strFieldsGlued, strFieldSeparator, strVolumeSerialNumber
+        Next
+        For Each strCurrentFile In strFolderToSearch.Files
+            strCurrentFileCleaned = Replace(Replace(strCurrentFile, strFolderToSearch, ""), "\", "")
+            If (InStr(1, strFileNameToSearch, "*", vbTextCompare) > 0) Then
+                If ((InStr(1, strCurrentFileCleaned, aryFileNamePieces(0), vbTextCompare) > 0) And (InStr(1, strCurrentFileCleaned, aryFileNamePieces(1), vbTextCompare) > 0)) Then
+                    strFileToAnalyzeExact = strCurrentFileCleaned
+                End If
+            Else
+                If (strCurrentFileCleaned = strFileNameToSearch) Then
+                    strFileToAnalyzeExact = strFileNameToSearch
+                Else
+                    strFileToAnalyzeExact = ""
+                End If
+            End If
+            If (strFileToAnalyzeExact <> "") Then
+                aryValues = Array(_
+                    CurrentDateTime2SqlFormat(),
+                    strVolumeSerialNumber, _
+                    strFileNameToSearch, _
+                    strFolderToSearch, _
+                    strCurrentFileCleaned, _
+                    objFSO.GetFileVersion(strCurrentFile), _
+                    strCurrentFile.Size _
+                )
+                Select Case LCase(strResultFileType)
+                    Case ".csv"
+                        objResultFile.WriteLine AdjustEmptyValueWithinArrayAndGlueIt(aryValues, "-", strFieldSeparator)
+                    Case ".sql"
+                        objResultFile.WriteLine "INSERT INTO `in_windows_software_portable` (" & _
+                            BuildInsertOrUpdateSQLstructure(aryFields, aryValues, "InsertFields", 0, 0) & _
+                            ") VALUES(" & _
+                            BuildInsertOrUpdateSQLstructure(aryFields, aryValues, "InsertValues", 0, 0) & _
+                            ");"
+                End Select
+            End If
+        Next
+    End If
 End Function
 '-----------------------------------------------------------------------------------------------------------------------

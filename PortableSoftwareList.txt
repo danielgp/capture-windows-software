@@ -1,32 +1,30 @@
-D:\www\App\Apache\2.4.x64\bin\httpd.exe
-D:\www\App\MySQL\5.7.x64\bin\mysqld.exe
-D:\www\App\PHP\PHP56\php.exe
-D:\www\App\PHP\PHP56xDebug\php_xdebug-*.dll
-D:\www\App\PHP\PHP70\php.exe
-D:\www\App\PHP\PHP70xDebug\php_xdebug-*.dll
-D:\www\App\Tomcat\Java\jdkX64\bin\java.exe
-D:\www\App\7za.exe
-D:\www\AppForDeveloper\GetText\iconv.exe
-D:\www\AppForDeveloper\GetText\msgconv.exe
-D:\www\AppForDeveloper\MySQL_Workbench_CE.x64\MySQLWorkbench.exe
-D:\www\AppForDeveloper\Netbeans\8.1\bin\netbeans64.exe
-D:\www\AppForDeveloper\Netbeans-Nightly\bin\netbeans64.exe
-D:\www\AppForDeveloper\Ruby\bin\ruby.exe
-D:\www\AppForDeveloper\SSL-scan\ssllabs-scan.exe
-D:\www\AppForDeveloper\TIBCO_Jasper_Studio\JaspersoftStudio.exe
-D:\PortableApps\MaintainedManual\Defraggler\Defraggler.exe
-D:\PortableApps\MaintainedManual\DoubleCommander\DoubleCommander.exe
-D:\PortableApps\MaintainedManual\epCheck\epCheck.exe
-D:\PortableApps\MaintainedManual\GetFoldersizePortable\GetFoldersizePortable.exe
-D:\PortableApps\MaintainedManual\MemHistory\MemHistoryFree.exe
-D:\PortableApps\MaintainedManual\PCWizard\PC Wizard.exe
-D:\PortableApps\MaintainedManual\QTranslate\QTranslate.exe
-D:\PortableApps\MaintainedManual\RenameMaster\RenameMaster.exe
-D:\PortableApps\MaintainedManual\RunAsDate.x64\RunAsDate.exe
-D:\PortableApps\MaintainedManual\Tixati\tixati_Windows64bit.exe
-D:\PortableApps\MaintainedManual\USB Image Tool\USB Image Tool.exe
-D:\PortableApps\MaintainedManual\YTD-HD\YouTubeDownloaderHD.exe
-D:\PortableApps\MaintainedManual\PathEditor.exe
-D:\PortableApps\MaintainedManual\PortExpert.exe
-D:\PortableApps\MaintainedManual\PortScan.exe
-D:\PortableApps\MaintainedManual\Symlink Creator 1.1.1.3.exe
+D619411B\www\App\Apache\httpd.exe
+D619411B\www\App\MySQL\mysqld.exe
+D619411B\www\App\PHP\php.exe
+D619411B\www\App\PHP\php_xdebug-*.dll
+D619411B\www\App\Tomcat\Java\jdkX64\bin\java.exe
+D619411B\www\App\7za.exe
+D619411B\www\AppForDeveloper\GetText\iconv.exe
+D619411B\www\AppForDeveloper\GetText\msgconv.exe
+D619411B\www\AppForDeveloper\MySQL_Workbench_CE.x64\MySQLWorkbench.exe
+D619411B\www\AppForDeveloper\Netbeans\netbeans64.exe
+D619411B\www\AppForDeveloper\Ruby\bin\ruby.exe
+D619411B\www\AppForDeveloper\SSL-scan\ssllabs-scan.exe
+D619411B\www\AppForDeveloper\TIBCO_Jasper_Studio\JaspersoftStudio.exe
+D619411B\PortableApps\MaintainedManual\Defraggler\Defraggler.exe
+D619411B\PortableApps\MaintainedManual\DoubleCommander\DoubleCommander.exe
+D619411B\PortableApps\MaintainedManual\epCheck\epCheck.exe
+D619411B\PortableApps\MaintainedManual\GetFoldersizePortable\GetFoldersizePortable.exe
+D619411B\PortableApps\MaintainedManual\MemHistory\MemHistoryFree.exe
+D619411B\PortableApps\MaintainedManual\PCWizard\PC Wizard.exe
+D619411B\PortableApps\MaintainedManual\QTranslate\QTranslate.exe
+D619411B\PortableApps\MaintainedManual\RenameMaster\RenameMaster.exe
+D619411B\PortableApps\MaintainedManual\RunAsDate.exe
+D619411B\PortableApps\MaintainedManual\Tixati\tixati_Windows32bit.exe
+D619411B\PortableApps\MaintainedManual\Tixati\tixati_Windows64bit.exe
+D619411B\PortableApps\MaintainedManual\USB Image Tool\USB Image Tool.exe
+D619411B\PortableApps\MaintainedManual\YTD-HD\YouTubeDownloaderHD.exe
+D619411B\PortableApps\MaintainedManual\PathEditor.exe
+D619411B\PortableApps\MaintainedManual\PortExpert.exe
+D619411B\PortableApps\MaintainedManual\PortScan.exe
+D619411B\PortableApps\MaintainedManual\Symlink Creator 1.1.1.3.exe
