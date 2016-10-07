@@ -91,13 +91,17 @@ CREATE TABLE IF NOT EXISTS `software_known` (
 
 CREATE TABLE IF NOT EXISTS `software_files` (
   `SoftwareFileName` VARCHAR(100) NOT NULL,
-  `SoftwareFileVersionNumericFirst` BIGINT(20) UNSIGNED ZEROFILL,
-  `SoftwareFileVersionNumericLast` BIGINT(20) UNSIGNED ZEROFILL,
+  `SoftwareFileVersionFirst` VARCHAR(30),
+  `SoftwareFileVersionPiecesFirst` JSON GENERATED ALWAYS AS (CONCAT('{ "Major": ', (CASE WHEN (`SoftwareFileVersionFirst` IS NULL) THEN 0 ELSE CAST(REPLACE((CASE WHEN (LOCATE(".", `SoftwareFileVersionFirst`) = 0) THEN `SoftwareFileVersionFirst` ELSE SUBSTRING_INDEX(`SoftwareFileVersionFirst`, '.', 1) END), "v", "") AS UNSIGNED) END), ', "Minor": ', (CASE WHEN (`SoftwareFileVersionFirst` IS NULL) THEN 0 ELSE CAST((CASE WHEN (LOCATE(".", `SoftwareFileVersionFirst`) = 0) THEN 0 ELSE REPLACE(SUBSTRING_INDEX(`SoftwareFileVersionFirst`, '.', 2), CONCAT(SUBSTRING_INDEX(`SoftwareFileVersionFirst`, '.', 1), '.'), '') END) AS UNSIGNED) END), ', "Build": ',(CASE WHEN (`SoftwareFileVersionFirst` IS NULL) THEN 0 ELSE CAST((CASE WHEN (LOCATE(".", `SoftwareFileVersionFirst`) = 0) THEN 0 WHEN ((CHAR_LENGTH(`SoftwareFileVersionFirst`) - CHAR_LENGTH(REPLACE(`SoftwareFileVersionFirst`, '.', ''))) < 2) THEN 0 ELSE REPLACE(SUBSTRING_INDEX(`SoftwareFileVersionFirst`, '.', 3), CONCAT(SUBSTRING_INDEX(`SoftwareFileVersionFirst`, '.', 2), '.'), '') END) AS UNSIGNED) END), ', "Revision": ', (CASE WHEN (`SoftwareFileVersionFirst` IS NULL) THEN 0 ELSE CAST((CASE WHEN (LOCATE(".", `SoftwareFileVersionFirst`) = 0) THEN 0 WHEN ((CHAR_LENGTH(`SoftwareFileVersionFirst`) - CHAR_LENGTH(REPLACE(`SoftwareFileVersionFirst`, '.', ''))) < 3) THEN 0 ELSE REPLACE(SUBSTRING_INDEX(`SoftwareFileVersionFirst`, '.', 4), CONCAT(SUBSTRING_INDEX(`SoftwareFileVersionFirst`, '.', 3), '.'), '') END) AS UNSIGNED) END), ' }')) STORED,
+  `SoftwareFileVersionNumericFirst` DECIMAL(25,7) ZEROFILL GENERATED ALWAYS AS (CASE WHEN (`SoftwareFileVersionFirst` IS NULL) THEN NULL ELSE CAST( ( CAST((JSON_EXTRACT(`SoftwareFileVersionPiecesFirst`, '$.Major') * POW(10, 14)) AS UNSIGNED) + CAST((JSON_EXTRACT(`SoftwareFileVersionPiecesFirst`, '$.Minor') * POW(10, 7)) AS UNSIGNED) + CAST((JSON_EXTRACT(`SoftwareFileVersionPiecesFirst`, '$.Build') * POW(10, 0)) AS UNSIGNED) + CAST((JSON_EXTRACT(`SoftwareFileVersionPiecesFirst`, '$.Revision') / POW(10, 7)) AS DECIMAL(8, 7)) ) AS DECIMAL(30, 7)) END) STORED,
+  `SoftwareFileVersionLast` VARCHAR(30),
+  `SoftwareFileVersionPiecesLast` JSON GENERATED ALWAYS AS (CONCAT('{ "Major": ', (CASE WHEN (`SoftwareFileVersionLast` IS NULL) THEN NULL ELSE CAST(REPLACE((CASE WHEN (LOCATE(".", `SoftwareFileVersionLast`) = 0) THEN `SoftwareFileVersionLast` ELSE SUBSTRING_INDEX(`SoftwareFileVersionLast`, '.', 1) END), "v", "") AS UNSIGNED) END), ', "Minor": ', (CASE WHEN (`SoftwareFileVersionLast` IS NULL) THEN 0 ELSE CAST((CASE WHEN (LOCATE(".", `SoftwareFileVersionLast`) = 0) THEN 0 ELSE REPLACE(SUBSTRING_INDEX(`SoftwareFileVersionLast`, '.', 2), CONCAT(SUBSTRING_INDEX(`SoftwareFileVersionLast`, '.', 1), '.'), '') END) AS UNSIGNED) END), ', "Build": ',(CASE WHEN (`SoftwareFileVersionLast` IS NULL) THEN 0 ELSE CAST((CASE WHEN (LOCATE(".", `SoftwareFileVersionLast`) = 0) THEN 0 WHEN ((CHAR_LENGTH(`SoftwareFileVersionLast`) - CHAR_LENGTH(REPLACE(`SoftwareFileVersionLast`, '.', ''))) < 2) THEN 0 ELSE REPLACE(SUBSTRING_INDEX(`SoftwareFileVersionLast`, '.', 3), CONCAT(SUBSTRING_INDEX(`SoftwareFileVersionLast`, '.', 2), '.'), '') END) AS UNSIGNED) END), ', "Revision": ', (CASE WHEN (`SoftwareFileVersionLast` IS NULL) THEN 0 ELSE CAST((CASE WHEN (LOCATE(".", `SoftwareFileVersionLast`) = 0) THEN 0 WHEN ((CHAR_LENGTH(`SoftwareFileVersionLast`) - CHAR_LENGTH(REPLACE(`SoftwareFileVersionLast`, '.', ''))) < 3) THEN 0 ELSE REPLACE(SUBSTRING_INDEX(`SoftwareFileVersionLast`, '.', 4), CONCAT(SUBSTRING_INDEX(`SoftwareFileVersionLast`, '.', 3), '.'), '') END) AS UNSIGNED) END), ' }')) STORED,
+  `SoftwareFileVersionNumericLast` DECIMAL(25,7) ZEROFILL GENERATED ALWAYS AS (CASE WHEN (`SoftwareFileVersionLast` IS NULL) THEN NULL ELSE CAST( ( CAST((JSON_EXTRACT(`SoftwareFileVersionPiecesLast`, '$.Major') * POW(10, 14)) AS UNSIGNED) + CAST((JSON_EXTRACT(`SoftwareFileVersionPiecesLast`, '$.Minor') * POW(10, 7)) AS UNSIGNED) + CAST((JSON_EXTRACT(`SoftwareFileVersionPiecesLast`, '$.Build') * POW(10, 0)) AS UNSIGNED) + CAST((JSON_EXTRACT(`SoftwareFileVersionPiecesLast`, '$.Revision') / POW(10, 7)) AS DECIMAL(8, 7)) ) AS DECIMAL(30, 7)) END) STORED,
   `SoftwareName` VARCHAR(80) NOT NULL,
   `PublisherName` VARCHAR(80) NOT NULL,
   `FirstSeen` DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
   `LastSeen` DATETIME(6) DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP(6),
-  PRIMARY KEY (`SoftwareName`, `SoftwareFileVersionNumericFirst`, `SoftwareFileVersionNumericLast`),
+  PRIMARY KEY (`SoftwareFileName`, `SoftwareFileVersionFirst`, `SoftwareFileVersionLast`),
   KEY `SoftwareName` (`SoftwareName`),
   KEY `PublisherName` (`PublisherName`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT 'Known files w/ their standardized Software & relevant Publisher';
@@ -106,9 +110,17 @@ CREATE TABLE IF NOT EXISTS `version_details` (
     `VersionId` SMALLINT(5) UNSIGNED NOT NULL AUTO_INCREMENT,
     `FullVersion` varchar(30) NOT NULL,
     `FullVersionParts` JSON GENERATED ALWAYS AS (CONCAT('{ "Major": ', (CASE WHEN (`FullVersion` IS NULL) THEN NULL ELSE CAST(REPLACE((CASE WHEN (LOCATE(".", `FullVersion`) = 0) THEN `FullVersion` ELSE SUBSTRING_INDEX(`FullVersion`, '.', 1) END), "v", "") AS UNSIGNED) END), ', "Minor": ', (CASE WHEN (`FullVersion` IS NULL) THEN 0 ELSE CAST((CASE WHEN (LOCATE(".", `FullVersion`) = 0) THEN 0 ELSE REPLACE(SUBSTRING_INDEX(`FullVersion`, '.', 2), CONCAT(SUBSTRING_INDEX(`FullVersion`, '.', 1), '.'), '') END) AS UNSIGNED) END), ', "Build": ',(CASE WHEN (`FullVersion` IS NULL) THEN 0 ELSE CAST((CASE WHEN (LOCATE(".", `FullVersion`) = 0) THEN 0 WHEN ((CHAR_LENGTH(`FullVersion`) - CHAR_LENGTH(REPLACE(`FullVersion`, '.', ''))) < 2) THEN 0 ELSE REPLACE(SUBSTRING_INDEX(`FullVersion`, '.', 3), CONCAT(SUBSTRING_INDEX(`FullVersion`, '.', 2), '.'), '') END) AS UNSIGNED) END), ', "Revision": ', (CASE WHEN (`FullVersion` IS NULL) THEN 0 ELSE CAST((CASE WHEN (LOCATE(".", `FullVersion`) = 0) THEN 0 WHEN ((CHAR_LENGTH(`FullVersion`) - CHAR_LENGTH(REPLACE(`FullVersion`, '.', ''))) < 3) THEN 0 ELSE REPLACE(SUBSTRING_INDEX(`FullVersion`, '.', 4), CONCAT(SUBSTRING_INDEX(`FullVersion`, '.', 3), '.'), '') END) AS UNSIGNED) END), ' }')) STORED,
-    `FullVersionNumeric` BIGINT(20) UNSIGNED ZEROFILL GENERATED ALWAYS AS (CASE WHEN (`FullVersion` IS NULL) THEN NULL ELSE (CAST(JSON_EXTRACT(`FullVersionParts`, '$.Major') AS UNSIGNED) * POW(10, 14) + CAST(JSON_EXTRACT(`FullVersionParts`, '$.Minor') AS UNSIGNED) * POW(10, 10) + CAST(JSON_EXTRACT(`FullVersionParts`, '$.Build') AS UNSIGNED) * POW(10, 5) + CAST(JSON_EXTRACT(`FullVersionParts`, '$.Revision') AS UNSIGNED)) END) STORED,
+    `FullVersionNumeric` DECIMAL(25,7) ZEROFILL GENERATED ALWAYS AS (CASE WHEN (`FullVersion` IS NULL) THEN NULL ELSE CAST( ( CAST((JSON_EXTRACT(`FullVersionParts`, '$.Major') * POW(10, 14)) AS UNSIGNED) + CAST((JSON_EXTRACT(`FullVersionParts`, '$.Minor') * POW(10, 7)) AS UNSIGNED) + CAST((JSON_EXTRACT(`FullVersionParts`, '$.Build') * POW(10, 0)) AS UNSIGNED) + CAST((JSON_EXTRACT(`FullVersionParts`, '$.Revision') / POW(10, 7)) AS DECIMAL(8, 7)) ) AS DECIMAL(30, 7)) END) STORED,
     PRIMARY KEY(`VersionId`),
     UNIQUE INDEX `ndx_vd_FullVersion_UNIQUE` (`FullVersion` ASC),
+    KEY `FullVersionNumeric` (`FullVersionNumeric`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS `version_files` (
+    `FullVersion` varchar(30) NOT NULL,
+    `FullVersionParts` JSON GENERATED ALWAYS AS (CONCAT('{ "Major": ', (CASE WHEN (`FullVersion` IS NULL) THEN NULL ELSE CAST(REPLACE((CASE WHEN (LOCATE(".", `FullVersion`) = 0) THEN `FullVersion` ELSE SUBSTRING_INDEX(`FullVersion`, '.', 1) END), "v", "") AS UNSIGNED) END), ', "Minor": ', (CASE WHEN (`FullVersion` IS NULL) THEN 0 ELSE CAST((CASE WHEN (LOCATE(".", `FullVersion`) = 0) THEN 0 ELSE REPLACE(SUBSTRING_INDEX(`FullVersion`, '.', 2), CONCAT(SUBSTRING_INDEX(`FullVersion`, '.', 1), '.'), '') END) AS UNSIGNED) END), ', "Build": ',(CASE WHEN (`FullVersion` IS NULL) THEN 0 ELSE CAST((CASE WHEN (LOCATE(".", `FullVersion`) = 0) THEN 0 WHEN ((CHAR_LENGTH(`FullVersion`) - CHAR_LENGTH(REPLACE(`FullVersion`, '.', ''))) < 2) THEN 0 ELSE REPLACE(SUBSTRING_INDEX(`FullVersion`, '.', 3), CONCAT(SUBSTRING_INDEX(`FullVersion`, '.', 2), '.'), '') END) AS UNSIGNED) END), ', "Revision": ', (CASE WHEN (`FullVersion` IS NULL) THEN 0 ELSE CAST((CASE WHEN (LOCATE(".", `FullVersion`) = 0) THEN 0 WHEN ((CHAR_LENGTH(`FullVersion`) - CHAR_LENGTH(REPLACE(`FullVersion`, '.', ''))) < 3) THEN 0 ELSE REPLACE(SUBSTRING_INDEX(`FullVersion`, '.', 4), CONCAT(SUBSTRING_INDEX(`FullVersion`, '.', 3), '.'), '') END) AS UNSIGNED) END), ' }')) STORED,
+    `FullVersionNumeric` DECIMAL(25,7) ZEROFILL GENERATED ALWAYS AS (CASE WHEN (`FullVersion` IS NULL) THEN NULL ELSE CAST( ( CAST((JSON_EXTRACT(`FullVersionParts`, '$.Major') * POW(10, 14)) AS UNSIGNED) + CAST((JSON_EXTRACT(`FullVersionParts`, '$.Minor') * POW(10, 7)) AS UNSIGNED) + CAST((JSON_EXTRACT(`FullVersionParts`, '$.Build') * POW(10, 0)) AS UNSIGNED) + CAST((JSON_EXTRACT(`FullVersionParts`, '$.Revision') / POW(10, 7)) AS DECIMAL(8, 7)) ) AS DECIMAL(30, 7)) END) STORED,
+    PRIMARY KEY(`FullVersion`),
     KEY `FullVersionNumeric` (`FullVersionNumeric`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
@@ -226,6 +238,39 @@ FROM `view__evaluations` `ve`
 WHERE (`ve`.`DeviceId` IN (1, 2, 3, 4, 5))
 GROUP BY `ve`.`SoftwareName`, `ve`.`RelevantMajorVersion`
 HAVING (`Assesment` = 'Differences...');
+
+/* ------------------------------------------------------------------------------------------------------------------ */
+
+DELIMITER //
+DROP PROCEDURE IF EXISTS `pr_MatchLatestEvaluationForSoftwarePortrable`//
+CREATE PROCEDURE `pr_MatchLatestEvaluationForSoftwarePortrable`()
+    NOT DETERMINISTIC 
+    READS SQL DATA 
+    SQL SECURITY DEFINER 
+    COMMENT 'Stores ' 
+BEGIN
+    DECLARE v_DeviceId SMALLINT(5) UNSIGNED;
+    DECLARE v_EvaluationId MEDIUMINT(8) UNSIGNED;
+    DECLARE v_done INT DEFAULT 0;
+    /* Reads existing AI columns to later evaluate 1 by 1 */
+    DECLARE info_cursor CURSOR FOR SELECT `dd`.`DeviceId`, MAX(`eh`.`EvaluationId`) FROM `in_windows_software_portable` `iwsp` INNER JOIN `device_details` `dd` ON `iwsp`.`VolumeSerialNumber` = `dd`.`DeviceName` INNER JOIN `evaluation_headers` `eh` ON `dd`.`DeviceId` = `eh`.`DeviceId` GROUP BY `dd`.`DeviceId`;
+    DECLARE CONTINUE HANDLER FOR NOT FOUND SET v_done = 1;
+    /* Evaluate current situation for every single relevant column and table */
+    SET @dynamic_sql = "UPDATE `device_details` SET `MostRecentEvaluationId` = ?, `LastSeen` = `LastSeen` WHERE (`DeviceId` = ?);";
+    PREPARE complete_sql FROM @dynamic_sql;
+    OPEN info_cursor;
+    REPEAT
+        FETCH info_cursor INTO v_DeviceId, v_EvaluationId;
+        IF NOT v_done THEN
+            SET @DeviceId = v_DeviceId;
+            SET @EvaluationId = v_EvaluationId;
+            EXECUTE complete_sql USING @EvaluationId, @DeviceId;
+        END IF;
+    UNTIL v_done END REPEAT;
+    CLOSE info_cursor;
+    DEALLOCATE PREPARE complete_sql;
+END//
+DELIMITER ;
 
 /* ------------------------------------------------------------------------------------------------------------------ */
 SELECT 8 INTO @crtEvaluationIdToRemove;
