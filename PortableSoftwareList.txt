@@ -1,14 +1,14 @@
 ' ----------------------------------------------------------------------------------------------------------------------
 '
-' This is a configuration file to list all your portable applications desired to be tracked 
+' This is a configuration file to list all your portable applications desired to be tracked
 ' by "Capture Windows Software" script, so please customize it for your own specific needs
 '
 ' Important things to mention!!!
-'   - as such applications may be stored on removable drives and used on various computers idealy any path 
-'       would be specified starting with Volume Serial Number (so an USB stick would be always identified 
-'       regardless of letter assigned in Windows, as in one computer would D: on another might be F:), 
+'   - as such applications may be stored on removable drives and used on various computers idealy any path
+'       would be specified starting with Volume Serial Number (so an USB stick would be always identified
+'       regardless of letter assigned in Windows, as in one computer would D: on another might be F:),
 '       but if you feel comfortable to keep the letter that is a choice too
-'   - as the script logic will scan for every single file in the specified path to find a match for the file name 
+'   - as the script logic will scan for every single file in the specified path to find a match for the file name
 '       if you have folders with a lot of file the required time to complete the evaluation may get long or very long
 '
 ' ----------------------------------------------------------------------------------------------------------------------
@@ -16,7 +16,6 @@
 ' Applications required to mainatain a web serving infrastructure
 D619411B\www\App\7za.exe
 D619411B\www\App\java.exe
-D619411B\www\App\ssleay32.dll
 D619411B\www\App\Apache\httpd.exe
 D619411B\www\App\MySQL\mysqld.exe
 D619411B\www\App\PHP\php.exe
@@ -30,13 +29,11 @@ D619411B\www\AppForDeveloper\MySQLWorkbench.exe
 D619411B\www\AppForDeveloper\Netbeans\netbeans64.exe
 D619411B\www\AppForDeveloper\Ruby\bin\ruby.exe
 D619411B\www\AppForDeveloper\SSL-scan\ssllabs-scan.exe
-D619411B\www\AppForDeveloper\ssleay32.dll
 D619411B\www\AppForDeveloper\JaspersoftStudio.exe
 
 ' Portable Applications packages provided by http://portableapps.com/
 D619411B\PortableApps\Start.exe
 D619411B\PortableApps\PortableApps\firefox.exe
-D619411B\PortableApps\PortableApps\ssleay32.dll
 D619411B\PortableApps\PortableApps\7-ZipPortable\7z.exe
 D619411B\PortableApps\PortableApps\AudacityPortable\audacity.exe
 D619411B\PortableApps\PortableApps\Avidemux64Portable\avidemux.exe
@@ -47,18 +44,15 @@ D619411B\PortableApps\PortableApps\TeamViewerPortable\TeamViewer.exe
 D619411B\PortableApps\PortableApps\WinSCPPortable\WinSCP.exe
 
 ' Additional portable applications that require manual download as not included in packages from http://portableapps.com/
-D619411B\PortableApps\MaintainedManual\ssleay32.dll
 D619411B\PortableApps\MaintainedManual\Defraggler\Defraggler.exe
 D619411B\PortableApps\MaintainedManual\DoubleCommander\DoubleCommander.exe
 D619411B\PortableApps\MaintainedManual\epCheck\epCheck.exe
 D619411B\PortableApps\MaintainedManual\GetFoldersizePortable\GetFoldersizePortable.exe
 D619411B\PortableApps\MaintainedManual\MemHistory\MemHistoryFree.exe
-D619411B\PortableApps\MaintainedManual\PCWizard\PC Wizard.exe
 D619411B\PortableApps\MaintainedManual\QTranslate\QTranslate.exe
 D619411B\PortableApps\MaintainedManual\RenameMaster\RenameMaster.exe
 D619411B\PortableApps\MaintainedManual\RunAsDate.exe
-D619411B\PortableApps\MaintainedManual\Tixati\tixati_Windows32bit.exe
-D619411B\PortableApps\MaintainedManual\Tixati\tixati_Windows64bit.exe
+D619411B\PortableApps\MaintainedManual\Tixati\tixati_Windows*bit.exe
 D619411B\PortableApps\MaintainedManual\USB Image Tool\USB Image Tool.exe
 D619411B\PortableApps\MaintainedManual\XMediaRecode\XMedia Recode.exe
 D619411B\PortableApps\MaintainedManual\YTD-HD\YouTubeDownloaderHD.exe
@@ -67,4 +61,10 @@ D619411B\PortableApps\MaintainedManual\PortExpert.exe
 D619411B\PortableApps\MaintainedManual\PortScan.exe
 D619411B\PortableApps\MaintainedManual\Symlink Creator*.exe
 
-'   D619411B\Windows\ssleay32.dll
+' Since OpenSSL is getting regularly flagged with vulnerability issues 
+'    I consider is important to assess what versions are included and where
+D619411B\ssleay32.dll
+'           FC0FD58D is the fixed drive on the PC2016 main device
+FC0FD58D\ssleay32.dll
+'           AEF1D904 is the fixed drive on the PC2014 main device
+AEF1D904\ssleay32.dll
