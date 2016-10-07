@@ -26,10 +26,10 @@ Const ForReading = 1
 Const HKLM = &H80000002 'HKEY_LOCAL_MACHINE
 Const strFieldSeparator = ";"
 Const strVersionPrefix = "v"
-Const strResultFileNameSoftware = "ResultWindowsSoftwareList"
+Const strResultFileNameSoftware = "ResultWindowsSoftwareInstalled"
 Const strResultFileNameDeviceDetails = "ResultWindowsDeviceDetails"
 Const strResultFileNameDeviceVolumes = "ResultWindowsDeviceVolumes"
-Const strResultFileNamePortableSoftware = "ResultPortableSoftwareList"
+Const strResultFileNamePortableSoftware = "ResultWindowsSoftwarePortable"
 Dim strResultFileType
 Set objFSO = CreateObject("Scripting.FileSystemObject")
 Set WshShell = WScript.CreateObject("WScript.Shell")
@@ -108,7 +108,8 @@ Function ApplySoftwareNormalizationForSoftwareInstalled(strComputer, ReportFile)
     ReportFile.WriteLine "INSERT `software_details` (`SoftwareName`) SELECT `SoftwareName` FROM `in_windows_software_installed` WHERE (`HostName` = '" & strComputer & "') AND (`SoftwareName` IS NOT NULL) AND (`SoftwareName` NOT IN (SELECT `SoftwareName` FROM `software_details` GROUP BY `SoftwareName`)) GROUP BY `SoftwareName`; /* Software consolidation */"
     ReportFile.WriteLine "ALTER TABLE `version_details` AUTO_INCREMENT = 1; /* Making sure the Version table do not have a ending gap for ID auto numbering sequence */"
     ReportFile.WriteLine "INSERT `version_details` (`FullVersion`) SELECT `FullVersion` FROM `in_windows_software_installed` WHERE (`HostName` = '" & strComputer & "') AND (`FullVersion` IS NOT NULL) AND (`FullVersion` NOT IN (SELECT `FullVersion` FROM `version_details` GROUP BY `FullVersion`)) GROUP BY `FullVersion`; /* Version consolidation */"
-    ReportFile.WriteLine "INSERT INTO `evaluation_headers` (`DeviceId`) SELECT `dd`.`DeviceId`, MIN(`iwsl`.`EvaluationTimestamp`), MAX(`iwsl`.`EvaluationTimestamp`) FROM `device_details` `dd` INNER JOIN `in_windows_software_installed` `iwsl` ON `dd`.`DeviceName` = `iwsl`.`HostName` WHERE (`dd`.`DeviceName` = '" & strComputer & "'); /* Evaluation initiation */"
+    ReportFile.WriteLine "ALTER TABLE `evaluation_headers` AUTO_INCREMENT = 1; /* Making sure the Evaluation header table do not have a ending gap for ID auto numbering sequence */"
+    ReportFile.WriteLine "INSERT INTO `evaluation_headers` (`DeviceId`, `DateOfGatheringTimestampFirst`, `DateOfGatheringTimestampLast`) SELECT `dd`.`DeviceId`, MIN(`iwsl`.`EvaluationTimestamp`), MAX(`iwsl`.`EvaluationTimestamp`) FROM `device_details` `dd` INNER JOIN `in_windows_software_installed` `iwsl` ON `dd`.`DeviceName` = `iwsl`.`HostName` WHERE (`dd`.`DeviceName` = '" & strComputer & "'); /* Evaluation initiation */"
     ReportFile.WriteLine "SELECT LAST_INSERT_ID() INTO @EvaluationId; /* Capture the Id for current evaluation captured to be used later on */"
     ReportFile.WriteLine "INSERT INTO `evaluation_lines` (`EvaluationId`, `PublisherId`, `SoftwareId`, `VersionId`, `InstallationDate`) SELECT DISTINCT @EvaluationId, `PublisherId`, `SoftwareId`, `VersionId`, MAX(`InstallationDate`) FROM `in_windows_software_installed` `iwsl` INNER JOIN `publisher_details` `pd` ON `iwsl`.`PublisherName` = `pd`.`PublisherName` INNER JOIN `software_details` `sd` ON `iwsl`.`SoftwareName` = `sd`.`SoftwareName` INNER JOIN `version_details` `vd` ON `iwsl`.`FullVersion` = `vd`.`FullVersion` WHERE (`iwsl`.`HostName` = '" & strComputer & "') GROUP BY `pd`.`PublisherId`, `sd`.`SoftwareId`, `vd`.`VersionId` ORDER BY `pd`.`PublisherId`, `sd`.`SoftwareId`, `vd`.`VersionId`; /* Populate the software installed in the structure that ensures traceability over time */"
     ReportFile.WriteLine "UPDATE `device_details` SET `MostRecentEvaluationId` = @EvaluationId, `LastSeen` = `LastSeen` WHERE (`DeviceName` = '" & strComputer & "'); /* Sets the most recent evaluation against relevant device to make easier software version comparison(s) between considering the latest details */"
@@ -123,9 +124,8 @@ Function ApplySoftwareNormalizationForSoftwarePortable(ReportFile)
     ReportFile.WriteLine "INSERT `version_details` (`FullVersion`) SELECT `FileVersionFound` FROM `in_windows_software_portable` WHERE (`FileVersionFound` IS NOT NULL) AND (`FileVersionFound` NOT IN('', 'v', 'v0', 'v0.0', 'v0.0.0', 'v0.0.0.0')) AND (`FileVersionFound` NOT IN (SELECT `FullVersion` FROM `version_details` GROUP BY `FullVersion`)) GROUP BY `FileVersionFound`; /* Version consolidation */"
     ReportFile.WriteLine "ALTER TABLE `evaluation_headers` AUTO_INCREMENT = 1; /* Making sure the Evaluation header table do not have a ending gap for ID auto numbering sequence */"
     ReportFile.WriteLine "INSERT INTO `evaluation_headers` (`DeviceId`, `DateOfGatheringTimestampFirst`, `DateOfGatheringTimestampLast`) SELECT `dd`.`DeviceId`, MIN(`EvaluationTimestamp`), MAX(`EvaluationTimestamp`) FROM `device_details` `dd` INNER JOIN `in_windows_software_portable` `iwsp` ON `dd`.`DeviceName` = `iwsp`.`VolumeSerialNumber` GROUP BY `dd`.`DeviceName`; /* Evaluation initiation */"
-    ReportFile.WriteLine "SELECT LAST_INSERT_ID() INTO @EvaluationId; /* Capture the Id for current evaluation captured to be used later on */"
-'    ReportFile.WriteLine "INSERT INTO `evaluation_lines` (`EvaluationId`, `PublisherId`, `SoftwareId`, `VersionId`, `InstallationDate`) SELECT @EvaluationId, `pd`.`PublisherId`, `sd`.`SoftwareId`, `vd`.`VersionId` .... FROM `in_windows_software_portable` `iwsp` INNER JOIN `version_details` `vd` ON `iwsp`.`FileVersionFound` = `vd`.`FullVersion` INNER JOIN `software_files` `sf` ON ((`sf`.`SoftwareFileName` = `iwsp`.`FileNameSearched`) AND (`vd`.`FullVersionNumeric` BETWEEN `sf`.`SoftwareFileVersionNumericFirst` AND `sf`.`SoftwareFileVersionNumericLast`)) LEFT JOIN `software_details` `sd` ON `sf`.`SoftwareName` = `sd`.`SoftwareName` LEFT JOIN `publisher_details` `pd` ON `sf`.`PublisherName` = `pd`.`PublisherName`;
-'    ReportFile.WriteLine "UPDATE `device_details` SET `MostRecentEvaluationId` = @EvaluationId, `LastSeen` = `LastSeen` WHERE (`DeviceName` = '" & strComputer & "'); /* Sets the most recent evaluation against relevant device to make easier software version comparison(s) between considering the latest details */"
+    ReportFile.WriteLine "INSERT INTO `evaluation_lines` (`EvaluationId`, `PublisherId`, `SoftwareId`, `VersionId`, `InstallationDate`) SELECT `eh`.`EvaluationId`, `pd`.`PublisherId`, `sd`.`SoftwareId`, `vd`.`VersionId`, CAST(MAX(CASE WHEN `iwsp`.`FileDateCreated` < `iwsp`.`FileDateLastModified` THEN `iwsp`.`FileDateCreated` ELSE `iwsp`.`FileDateLastModified` END) AS DATE) FROM `in_windows_software_portable` `iwsp` INNER JOIN `version_details` `vd` ON `iwsp`.`FileVersionFound` = `vd`.`FullVersion` INNER JOIN `software_files` `sf` ON ((`sf`.`SoftwareFileName` = `iwsp`.`FileNameSearched`) AND (`vd`.`FullVersionNumeric` BETWEEN `sf`.`SoftwareFileVersionNumericFirst` AND `sf`.`SoftwareFileVersionNumericLast`)) INNER JOIN `device_details` `dd` ON `iwsp`.`VolumeSerialNumber` = `dd`.`DeviceName` INNER JOIN `evaluation_headers` `eh` ON `dd`.`DeviceId` = `eh`.`DeviceId` LEFT JOIN `software_details` `sd` ON `sf`.`SoftwareName` = `sd`.`SoftwareName` LEFT JOIN `publisher_details` `pd` ON `sf`.`PublisherName` = `pd`.`PublisherName` WHERE (`iwsp`.`EvaluationTimestamp` BETWEEN `eh`.`DateOfGatheringTimestampFirst` AND  `eh`.`DateOfGatheringTimestampLast`) GROUP BY `eh`.`EvaluationId`, `pd`.`PublisherId`, `sd`.`SoftwareId`, `vd`.`VersionId` ORDER BY `eh`.`EvaluationId`, `pd`.`PublisherId`, `sd`.`SoftwareId`, `vd`.`VersionId`; /* Evaluation details */"
+    ReportFile.WriteLine "CALL `pr_MatchLatestEvaluationForSoftwarePortrable`(); /* Sets the most recent evaluation against relevant device to make easier software version comparison(s) between considering the latest details */"
 End Function
 Function BuildInsertOrUpdateSQLstructure(aryFieldNames, aryFieldValues, strInsertOrUpdate, intFirstNumberOfFieldsToIgnore, intLastNumberOfFieldsToIgnore)
     Counter = 0
@@ -836,23 +836,25 @@ Function MappingLogicalDiskIdToSerialNumberOrViceVersa(objWMIService, strSearchS
     aryTwoParts = Split(strInitialLocalDisk, "||")
     aryDeviceId = Split(aryTwoParts(0), " ")
     aryVolumeSerialNumber = Split(aryTwoParts(1), " ")
+    strValueToReturn = Null
     intCounter = 0
     Select Case strSearchDesired
         Case "Device ID"
             For Each crtVolumeSerialNumber in aryVolumeSerialNumber
                 If (crtVolumeSerialNumber = strSearchString) Then
-                    MappingLogicalDiskIdToSerialNumberOrViceVersa = aryDeviceId(intCounter)
+                    strValueToReturn = aryDeviceId(intCounter)
                 End If
                 intCounter = intCounter + 1
             Next
         Case "Volume Serial Number"
             For Each crtDeviceId in aryDeviceId
                 If (crtDeviceId = strSearchString) Then
-                    MappingLogicalDiskIdToSerialNumberOrViceVersa = aryVolumeSerialNumber(intCounter)
+                    strValueToReturn = aryVolumeSerialNumber(intCounter)
                 End If
                 intCounter = intCounter + 1
             Next
     End Select
+    MappingLogicalDiskIdToSerialNumberOrViceVersa = strValueToReturn
 End Function
 Function MappingMediaTypeCodeInDescriptionOut(InputMediaType)
     aryMediaTypes = Array(_
@@ -1014,24 +1016,26 @@ Function ReadLogicalDisk_PortableSoftware(objFSO, objWMIService, strCurDir, ForR
             For Each strFilePiece In strFilePieces
                 If (PieceCounter < PiecesCounted) Then
                     If (PieceCounter = 0) Then
-                        strFilePath = strDeviceId 'strFilePiece
+                        strFilePath = strDeviceId
                     Else
-                        strFilePath = strFilePath & "\" & strFilePiece
+                        strFilePath = strFilePath & "\" & Trim(strFilePiece)
                     End If
                 End If
                 PieceCounter = PieceCounter + 1
-                strFileNameToSearch = strFilePiece
+                strFileNameToSearch = Trim(strFilePiece)
             Next
-            If (objFSO.FolderExists(strFilePath)) Then
-                Set strFolderToSearch = objFSO.GetFolder(strFilePath)
-                intFilesCheckedForMatchUntilFound = 0
-                If (InStr(1, strFileNameToSearch, "*", vbTextCompare)) Then
-                        aryFileNamePieces = Split(strFileNameToSearch, "*")
-                        If (UBound(aryFileNamePieces) = 1) Then ' only 1 single * is supported
-                            RecursiveFileSearchToFileOutput strFolderToSearch, strFileNameToSearch, strResultFileType, objResultPortableSoftware, strFieldsGlued, strFieldSeparator, crtVolumeSerialNumber, intFilesCheckedForMatchUntilFound
-                        End If
-                Else
-                    RecursiveFileSearchToFileOutput strFolderToSearch, strFileNameToSearch, strResultFileType, objResultPortableSoftware, strFieldsGlued, strFieldSeparator, crtVolumeSerialNumber, intFilesCheckedForMatchUntilFound
+            If ((Not IsNull(strFilePath)) And (Len(strFileNameToSearch) > 0)) Then
+                If (objFSO.FolderExists(strFilePath)) Then
+                    Set strFolderToSearch = objFSO.GetFolder(strFilePath)
+                    intFilesCheckedForMatchUntilFound = 0
+                    If (InStr(1, strFileNameToSearch, "*", vbTextCompare)) Then
+                            aryFileNamePieces = Split(strFileNameToSearch, "*")
+                            If (UBound(aryFileNamePieces) = 1) Then ' only 1 single * is supported
+                                RecursiveFileSearchToFileOutput strFolderToSearch, strFileNameToSearch, strResultFileType, objResultPortableSoftware, strFieldsGlued, strFieldSeparator, crtVolumeSerialNumber, intFilesCheckedForMatchUntilFound
+                            End If
+                    Else
+                        RecursiveFileSearchToFileOutput strFolderToSearch, strFileNameToSearch, strResultFileType, objResultPortableSoftware, strFieldsGlued, strFieldSeparator, crtVolumeSerialNumber, intFilesCheckedForMatchUntilFound
+                    End If
                 End If
             End If
         End If
@@ -1542,6 +1546,7 @@ Function ReadWMI__Win32_LogicalDisk(objWMIService, strComputer, strResultFileTyp
                     crtObjLogicalDisk.VolumeSerialNumber, _
                     "{ " & Replace(Join(aryJSONinformationSQL, ", "), "\", "\\\\") & " }" _
                 )
+                ReportFile.WriteLine "ALTER TABLE `device_volumes` AUTO_INCREMENT = 1; /* Ensure no end gaps are present in the auto incrementing sequence for Device Volumes */"
                 ReportFile.WriteLine "INSERT INTO `device_volumes` (" & _
                     BuildInsertOrUpdateSQLstructure(aryFieldsLogicalDiskMain, aryValuesToExpose, "InsertFields", 0, 0) & _
                     ") VALUES(" & _
@@ -1549,6 +1554,7 @@ Function ReadWMI__Win32_LogicalDisk(objWMIService, strComputer, strResultFileTyp
                     ") ON DUPLICATE KEY UPDATE " & _
                     BuildInsertOrUpdateSQLstructure(aryFieldsLogicalDiskMain, aryValuesToExpose, "Update", 1, 0) & _
                     ";"
+                ReportFile.WriteLine "ALTER TABLE `device_volumes` AUTO_INCREMENT = 1; /* Ensure no end gaps are present in the auto incrementing sequence for Device Volumes */"
         End Select
     Next
 End Function
