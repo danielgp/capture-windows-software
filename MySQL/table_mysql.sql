@@ -1,3 +1,23 @@
+CREATE DATABASE  IF NOT EXISTS `software_monitor` /*!40100 DEFAULT CHARACTER SET utf8 */;
+USE `software_monitor`;
+
+/*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
+/*!40101 SET @OLD_CHARACTER_SET_RESULTS=@@CHARACTER_SET_RESULTS */;
+/*!40101 SET @OLD_COLLATION_CONNECTION=@@COLLATION_CONNECTION */;
+/*!40101 SET NAMES utf8 */;
+/*!40103 SET @OLD_TIME_ZONE=@@TIME_ZONE */;
+/*!40103 SET TIME_ZONE='+00:00' */;
+/*!40014 SET @OLD_UNIQUE_CHECKS=@@UNIQUE_CHECKS, UNIQUE_CHECKS=0 */;
+/*!40014 SET @OLD_FOREIGN_KEY_CHECKS=@@FOREIGN_KEY_CHECKS, FOREIGN_KEY_CHECKS=0 */;
+/*!40101 SET @OLD_SQL_MODE=@@SQL_MODE, SQL_MODE='ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_AUTO_VALUE_ON_ZERO,NO_ENGINE_SUBSTITUTION,NO_ZERO_DATE,NO_ZERO_IN_DATE,STRICT_ALL_TABLES' */;
+/*!40111 SET @OLD_SQL_NOTES=@@SQL_NOTES, SQL_NOTES=0 */;
+
+------------------------------------------------------------------------------------------------------------------------
+-- Table structure for table `device_details`
+------------------------------------------------------------------------------------------------------------------------
+DROP TABLE IF EXISTS `device_details`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
 CREATE TABLE IF NOT EXISTS `device_details` (
   `DeviceId` SMALLINT(5) UNSIGNED NOT NULL AUTO_INCREMENT,
   `DeviceParrentName` VARCHAR(60) NOT NULL,
@@ -10,8 +30,15 @@ CREATE TABLE IF NOT EXISTS `device_details` (
   PRIMARY KEY (`DeviceId`),
   KEY `ndx_dd_DeviceParrentName` (`DeviceParrentName`),
   UNIQUE INDEX `ndx_dd_DeviceName_UNIQUE` (`DeviceName` ASC)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT '';
+/*!40101 SET character_set_client = @saved_cs_client */;
 
+------------------------------------------------------------------------------------------------------------------------
+-- Table structure for table `device_volumes`
+------------------------------------------------------------------------------------------------------------------------
+DROP TABLE IF EXISTS `device_volumes`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
 CREATE TABLE IF NOT EXISTS `device_volumes` (
   `DeviceVolumeId` SMALLINT(5) UNSIGNED NOT NULL AUTO_INCREMENT,
   `VolumeSerialNumber` VARCHAR(60) NULL,
@@ -21,7 +48,14 @@ CREATE TABLE IF NOT EXISTS `device_volumes` (
   PRIMARY KEY (`DeviceVolumeId`),
   UNIQUE INDEX `ndx_dd_VolumeSerialNumber_UNIQUE` (`VolumeSerialNumber` ASC)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+/*!40101 SET character_set_client = @saved_cs_client */;
 
+------------------------------------------------------------------------------------------------------------------------
+-- Table structure for table `in_windows_software_installed`
+------------------------------------------------------------------------------------------------------------------------
+DROP TABLE IF EXISTS `in_windows_software_installed`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
 CREATE TABLE IF NOT EXISTS `in_windows_software_installed` (
   `EvaluationTimestamp` DATETIME NOT NULL,
   `HostName` VARCHAR(64) NOT NULL,
@@ -39,7 +73,14 @@ CREATE TABLE IF NOT EXISTS `in_windows_software_installed` (
   KEY `FullVersion` (`FullVersion`),
   KEY `InstallationDate` (`InstallationDate`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+/*!40101 SET character_set_client = @saved_cs_client */;
 
+------------------------------------------------------------------------------------------------------------------------
+-- Table structure for table `in_windows_software_portable`
+------------------------------------------------------------------------------------------------------------------------
+DROP TABLE IF EXISTS `in_windows_software_portable`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
 CREATE TABLE IF NOT EXISTS `in_windows_software_portable` (
   `EvaluationTimestamp` DATETIME NOT NULL,
   `VolumeSerialNumber` VARCHAR(50) NOT NULL,
@@ -54,7 +95,14 @@ CREATE TABLE IF NOT EXISTS `in_windows_software_portable` (
   `FilesCheckedForMatchUntilFound` mediumint(8) unsigned NOT NULL,
   PRIMARY KEY(`VolumeSerialNumber`, `FileNameSearched`, `FilePathFound`, `FileNameFound`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+/*!40101 SET character_set_client = @saved_cs_client */;
 
+------------------------------------------------------------------------------------------------------------------------
+-- Table structure for table `publisher_details`
+------------------------------------------------------------------------------------------------------------------------
+DROP TABLE IF EXISTS `publisher_details`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
 CREATE TABLE IF NOT EXISTS `publisher_details` (
   `PublisherId` SMALLINT(5) UNSIGNED NOT NULL AUTO_INCREMENT,
   `PublisherName` VARCHAR(80) NOT NULL,
@@ -63,7 +111,14 @@ CREATE TABLE IF NOT EXISTS `publisher_details` (
   PRIMARY KEY (`PublisherId`),
   UNIQUE INDEX `ndx_pd_PublisherName_UNIQUE` (`PublisherName` ASC)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+/*!40101 SET character_set_client = @saved_cs_client */;
 
+------------------------------------------------------------------------------------------------------------------------
+-- Table structure for table `publisher_known`
+------------------------------------------------------------------------------------------------------------------------
+DROP TABLE IF EXISTS `publisher_known`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
 CREATE TABLE IF NOT EXISTS `publisher_known` (
   `PublisherName` VARCHAR(80) NOT NULL,
   `PublisherMainWebsite` VARCHAR(250) NULL DEFAULT NULL,
@@ -72,7 +127,14 @@ CREATE TABLE IF NOT EXISTS `publisher_known` (
   `LastSeen` DATETIME(6) DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP(6),
   PRIMARY KEY (`PublisherName`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+/*!40101 SET character_set_client = @saved_cs_client */;
 
+------------------------------------------------------------------------------------------------------------------------
+-- Table structure for table `software_details`
+------------------------------------------------------------------------------------------------------------------------
+DROP TABLE IF EXISTS `software_details`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
 CREATE TABLE IF NOT EXISTS `software_details` (
   `SoftwareId` SMALLINT(5) UNSIGNED NOT NULL AUTO_INCREMENT,
   `SoftwareName` VARCHAR(80) NOT NULL,
@@ -81,7 +143,14 @@ CREATE TABLE IF NOT EXISTS `software_details` (
   PRIMARY KEY (`SoftwareId`),
   UNIQUE INDEX `ndx_sd_SoftwareName_UNIQUE` (`SoftwareName` ASC)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+/*!40101 SET character_set_client = @saved_cs_client */;
 
+------------------------------------------------------------------------------------------------------------------------
+-- Table structure for table `software_known`
+------------------------------------------------------------------------------------------------------------------------
+DROP TABLE IF EXISTS `software_known`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
 CREATE TABLE IF NOT EXISTS `software_known` (
   `SoftwareName` VARCHAR(80) NOT NULL,
   `SoftwareDescription` TEXT NULL DEFAULT NULL,
@@ -90,7 +159,14 @@ CREATE TABLE IF NOT EXISTS `software_known` (
   `LastSeen` DATETIME(6) DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP(6),
   PRIMARY KEY (`SoftwareName`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+/*!40101 SET character_set_client = @saved_cs_client */;
 
+------------------------------------------------------------------------------------------------------------------------
+-- Table structure for table `software_files`
+------------------------------------------------------------------------------------------------------------------------
+DROP TABLE IF EXISTS `software_files`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
 CREATE TABLE IF NOT EXISTS `software_files` (
   `SoftwareFileName` VARCHAR(100) NOT NULL,
   `SoftwareFileVersionFirst` VARCHAR(30),
@@ -107,7 +183,14 @@ CREATE TABLE IF NOT EXISTS `software_files` (
   KEY `SoftwareName` (`SoftwareName`),
   KEY `PublisherName` (`PublisherName`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT 'Known files w/ their standardized Software & relevant Publisher';
+/*!40101 SET character_set_client = @saved_cs_client */;
 
+------------------------------------------------------------------------------------------------------------------------
+-- Table structure for table `version_details`
+------------------------------------------------------------------------------------------------------------------------
+DROP TABLE IF EXISTS `version_details`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
 CREATE TABLE IF NOT EXISTS `version_details` (
     `VersionId` SMALLINT(5) UNSIGNED NOT NULL AUTO_INCREMENT,
     `FullVersion` VARCHAR(30) NOT NULL,
@@ -117,7 +200,14 @@ CREATE TABLE IF NOT EXISTS `version_details` (
     UNIQUE INDEX `ndx_vd_FullVersion_UNIQUE` (`FullVersion` ASC),
     KEY `FullVersionNumeric` (`FullVersionNumeric`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+/*!40101 SET character_set_client = @saved_cs_client */;
 
+------------------------------------------------------------------------------------------------------------------------
+-- Table structure for table `version_files`
+------------------------------------------------------------------------------------------------------------------------
+DROP TABLE IF EXISTS `version_files`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
 CREATE TABLE IF NOT EXISTS `version_files` (
     `FullVersion` VARCHAR(30) NOT NULL,
     `FullVersionParts` JSON GENERATED ALWAYS AS (CONCAT('{ "Major": ', (CASE WHEN (`FullVersion` IS NULL) THEN NULL ELSE CAST(REPLACE((CASE WHEN (LOCATE(".", `FullVersion`) = 0) THEN `FullVersion` ELSE SUBSTRING_INDEX(`FullVersion`, '.', 1) END), "v", "") AS UNSIGNED) END), ', "Minor": ', (CASE WHEN (`FullVersion` IS NULL) THEN 0 ELSE CAST((CASE WHEN (LOCATE(".", `FullVersion`) = 0) THEN 0 ELSE REPLACE(SUBSTRING_INDEX(`FullVersion`, '.', 2), CONCAT(SUBSTRING_INDEX(`FullVersion`, '.', 1), '.'), '') END) AS UNSIGNED) END), ', "Build": ',(CASE WHEN (`FullVersion` IS NULL) THEN 0 ELSE CAST((CASE WHEN (LOCATE(".", `FullVersion`) = 0) THEN 0 WHEN ((CHAR_LENGTH(`FullVersion`) - CHAR_LENGTH(REPLACE(`FullVersion`, '.', ''))) < 2) THEN 0 ELSE REPLACE(SUBSTRING_INDEX(`FullVersion`, '.', 3), CONCAT(SUBSTRING_INDEX(`FullVersion`, '.', 2), '.'), '') END) AS UNSIGNED) END), ', "Revision": ', (CASE WHEN (`FullVersion` IS NULL) THEN 0 ELSE CAST((CASE WHEN (LOCATE(".", `FullVersion`) = 0) THEN 0 WHEN ((CHAR_LENGTH(`FullVersion`) - CHAR_LENGTH(REPLACE(`FullVersion`, '.', ''))) < 3) THEN 0 ELSE REPLACE(SUBSTRING_INDEX(`FullVersion`, '.', 4), CONCAT(SUBSTRING_INDEX(`FullVersion`, '.', 3), '.'), '') END) AS UNSIGNED) END), ' }')) STORED,
@@ -125,9 +215,16 @@ CREATE TABLE IF NOT EXISTS `version_files` (
     PRIMARY KEY(`FullVersion`),
     KEY `FullVersionNumeric` (`FullVersionNumeric`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+/*!40101 SET character_set_client = @saved_cs_client */;
 
 /* Evaluation structures to support traceability for Software */
 
+------------------------------------------------------------------------------------------------------------------------
+-- Table structure for table `evaluation_headers`
+------------------------------------------------------------------------------------------------------------------------
+DROP TABLE IF EXISTS `evaluation_headers`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
 CREATE TABLE IF NOT EXISTS `evaluation_headers` (
   `EvaluationId` MEDIUMINT(8) UNSIGNED NOT NULL AUTO_INCREMENT,
   `DeviceId` SMALLINT(5) UNSIGNED NOT NULL,
@@ -142,6 +239,7 @@ CREATE TABLE IF NOT EXISTS `evaluation_headers` (
     ON DELETE RESTRICT
     ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+/*!40101 SET character_set_client = @saved_cs_client */;
 
 ALTER TABLE `device_details`
     ADD CONSTRAINT `FK_dd_MostRecentEvaluationId`
@@ -150,6 +248,12 @@ ALTER TABLE `device_details`
         ON DELETE RESTRICT
         ON UPDATE CASCADE;
 
+------------------------------------------------------------------------------------------------------------------------
+-- Table structure for table `evaluation_lines`
+------------------------------------------------------------------------------------------------------------------------
+DROP TABLE IF EXISTS `evaluation_lines`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
 CREATE TABLE IF NOT EXISTS `evaluation_lines` (
   `EvaluationId` MEDIUMINT(8) UNSIGNED NOT NULL,
   `PublisherId` SMALLINT(5) UNSIGNED NOT NULL,
@@ -178,10 +282,24 @@ CREATE TABLE IF NOT EXISTS `evaluation_lines` (
     ON UPDATE CASCADE,
   UNIQUE INDEX `ndx_el_PublisherName_UNIQUE` (`EvaluationId` ASC, `PublisherId` ASC, `SoftwareId` ASC, `VersionId` ASC)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+/*!40101 SET character_set_client = @saved_cs_client */;
 
-/* View to provide a quick summary on various things */
+------------------------------------------------------------------------------------------------------------------------
+-- Series of Views to provide a quick summary on various things
+------------------------------------------------------------------------------------------------------------------------
 
-CREATE ALGORITHM=UNDEFINED SQL SECURITY DEFINER VIEW `view__devices` AS
+------------------------------------------------------------------------------------------------------------------------
+-- View structure for view `view__devices`
+------------------------------------------------------------------------------------------------------------------------
+/*!50001 DROP VIEW IF EXISTS `view__devices`*/;
+/*!50001 SET @saved_cs_client          = @@character_set_client */;
+/*!50001 SET @saved_cs_results         = @@character_set_results */;
+/*!50001 SET @saved_col_connection     = @@collation_connection */;
+/*!50001 SET character_set_client      = utf8 */;
+/*!50001 SET character_set_results     = utf8 */;
+/*!50001 SET collation_connection      = utf8_general_ci */;
+/*!50001 CREATE ALGORITHM=UNDEFINED */
+/*!50001 VIEW `view__devices` AS
 SELECT
     `dd`.`DeviceId` AS `DeviceId`,
     `dd`.`DeviceParrentName` AS `DeviceParrentName`,
@@ -200,9 +318,23 @@ FROM `device_details` `dd`
     LEFT JOIN `evaluation_headers` `eh` ON `dd`.`DeviceId` = `eh`.`DeviceId`
     LEFT JOIN `device_volumes` `dv` ON `dd`.`DeviceName` = `dv`.`VolumeSerialNumber`
 GROUP BY `dd`.`DeviceId`, `dd`.`DeviceName`
-ORDER BY `dd`.`DeviceParrentName`, `dd`.`DeviceName`;
+ORDER BY `dd`.`DeviceParrentName`, `dd`.`DeviceName` */;
+/*!50001 SET character_set_client      = @saved_cs_client */;
+/*!50001 SET character_set_results     = @saved_cs_results */;
+/*!50001 SET collation_connection      = @saved_col_connection */;
 
-CREATE ALGORITHM=UNDEFINED SQL SECURITY DEFINER VIEW `view__evaluations` AS
+------------------------------------------------------------------------------------------------------------------------
+-- View structure for view `view__evaluations`
+------------------------------------------------------------------------------------------------------------------------
+/*!50001 DROP VIEW IF EXISTS `view__evaluations`*/;
+/*!50001 SET @saved_cs_client          = @@character_set_client */;
+/*!50001 SET @saved_cs_results         = @@character_set_results */;
+/*!50001 SET @saved_col_connection     = @@collation_connection */;
+/*!50001 SET character_set_client      = utf8 */;
+/*!50001 SET character_set_results     = utf8 */;
+/*!50001 SET collation_connection      = utf8_general_ci */;
+/*!50001 CREATE ALGORITHM=UNDEFINED */
+/*!50001 VIEW `view__evaluations` AS
 SELECT
     `el`.`EvaluationId`,
     `dd`.`DeviceId`,
@@ -220,9 +352,23 @@ FROM `evaluation_lines` `el`
     INNER JOIN `device_details` `dd` ON ((`eh`.`EvaluationId` = `dd`.`MostRecentEvaluationId`) AND (`eh`.`DeviceId` = `dd`.`DeviceId`))
     INNER JOIN `publisher_details` `pd` ON `el`.`PublisherId` = `pd`.`PublisherId`
     INNER JOIN `software_details` `sd` ON `el`.`SoftwareId` = `sd`.`SoftwareId`
-    INNER JOIN `version_details` `vd` ON `el`.`VersionId` = `vd`.`VersionId`;
+    INNER JOIN `version_details` `vd` ON `el`.`VersionId` = `vd`.`VersionId` */;
+/*!50001 SET character_set_client      = @saved_cs_client */;
+/*!50001 SET character_set_results     = @saved_cs_results */;
+/*!50001 SET collation_connection      = @saved_col_connection */;
 
-CREATE ALGORITHM=UNDEFINED SQL SECURITY DEFINER VIEW `view__version_assesment` AS
+------------------------------------------------------------------------------------------------------------------------
+-- View structure for view `view__version_assesment`
+------------------------------------------------------------------------------------------------------------------------
+/*!50001 DROP VIEW IF EXISTS `view__version_assesment`*/;
+/*!50001 SET @saved_cs_client          = @@character_set_client */;
+/*!50001 SET @saved_cs_results         = @@character_set_results */;
+/*!50001 SET @saved_col_connection     = @@collation_connection */;
+/*!50001 SET character_set_client      = utf8 */;
+/*!50001 SET character_set_results     = utf8 */;
+/*!50001 SET collation_connection      = utf8_general_ci */;
+/*!50001 CREATE ALGORITHM=UNDEFINED */
+/*!50001 VIEW `view__version_assesment` AS
 SELECT
     `ve`.`PublisherName`,
     `ve`.`SoftwareName`,
@@ -242,17 +388,32 @@ SELECT
 FROM `view__evaluations` `ve`
 WHERE (`ve`.`DeviceId` IN (1, 2, 3, 4, 5))
 GROUP BY `ve`.`SoftwareName`, `ve`.`RelevantMajorVersion`
-HAVING (`Assesment` = 'Differences...');
+HAVING (`Assesment` = 'Differences...') */;
+/*!50001 SET character_set_client      = @saved_cs_client */;
+/*!50001 SET character_set_results     = @saved_cs_results */;
+/*!50001 SET collation_connection      = @saved_col_connection */;
 
 /* ------------------------------------------------------------------------------------------------------------------ */
 
+------------------------------------------------------------------------------------------------------------------------
+-- Strcture for Stored Procedure `pr_MatchLatestEvaluationForSoftwarePortrable`
+------------------------------------------------------------------------------------------------------------------------
+/*!50003 DROP PROCEDURE IF EXISTS `pr_MatchLatestEvaluationForSoftwarePortrable` */;
+/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
+/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
+/*!50003 SET @saved_col_connection = @@collation_connection */ ;
+/*!50003 SET character_set_client  = utf8 */ ;
+/*!50003 SET character_set_results = utf8 */ ;
+/*!50003 SET collation_connection  = utf8_general_ci */ ;
+/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
+/*!50003 SET sql_mode              = 'NO_AUTO_VALUE_ON_ZERO,STRICT_ALL_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER //
 DROP PROCEDURE IF EXISTS `pr_MatchLatestEvaluationForSoftwarePortrable`//
 CREATE PROCEDURE `pr_MatchLatestEvaluationForSoftwarePortrable`()
     NOT DETERMINISTIC
     READS SQL DATA
     SQL SECURITY DEFINER
-    COMMENT 'Stores '
+    COMMENT 'Sets most recent evaluation to devices based on volumes'
 BEGIN
     DECLARE v_DeviceId SMALLINT(5) UNSIGNED;
     DECLARE v_EvaluationId MEDIUMINT(8) UNSIGNED;
@@ -276,12 +437,15 @@ BEGIN
     DEALLOCATE PREPARE complete_sql;
 END//
 DELIMITER ;
+/*!50003 SET sql_mode              = @saved_sql_mode */ ;
+/*!50003 SET character_set_client  = @saved_cs_client */ ;
+/*!50003 SET character_set_results = @saved_cs_results */ ;
+/*!50003 SET collation_connection  = @saved_col_connection */ ;
 
-/*--------------------------------------------------------------------------------------------------------------------*/
-/* Should you ever need to remove 1 particular evaluation from the pool use below queries sequence                    */
-/*--------------------------------------------------------------------------------------------------------------------*/
-SELECT 8 INTO @crtEvaluationIdToRemove;
-DELETE FROM `evaluation_lines` WHERE (`EvaluationId` = @crtEvaluationIdToRemove);
-UPDATE `device_details` `dd` SET `dd`.`MostRecentEvaluationId` = (SELECT MAX(`eh`.`EvaluationId`) FROM `evaluation_headers` `eh` WHERE (`eh`.`EvaluationId` < @crtEvaluationIdToRemove) AND (`eh`.`DeviceId` = (SELECT `DeviceId` FROM `evaluation_headers` WHERE (`EvaluationId` = @crtEvaluationIdToRemove)))), `LastSeen` = `LastSeen` WHERE (`dd`. `DeviceId` = (SELECT `DeviceId` FROM `evaluation_headers` WHERE (`EvaluationId` = @crtEvaluationIdToRemove)));
-DELETE FROM `evaluation_headers` WHERE (`EvaluationId` = @crtEvaluationIdToRemove);
-ALTER TABLE `evaluation_headers` AUTO_INCREMENT = 1;
+/*!40101 SET SQL_MODE=@OLD_SQL_MODE */;
+/*!40014 SET FOREIGN_KEY_CHECKS=@OLD_FOREIGN_KEY_CHECKS */;
+/*!40014 SET UNIQUE_CHECKS=@OLD_UNIQUE_CHECKS */;
+/*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
+/*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;
+/*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
+/*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
