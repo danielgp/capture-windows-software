@@ -62,7 +62,7 @@ D619411B\PortableApps\MaintainedManual\PortScan.exe
 D619411B\PortableApps\MaintainedManual\Symlink Creator*.exe
 
 ' Since OpenSSL is getting regularly flagged with vulnerability issues 
-'    I consider is important to assess what versions are included and where
+'    I consider is important to assess what versions are included in the packages I use
 D619411B\ssleay32.dll
 '           FC0FD58D is the fixed drive on the PC2016 main device
 FC0FD58D\ssleay32.dll

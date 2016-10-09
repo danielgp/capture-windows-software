@@ -1013,17 +1013,17 @@ Function ReadLogicalDisk_PortableSoftware(objFSO, objWMIService, strCurDir, ForR
             End If
             PieceCounter = 0
             PiecesCounted = UBound(strFilePieces)
+            strFilePath = strDeviceId
             For Each strFilePiece In strFilePieces
-                If (PieceCounter < PiecesCounted) Then
-                    If (PieceCounter = 0) Then
-                        strFilePath = strDeviceId
-                    Else
-                        strFilePath = strFilePath & "\" & Trim(strFilePiece)
-                    End If
+                If ((PieceCounter < PiecesCounted) And (PieceCounter > 0)) Then
+                    strFilePath = strFilePath & "\" & Trim(strFilePiece)
                 End If
                 PieceCounter = PieceCounter + 1
                 strFileNameToSearch = Trim(strFilePiece)
             Next
+            If (PiecesCounted = 1) Then
+                strFilePath = strFilePath & "\"
+            End If
             If ((Not IsNull(strFilePath)) And (Len(strFileNameToSearch) > 0)) Then
                 If (objFSO.FolderExists(strFilePath)) Then
                     Set strFolderToSearch = objFSO.GetFolder(strFilePath)
