@@ -32,6 +32,8 @@ Const strResultFileNameDeviceDetails = "ResultWindowsDeviceDetails"
 Const strResultFileNameDeviceVolumes = "ResultWindowsDeviceVolumes"
 Const strConfigurationPortableSoftware = "ConfigurationPortableSoftwareList.txt"
 Const strResultFileNamePortableSoftware = "ResultWindowsSoftwarePortable"
+Const strConfigurationSecurityRiskComponents = "ConfigurationSecurityRiskComponents.txt"
+Const strResultFileNameSecurityRiskComponents = "ResultSecurityRiskComponents"
 Dim strResultFileType
 Set objFSO = CreateObject("Scripting.FileSystemObject")
 Set WshShell = WScript.CreateObject("WScript.Shell")
@@ -45,9 +47,14 @@ strInput = InputBox(strScriptIntroduction & vbNewLine & vbNewLine & _
 	"  c = Installed Software" & vbNewLine & _
 	"  d = Portable Software" & vbNewLine & _
 	"-------------------------------------------------" & vbNewLine & _
-	"  z = all above choices in same order" _
+	"  x = a through c" & vbNewLine & _
+	"  y = a through d" & vbNewLine & _
+	"-------------------------------------------------" & vbNewLine & _
+	"  h = High Security Components Scanning" & vbNewLine & _
+	"-------------------------------------------------" & vbNewLine & _
+	"  z = all choices (a+b+c+d+h) in same order" _
 	, "Capture Windows Software - start")
-If ((InStr(1, strInput, "a", vbTextCompare) = 0) And (InStr(1, strInput, "b", vbTextCompare) = 0) And (InStr(1, strInput, "c", vbTextCompare) = 0) And (InStr(1, strInput, "d", vbTextCompare) = 0) And (InStr(1, strInput, "z", vbTextCompare) = 0)) Then
+If ((InStr(1, strInput, "a", vbTextCompare) = 0) And (InStr(1, strInput, "b", vbTextCompare) = 0) And (InStr(1, strInput, "c", vbTextCompare) = 0) And (InStr(1, strInput, "d", vbTextCompare) = 0) And (InStr(1, strInput, "h", vbTextCompare) = 0) And (InStr(1, strInput, "x", vbTextCompare) = 0) And (InStr(1, strInput, "y", vbTextCompare) = 0) And (InStr(1, strInput, "z", vbTextCompare) = 0)) Then
     InputResultType = vbCancel
 Else
     InputResultType = MsgBox(strScriptIntroduction & vbNewLine & vbNewLine & "Do you want to store obtained results into CSV format file?" & vbNewLine & vbNewLine & "if you choose No a SQL file will be used instead" & vbNewLine & "otherwise choosing Cancel will end current script without any processing and result.", vbYesNoCancel + vbQuestion, "Choose processing result type")
@@ -78,21 +85,25 @@ Else
         End Select
         Set objWMIService = GetObject("winmgmts:{impersonationLevel=impersonate}!\\" & strComputer & "\root\cimv2")
         strFilesResulted = ""
-        If ((InStr(1, strInput, "a", vbTextCompare) > 0) Or (InStr(1, strInput, "z", vbTextCompare) > 0)) Then
+        If ((InStr(1, strInput, "a", vbTextCompare) > 0) Or (InStr(1, strInput, "x", vbTextCompare) > 0) Or (InStr(1, strInput, "y", vbTextCompare) > 0) Or (InStr(1, strInput, "z", vbTextCompare) > 0)) Then
             ReadWMI_All objWMIService, strComputer, strResultFileType, strFieldSeparator, objFSO, strCurDir, strResultFileNameDeviceDetails, ForAppending, bolFileDeviceHeaderToAdd
             strFilesResulted = strFilesResulted & "  - " & strCurDir & "\" & strResultFileNameDeviceDetails & strResultFileType & vbNewLine
         End If
-        If ((InStr(1, strInput, "b", vbTextCompare) > 0) Or (InStr(1, strInput, "z", vbTextCompare) > 0)) Then
+        If ((InStr(1, strInput, "b", vbTextCompare) > 0) Or (InStr(1, strInput, "x", vbTextCompare) > 0) Or (InStr(1, strInput, "y", vbTextCompare) > 0) Or (InStr(1, strInput, "z", vbTextCompare) > 0)) Then
             ReadWMI_DeviceVolumes objWMIService, strComputer, strResultFileType, strFieldSeparator, objFSO, strCurDir, strResultFileNameDeviceVolumes, ForAppending
             strFilesResulted = strFilesResulted & "  - " & strCurDir & "\" & strResultFileNameDeviceVolumes & strResultFileType & vbNewLine
         End If
-        If ((InStr(1, strInput, "c", vbTextCompare) > 0) Or (InStr(1, strInput, "z", vbTextCompare) > 0)) Then
+        If ((InStr(1, strInput, "c", vbTextCompare) > 0) Or (InStr(1, strInput, "x", vbTextCompare) > 0) Or (InStr(1, strInput, "y", vbTextCompare) > 0) Or (InStr(1, strInput, "z", vbTextCompare) > 0)) Then
             ReadRegistry_SofwareInstalled strComputer, strResultFileType, strFieldSeparator, objFSO, strCurDir, strResultFileNameSoftware, ForAppending
             strFilesResulted = strFilesResulted & "  - " & strCurDir & "\" & strResultFileNameSoftware & strResultFileType & vbNewLine
         End If
-        If ((InStr(1, strInput, "d", vbTextCompare) > 0) Or (InStr(1, strInput, "z", vbTextCompare) > 0)) Then
-            ReadLogicalDisk_PortableSoftware objFSO, objWMIService, strCurDir, ForReading, ForAppending, strResultFileNamePortableSoftware, strResultFileType, strFieldSeparator, True, strConfigurationPortableSoftware
+        If ((InStr(1, strInput, "d", vbTextCompare) > 0) Or (InStr(1, strInput, "y", vbTextCompare) > 0) Or (InStr(1, strInput, "z", vbTextCompare) > 0)) Then
+            ReadLogicalDisk_PortableSoftware objFSO, objWMIService, strCurDir, ForReading, ForAppending, strResultFileNamePortableSoftware, strResultFileType, strFieldSeparator, strConfigurationPortableSoftware, "in_windows_software_portable"
             strFilesResulted = strFilesResulted & "  - " & strCurDir & "\" & strResultFileNamePortableSoftware & strResultFileType & vbNewLine
+        End If
+        If ((InStr(1, strInput, "h", vbTextCompare) > 0) Or (InStr(1, strInput, "z", vbTextCompare) > 0)) Then
+            ReadLogicalDisk_PortableSoftware objFSO, objWMIService, strCurDir, ForReading, ForAppending, strResultFileNameSecurityRiskComponents, strResultFileType, strFieldSeparator, strConfigurationSecurityRiskComponents, "in_windows_security_risk_components"
+            strFilesResulted = strFilesResulted & "  - " & strCurDir & "\" & strResultFileNameSecurityRiskComponents & strResultFileType & vbNewLine
         End If
     Loop
     SrvListFile.Close
@@ -101,9 +112,9 @@ Else
         vbNewLine & vbNewLine & _
         "Entire evaluation took " & FormatNumber(EndTime - StartTime, 0) & " seconds." & _
         vbNewLine & vbNewLine & _
-        "Consult results stored within following files:" & vbNewLine & _
+        "Consult results stored within following file(s):" & vbNewLine & _
         strFilesResulted & vbNewLine & _
-        "Thank you for using this script, hope to see you back soon!", _
+        "Thank you for using this script and hope to see you back soon!", _
         vbOKOnly + vbInformation, "Capture Windows Software - finish"
 End If
 '-----------------------------------------------------------------------------------------------------------------------
@@ -146,15 +157,28 @@ End Function
 Function ApplySoftwareNormalizationForSoftwarePortable(ReportFile)
     ReportFile.WriteLine "/* Following sequence of MySQL queries will ensure Portable Software List normalization and data retention, so a complete traceability would be ensured for each hostnames/devices included */"
     ReportFile.WriteLine "ALTER TABLE `publisher_details` AUTO_INCREMENT = 1; /* Making sure the Publisher table do not have a ending gap for ID auto numbering sequence */"
-    ReportFile.WriteLine "INSERT `publisher_details` (`PublisherName`) SELECT `PublisherName` FROM `software_files` WHERE (`PublisherName` IS NOT NULL) AND (`PublisherName` NOT IN (SELECT `PublisherName` FROM `publisher_details` GROUP BY `PublisherName`)) GROUP BY `PublisherName`; /* Publishers consolidation */"
+    ReportFile.WriteLine "INSERT `publisher_details` (`PublisherName`) SELECT `sf`.`PublisherName` FROM `in_windows_software_portable` `iwsp` LEFT JOIN  `software_files` `sf` ON `iwsp`.`FileNameSearched` = `sf`.`SoftwareFileName` WHERE (`sf`.`PublisherName` IS NOT NULL) AND (`sf`.`PublisherName` NOT IN (SELECT `PublisherName` FROM `publisher_details` GROUP BY `PublisherName`)) GROUP BY `sf`.`PublisherName`; /* Publishers consolidation */"
     ReportFile.WriteLine "ALTER TABLE `software_details` AUTO_INCREMENT = 1; /* Making sure the Software table do not have a ending gap for ID auto numbering sequence */"
-    ReportFile.WriteLine "INSERT `software_details` (`SoftwareName`) SELECT `SoftwareName` FROM `software_files` WHERE (`SoftwareName` IS NOT NULL) AND (`SoftwareName` NOT IN (SELECT `SoftwareName` FROM `software_details` GROUP BY `SoftwareName`)) GROUP BY `SoftwareName`; /* Software consolidation */"
+    ReportFile.WriteLine "INSERT `software_details` (`SoftwareName`) SELECT `sf`.`SoftwareName` FROM `in_windows_software_portable` `iwsp` LEFT JOIN  `software_files` `sf` ON `iwsp`.`FileNameSearched` = `sf`.`SoftwareFileName` WHERE (`sf`.`SoftwareName` IS NOT NULL) AND (`sf`.`SoftwareName` NOT IN (SELECT `SoftwareName` FROM `software_details` GROUP BY `SoftwareName`)) GROUP BY `sf`.`SoftwareName`; /* Software consolidation */"
     ReportFile.WriteLine "ALTER TABLE `version_details` AUTO_INCREMENT = 1; /* Making sure the Version table do not have a ending gap for ID auto numbering sequence */"
     ReportFile.WriteLine "INSERT `version_details` (`FullVersion`) SELECT `FileVersionFound` FROM `in_windows_software_portable` WHERE (`FileVersionFound` IS NOT NULL) AND (`FileVersionFound` NOT IN('', 'v', 'v0', 'v0.0', 'v0.0.0', 'v0.0.0.0')) AND (`FileVersionFound` NOT IN (SELECT `FullVersion` FROM `version_details` GROUP BY `FullVersion`)) GROUP BY `FileVersionFound`; /* Version consolidation */"
     ReportFile.WriteLine "ALTER TABLE `evaluation_headers` AUTO_INCREMENT = 1; /* Making sure the Evaluation header table do not have a ending gap for ID auto numbering sequence */"
     ReportFile.WriteLine "INSERT INTO `evaluation_headers` (`DeviceId`, `DateOfGatheringTimestampFirst`, `DateOfGatheringTimestampLast`) SELECT `dd`.`DeviceId`, MIN(`EvaluationTimestamp`), MAX(`EvaluationTimestamp`) FROM `device_details` `dd` INNER JOIN `in_windows_software_portable` `iwsp` ON `dd`.`DeviceName` = `iwsp`.`VolumeSerialNumber` GROUP BY `dd`.`DeviceName`; /* Evaluation initiation */"
     ReportFile.WriteLine "INSERT INTO `evaluation_lines` (`EvaluationId`, `PublisherId`, `SoftwareId`, `VersionId`, `InstallationDate`) SELECT `eh`.`EvaluationId`, `pd`.`PublisherId`, `sd`.`SoftwareId`, `vd`.`VersionId`, CAST(MAX(CASE WHEN `iwsp`.`FileDateCreated` < `iwsp`.`FileDateLastModified` THEN `iwsp`.`FileDateCreated` ELSE `iwsp`.`FileDateLastModified` END) AS DATE) FROM `in_windows_software_portable` `iwsp` INNER JOIN `version_details` `vd` ON `iwsp`.`FileVersionFound` = `vd`.`FullVersion` INNER JOIN `software_files` `sf` ON ((`sf`.`SoftwareFileName` = `iwsp`.`FileNameSearched`) AND (`vd`.`FullVersionNumeric` BETWEEN `sf`.`SoftwareFileVersionNumericFirst` AND `sf`.`SoftwareFileVersionNumericLast`)) INNER JOIN `device_details` `dd` ON `iwsp`.`VolumeSerialNumber` = `dd`.`DeviceName` INNER JOIN `evaluation_headers` `eh` ON `dd`.`DeviceId` = `eh`.`DeviceId` LEFT JOIN `software_details` `sd` ON `sf`.`SoftwareName` = `sd`.`SoftwareName` LEFT JOIN `publisher_details` `pd` ON `sf`.`PublisherName` = `pd`.`PublisherName` WHERE (`iwsp`.`EvaluationTimestamp` BETWEEN `eh`.`DateOfGatheringTimestampFirst` AND  `eh`.`DateOfGatheringTimestampLast`) GROUP BY `eh`.`EvaluationId`, `pd`.`PublisherId`, `sd`.`SoftwareId`, `vd`.`VersionId` ORDER BY `eh`.`EvaluationId`, `pd`.`PublisherId`, `sd`.`SoftwareId`, `vd`.`VersionId`; /* Evaluation details */"
     ReportFile.WriteLine "CALL `pr_MatchLatestEvaluationForSoftwarePortrable`(); /* Sets the most recent evaluation against relevant device to make easier software version comparison(s) between considering the latest details */"
+End Function
+Function ApplySoftwareNormalizationForSecurityRiskComponents(ReportFile)
+    ReportFile.WriteLine "/* Following sequence of MySQL queries will ensure Portable Software List normalization and data retention, so a complete traceability would be ensured for each hostnames/devices included */"
+    ReportFile.WriteLine "ALTER TABLE `publisher_details` AUTO_INCREMENT = 1; /* Making sure the Publisher table do not have a ending gap for ID auto numbering sequence */"
+    ReportFile.WriteLine "INSERT `publisher_details` (`PublisherName`) SELECT `sf`.`PublisherName` FROM `in_windows_security_risk_components` `iwsrc` LEFT JOIN  `software_files` `sf` ON `iwsrc`.`FileNameSearched` = `sf`.`SoftwareFileName` WHERE (`sf`.`PublisherName` IS NOT NULL) AND (`sf`.`PublisherName` NOT IN (SELECT `PublisherName` FROM `publisher_details` GROUP BY `PublisherName`)) GROUP BY `sf`.`PublisherName`; /* Publishers consolidation */"
+    ReportFile.WriteLine "ALTER TABLE `software_details` AUTO_INCREMENT = 1; /* Making sure the Software table do not have a ending gap for ID auto numbering sequence */"
+    ReportFile.WriteLine "INSERT `software_details` (`SoftwareName`) SELECT `sf`.`SoftwareName` FROM `in_windows_security_risk_components` `iwsrc` LEFT JOIN  `software_files` `sf` ON `iwsrc`.`FileNameSearched` = `sf`.`SoftwareFileName` WHERE (`sf`.`SoftwareName` IS NOT NULL) AND (`sf`.`SoftwareName` NOT IN (SELECT `SoftwareName` FROM `software_details` GROUP BY `SoftwareName`)) GROUP BY `sf`.`SoftwareName`; /* Software consolidation */"
+    ReportFile.WriteLine "ALTER TABLE `version_details` AUTO_INCREMENT = 1; /* Making sure the Version table do not have a ending gap for ID auto numbering sequence */"
+    ReportFile.WriteLine "INSERT `version_details` (`FullVersion`) SELECT `FileVersionFound` FROM `in_windows_security_risk_components` WHERE (`FileVersionFound` IS NOT NULL) AND (`FileVersionFound` NOT IN('', 'v', 'v0', 'v0.0', 'v0.0.0', 'v0.0.0.0')) AND (`FileVersionFound` NOT IN (SELECT `FullVersion` FROM `version_details` GROUP BY `FullVersion`)) GROUP BY `FileVersionFound`; /* Version consolidation */"
+    ReportFile.WriteLine "ALTER TABLE `security_evaluation_headers` AUTO_INCREMENT = 1; /* Making sure the Evaluation header table do not have a ending gap for ID auto numbering sequence */"
+    ReportFile.WriteLine "INSERT INTO `security_evaluation_headers` (`DeviceId`, `DateOfGatheringTimestampFirst`, `DateOfGatheringTimestampLast`) SELECT `dd`.`DeviceId`, MIN(`EvaluationTimestamp`), MAX(`EvaluationTimestamp`) FROM `device_details` `dd` INNER JOIN `in_windows_security_risk_components` `iwsrc` ON `dd`.`DeviceName` = `iwsrc`.`VolumeSerialNumber` GROUP BY `dd`.`DeviceName`; /* Evaluation initiation */"
+    ReportFile.WriteLine "INSERT INTO `security_evaluation_lines` (`SecurityEvaluationId`, `PublisherId`, `SoftwareId`, `VersionId`, `InstallationDate`) SELECT `seh`.`SecurityEvaluationId`, `pd`.`PublisherId`, `sd`.`SoftwareId`, `vd`.`VersionId`, CAST(MAX(CASE WHEN `iwsrc`.`FileDateCreated` < `iwsrc`.`FileDateLastModified` THEN `iwsrc`.`FileDateCreated` ELSE `iwsrc`.`FileDateLastModified` END) AS DATE) FROM `in_windows_security_risk_components` `iwsrc` INNER JOIN `version_details` `vd` ON `iwsrc`.`FileVersionFound` = `vd`.`FullVersion` INNER JOIN `software_files` `sf` ON ((`sf`.`SoftwareFileName` = `iwsrc`.`FileNameSearched`) AND (`vd`.`FullVersionNumeric` BETWEEN `sf`.`SoftwareFileVersionNumericFirst` AND `sf`.`SoftwareFileVersionNumericLast`)) INNER JOIN `device_details` `dd` ON `iwsrc`.`VolumeSerialNumber` = `dd`.`DeviceName` INNER JOIN `security_evaluation_headers` `seh` ON `dd`.`DeviceId` = `seh`.`DeviceId` LEFT JOIN `software_details` `sd` ON `sf`.`SoftwareName` = `sd`.`SoftwareName` LEFT JOIN `publisher_details` `pd` ON `sf`.`PublisherName` = `pd`.`PublisherName` WHERE (`iwsrc`.`EvaluationTimestamp` BETWEEN `seh`.`DateOfGatheringTimestampFirst` AND  `seh`.`DateOfGatheringTimestampLast`) GROUP BY `seh`.`SecurityEvaluationId`, `pd`.`PublisherId`, `sd`.`SoftwareId`, `vd`.`VersionId` ORDER BY `seh`.`SecurityEvaluationId`, `pd`.`PublisherId`, `sd`.`SoftwareId`, `vd`.`VersionId`; /* Evaluation details */"
+    ReportFile.WriteLine "CALL `pr_MatchLatestEvaluationForSecurityRiskComponents`(); /* Sets the most recent evaluation against relevant device to make easier software version comparison(s) between considering the latest details */"
 End Function
 Function BuildInsertOrUpdateSQLstructure(aryFieldNames, aryFieldValues, strInsertOrUpdate, intFirstNumberOfFieldsToIgnore, intLastNumberOfFieldsToIgnore)
     Counter = 0
@@ -996,7 +1020,7 @@ Function NumberWithTwoDigits(InputNo)
         NumberWithTwoDigits = InputNo
     End If
 End Function
-Function ReadLogicalDisk_PortableSoftware(objFSO, objWMIService, strCurDir, ForReading, ForAppending, strResultFileNamePortableSoftware, strResultFileType, strFieldSeparator, bolAddNormalization, strConfigurationFileName)
+Function ReadLogicalDisk_PortableSoftware(objFSO, objWMIService, strCurDir, ForReading, ForAppending, strResultFileNamePortableSoftware, strResultFileType, strFieldSeparator, strConfigurationFileName, strTableResults)
     If (LCase(strResultFileType) = ".csv") Then
         If (objFSO.FileExists(strCurDir & "\" & strResultFileNamePortableSoftware & strResultFileType)) Then
             bolFilePortableSoftwareHeaderToAdd = False
@@ -1025,7 +1049,7 @@ Function ReadLogicalDisk_PortableSoftware(objFSO, objWMIService, strCurDir, ForR
                 objResultPortableSoftware.WriteLine Join(aryFieldsPortableSoftware, strFieldSeparator)
             End If
         Case ".sql"
-            objResultPortableSoftware.WriteLine "DELETE FROM `in_windows_software_portable`;"
+            objResultPortableSoftware.WriteLine "DELETE FROM `" & strTableResults & "`;"
     End Select
     Set PortableSoftwareList = objFSO.OpenTextFile(strCurDir & "\" & strConfigurationFileName, ForReading)
     Do Until PortableSoftwareList.AtEndOfStream
@@ -1060,17 +1084,22 @@ Function ReadLogicalDisk_PortableSoftware(objFSO, objWMIService, strCurDir, ForR
                     If (InStr(1, strFileNameToSearch, "*", vbTextCompare)) Then
                             aryFileNamePieces = Split(strFileNameToSearch, "*")
                             If (UBound(aryFileNamePieces) = 1) Then ' only 1 single * is supported
-                                RecursiveFileSearchToFileOutput strFolderToSearch, strFileNameToSearch, strResultFileType, objResultPortableSoftware, strFieldsGlued, strFieldSeparator, crtVolumeSerialNumber, intFilesCheckedForMatchUntilFound
+                                RecursiveFileSearchToFileOutput strFolderToSearch, strFileNameToSearch, strResultFileType, objResultPortableSoftware, strFieldsGlued, strFieldSeparator, crtVolumeSerialNumber, intFilesCheckedForMatchUntilFound, strTableResults
                             End If
                     Else
-                        RecursiveFileSearchToFileOutput strFolderToSearch, strFileNameToSearch, strResultFileType, objResultPortableSoftware, strFieldsGlued, strFieldSeparator, crtVolumeSerialNumber, intFilesCheckedForMatchUntilFound
+                        RecursiveFileSearchToFileOutput strFolderToSearch, strFileNameToSearch, strResultFileType, objResultPortableSoftware, strFieldsGlued, strFieldSeparator, crtVolumeSerialNumber, intFilesCheckedForMatchUntilFound, strTableResults
                     End If
                 End If
             End If
         End If
     Loop
-    If ((LCase(strResultFileType) = ".sql") And (bolAddNormalization)) Then
-        ApplySoftwareNormalizationForSoftwarePortable objResultPortableSoftware
+    If (LCase(strResultFileType) = ".sql") Then
+        Select Case strTableResults
+            Case "in_windows_software_portable"
+                ApplySoftwareNormalizationForSoftwarePortable objResultPortableSoftware
+            Case "in_windows_security_risk_components"
+                ApplySoftwareNormalizationForSecurityRiskComponents objResultPortableSoftware
+        End Select
     End If
     objResultPortableSoftware.Close
     PortableSoftwareList.Close
@@ -1990,7 +2019,7 @@ Function ReadWMI_DeviceVolumes(objWMIService, strComputer, strResultFileType, st
     End If
     objResultDeviceVolumes.Close
 End Function
-Function RecursiveFileSearchToFileOutput(strFolderToSearch, strFileNameToSearch, strResultFileType, objResultFile, strFieldsGlued, strFieldSeparator, strVolumeSerialNumber, intFilesCheckedForMatchUntilFound)
+Function RecursiveFileSearchToFileOutput(strFolderToSearch, strFileNameToSearch, strResultFileType, objResultFile, strFieldsGlued, strFieldSeparator, strVolumeSerialNumber, intFilesCheckedForMatchUntilFound, strTableResults)
     Dim oSubFolder, strCurrentFile
     If (InStr(1, strFileNameToSearch, "*", vbTextCompare) > 0) Then
         aryFileNamePieces = Split(strFileNameToSearch, "*")
@@ -2001,7 +2030,7 @@ Function RecursiveFileSearchToFileOutput(strFolderToSearch, strFileNameToSearch,
     aryFields = Split(strFieldsGlued, "||")
     If (FolderHasSubFolders(strFolderToSearch)) Then
         For Each oSubFolder In strFolderToSearch.SubFolders
-            RecursiveFileSearchToFileOutput oSubFolder, strFileNameToSearch, strResultFileType, objResultFile, strFieldsGlued, strFieldSeparator, strVolumeSerialNumber, intFilesCheckedForMatchUntilFound
+            RecursiveFileSearchToFileOutput oSubFolder, strFileNameToSearch, strResultFileType, objResultFile, strFieldsGlued, strFieldSeparator, strVolumeSerialNumber, intFilesCheckedForMatchUntilFound, strTableResults
         Next
         For Each strCurrentFile In strFolderToSearch.Files
             strFileToAnalyzeExact = ""
@@ -2035,7 +2064,7 @@ Function RecursiveFileSearchToFileOutput(strFolderToSearch, strFileNameToSearch,
                     Case ".csv"
                         objResultFile.WriteLine AdjustEmptyValueWithinArrayAndGlueIt(aryValues, "-", strFieldSeparator)
                     Case ".sql"
-                        objResultFile.WriteLine "INSERT INTO `in_windows_software_portable` (" & _
+                        objResultFile.WriteLine "INSERT INTO `" & strTableResults & "` (" & _
                             BuildInsertOrUpdateSQLstructure(aryFields, aryValues, "InsertFields", 0, 0) & _
                             ") VALUES(" & _
                             BuildInsertOrUpdateSQLstructure(aryFields, aryValues, "InsertValues", 0, 0) & _

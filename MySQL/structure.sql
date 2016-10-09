@@ -25,6 +25,7 @@ CREATE TABLE IF NOT EXISTS `device_details` (
   `DeviceOSdetails` JSON NULL DEFAULT NULL,
   `DeviceHardwareDetails` JSON NULL DEFAULT NULL,
   `MostRecentEvaluationId` MEDIUMINT(8) UNSIGNED DEFAULT NULL,
+  `MostRecentSecurityEvaluationId` MEDIUMINT(8) UNSIGNED DEFAULT NULL,
   `FirstSeen` DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
   `LastSeen` DATETIME(6) DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP(6),
   PRIMARY KEY (`DeviceId`),
@@ -82,6 +83,28 @@ DROP TABLE IF EXISTS `in_windows_software_portable`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE IF NOT EXISTS `in_windows_software_portable` (
+  `EvaluationTimestamp` DATETIME NOT NULL,
+  `VolumeSerialNumber` VARCHAR(50) NOT NULL,
+  `FileNameSearched` VARCHAR(100) NOT NULL,
+  `MethodToFind` ENUM('Aproximate', 'Exact') NOT NULL,
+  `FilePathFound` VARCHAR(255) NOT NULL,
+  `FileNameFound` VARCHAR(100) NOT NULL,
+  `FileDateCreated` DATETIME NOT NULL,
+  `FileDateLastModified` DATETIME NOT NULL,
+  `FileVersionFound` VARCHAR(30) DEFAULT NULL,
+  `FileSizeFound` mediumint(8) unsigned DEFAULT NULL,
+  `FilesCheckedForMatchUntilFound` mediumint(8) unsigned NOT NULL,
+  PRIMARY KEY(`VolumeSerialNumber`, `FileNameSearched`, `FilePathFound`, `FileNameFound`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+------------------------------------------------------------------------------------------------------------------------
+-- Table structure for table `in_windows_security_risk_components`
+------------------------------------------------------------------------------------------------------------------------
+DROP TABLE IF EXISTS `in_windows_security_risk_components`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE IF NOT EXISTS `in_windows_security_risk_components` (
   `EvaluationTimestamp` DATETIME NOT NULL,
   `VolumeSerialNumber` VARCHAR(50) NOT NULL,
   `FileNameSearched` VARCHAR(100) NOT NULL,
@@ -280,7 +303,73 @@ CREATE TABLE IF NOT EXISTS `evaluation_lines` (
     REFERENCES `version_details` (`VersionId`)
     ON DELETE RESTRICT
     ON UPDATE CASCADE,
-  UNIQUE INDEX `ndx_el_PublisherName_UNIQUE` (`EvaluationId` ASC, `PublisherId` ASC, `SoftwareId` ASC, `VersionId` ASC)
+  UNIQUE INDEX `ndx_el_MultipleFields_UNIQUE` (`EvaluationId` ASC, `PublisherId` ASC, `SoftwareId` ASC, `VersionId` ASC)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+------------------------------------------------------------------------------------------------------------------------
+-- Table structure for table `security_evaluation_headers`
+------------------------------------------------------------------------------------------------------------------------
+DROP TABLE IF EXISTS `security_evaluation_headers`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE IF NOT EXISTS `security_evaluation_headers` (
+  `SecurityEvaluationId` MEDIUMINT(8) UNSIGNED NOT NULL AUTO_INCREMENT,
+  `DeviceId` SMALLINT(5) UNSIGNED NOT NULL,
+  `EvaluationTimestamp` DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+  `DateOfGatheringTimestampFirst` DATETIME DEFAULT NULL,
+  `DateOfGatheringTimestampLast` DATETIME DEFAULT NULL,
+  `GatheringDuration` VARCHAR(50) GENERATED ALWAYS AS (TRIM(CAST((CASE WHEN ((`DateOfGatheringTimestampFirst` IS NOT NULL) AND (`DateOfGatheringTimestampLast` IS NOT NULL)) THEN TIMEDIFF(`DateOfGatheringTimestampLast`, `DateOfGatheringTimestampFirst`) ELSE NULL END) AS CHAR(50)))) STORED,
+  PRIMARY KEY (`SecurityEvaluationId`),
+  CONSTRAINT `FK_seh_DeviceId`
+    FOREIGN KEY (`DeviceId`)
+    REFERENCES `device_details` (`DeviceId`)
+    ON DELETE RESTRICT
+    ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+ALTER TABLE `device_details`
+    ADD CONSTRAINT `FK_dd_MostRecentSecurityEvaluationId`
+        FOREIGN KEY (`MostRecentSecurityEvaluationId`)
+        REFERENCES `security_evaluation_headers` (`SecurityEvaluationId`)
+        ON DELETE RESTRICT
+        ON UPDATE CASCADE;
+
+------------------------------------------------------------------------------------------------------------------------
+-- Table structure for table `security_evaluation_lines`
+------------------------------------------------------------------------------------------------------------------------
+DROP TABLE IF EXISTS `security_evaluation_lines`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE IF NOT EXISTS `security_evaluation_lines` (
+  `SecurityEvaluationId` MEDIUMINT(8) UNSIGNED NOT NULL,
+  `PublisherId` SMALLINT(5) UNSIGNED NOT NULL,
+  `SoftwareId` SMALLINT(5) UNSIGNED NOT NULL,
+  `VersionId` SMALLINT(5) UNSIGNED NOT NULL,
+  `InstallationDate` date DEFAULT NULL,
+  `Folders` TEXT DEFAULT NULL,
+  CONSTRAINT `FK_sel_SecurityEvaluationId`
+    FOREIGN KEY (`SecurityEvaluationId`)
+    REFERENCES `security_evaluation_headers` (`SecurityEvaluationId`)
+    ON DELETE RESTRICT
+    ON UPDATE CASCADE,
+  CONSTRAINT `FK_sel_PublisherId`
+    FOREIGN KEY (`PublisherId`)
+    REFERENCES `publisher_details` (`PublisherId`)
+    ON DELETE RESTRICT
+    ON UPDATE CASCADE,
+  CONSTRAINT `FK_sel_SoftwareId`
+    FOREIGN KEY (`SoftwareId`)
+    REFERENCES `software_details` (`SoftwareId`)
+    ON DELETE RESTRICT
+    ON UPDATE CASCADE,
+  CONSTRAINT `FK_sel_VersionId`
+    FOREIGN KEY (`VersionId`)
+    REFERENCES `version_details` (`VersionId`)
+    ON DELETE RESTRICT
+    ON UPDATE CASCADE,
+  UNIQUE INDEX `ndx_sel_MultipleFields_UNIQUE` (`SecurityEvaluationId` ASC, `PublisherId` ASC, `SoftwareId` ASC, `VersionId` ASC)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -343,7 +432,7 @@ SELECT
     `pd`.`PublisherName`,
     `sd`.`SoftwareId`,
     `sd`.`SoftwareName`,
-    (CASE WHEN (`sd`.`SoftwareName` IN ('Intel® Processor Graphics', 'Maxx Audio Installer', 'Microsoft redistributable runtime DLLs', 'Microsoft Visual C++ Additional Runtime', 'Microsoft Visual C++ Minimum Runtime', 'Microsoft Visual C++ Redistributable', 'Microsoft Visual Studio Tools for Office Runtime', 'Office Click-to-Run Extensibility Component', 'Office Click-to-Run Licensing Component', 'Office Click-to-Run Localization Component', 'PHP', 'Security Update for Microsoft .NET Framework')) THEN JSON_EXTRACT(`vd`.`FullVersionParts`, '$.Major') WHEN (`sd`.`SoftwareName` = 'Intel® Management Engine Components') THEN (CASE WHEN (JSON_EXTRACT(`vd`.`FullVersionParts`, '$.Major') = 1) THEN 1 ELSE "non 1" END) WHEN (`sd`.`SoftwareName` IN ('MySQL Documents', 'MySQL Examples and Samples', 'MySQL Server')) THEN (CASE WHEN (JSON_EXTRACT(`vd`.`FullVersionParts`, '$.Major') = 8) THEN "dmr" ELSE NULL END) WHEN (`sd`.`SoftwareName` IN ('Mozilla Firefox')) THEN (CASE WHEN (JSON_EXTRACT(`vd`.`FullVersionParts`, '$.Major') = 50) THEN "Beta" WHEN (JSON_EXTRACT(`vd`.`FullVersionParts`, '$.Major') = 51) THEN "Developer" WHEN (JSON_EXTRACT(`vd`.`FullVersionParts`, '$.Major') = 52) THEN "Nightly" ELSE NULL END) ELSE NULL END) AS `RelevantMajorVersion`,
+    (CASE WHEN (`sd`.`SoftwareName` IN ('Intel® Processor Graphics', 'Maxx Audio Installer', 'Microsoft redistributable runtime DLLs', 'Microsoft Visual C++ Additional Runtime', 'Microsoft Visual C++ Minimum Runtime', 'Microsoft Visual C++ Redistributable', 'Microsoft Visual Studio Tools for Office Runtime', 'Office Click-to-Run Extensibility Component', 'Office Click-to-Run Licensing Component', 'Office Click-to-Run Localization Component', 'PHP', 'Security Update for Microsoft .NET Framework')) THEN JSON_EXTRACT(`vd`.`FullVersionParts`, '$.Major') WHEN (`sd`.`SoftwareName` LIKE 'Intel® Management Engine Components') THEN (CASE WHEN (JSON_EXTRACT(`vd`.`FullVersionParts`, '$.Major') = 1) THEN 1 ELSE "non 1" END) WHEN (`sd`.`SoftwareName` IN ('MySQL Documents', 'MySQL Examples and Samples', 'MySQL Server')) THEN (CASE WHEN (JSON_EXTRACT(`vd`.`FullVersionParts`, '$.Major') = 8) THEN "dmr" ELSE NULL END) WHEN (`sd`.`SoftwareName` LIKE 'Mozilla Firefox') THEN (CASE WHEN (JSON_EXTRACT(`vd`.`FullVersionParts`, '$.Major') = 50) THEN "Beta" WHEN (JSON_EXTRACT(`vd`.`FullVersionParts`, '$.Major') = 51) THEN "Developer" WHEN (JSON_EXTRACT(`vd`.`FullVersionParts`, '$.Major') = 52) THEN "Nightly" ELSE NULL END) ELSE NULL END) AS `RelevantMajorVersion`,
     `vd`.`VersionId`,
     `vd`.`FullVersion`,
     `vd`.`FullVersionNumeric`
@@ -408,7 +497,6 @@ HAVING (`Assesment` = 'Differences...') */;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'NO_AUTO_VALUE_ON_ZERO,STRICT_ALL_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER //
-DROP PROCEDURE IF EXISTS `pr_MatchLatestEvaluationForSoftwarePortrable`//
 CREATE PROCEDURE `pr_MatchLatestEvaluationForSoftwarePortrable`()
     NOT DETERMINISTIC
     READS SQL DATA
@@ -431,6 +519,52 @@ BEGIN
             SET @DeviceId = v_DeviceId;
             SET @EvaluationId = v_EvaluationId;
             EXECUTE complete_sql USING @EvaluationId, @DeviceId;
+        END IF;
+    UNTIL v_done END REPEAT;
+    CLOSE info_cursor;
+    DEALLOCATE PREPARE complete_sql;
+END//
+DELIMITER ;
+/*!50003 SET sql_mode              = @saved_sql_mode */ ;
+/*!50003 SET character_set_client  = @saved_cs_client */ ;
+/*!50003 SET character_set_results = @saved_cs_results */ ;
+/*!50003 SET collation_connection  = @saved_col_connection */ ;
+
+------------------------------------------------------------------------------------------------------------------------
+-- Strcture for Stored Procedure `pr_MatchLatestEvaluationForSecurityRiskComponents`
+------------------------------------------------------------------------------------------------------------------------
+/*!50003 DROP PROCEDURE IF EXISTS `pr_MatchLatestEvaluationForSecurityRiskComponents` */;
+/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
+/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
+/*!50003 SET @saved_col_connection = @@collation_connection */ ;
+/*!50003 SET character_set_client  = utf8 */ ;
+/*!50003 SET character_set_results = utf8 */ ;
+/*!50003 SET collation_connection  = utf8_general_ci */ ;
+/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
+/*!50003 SET sql_mode              = 'NO_AUTO_VALUE_ON_ZERO,STRICT_ALL_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
+DELIMITER //
+CREATE PROCEDURE `pr_MatchLatestEvaluationForSecurityRiskComponents`()
+    NOT DETERMINISTIC
+    READS SQL DATA
+    SQL SECURITY DEFINER
+    COMMENT 'Sets latest security risk assesment to devices based on volumes'
+BEGIN
+    DECLARE v_DeviceId SMALLINT(5) UNSIGNED;
+    DECLARE v_SecurityEvaluationId MEDIUMINT(8) UNSIGNED;
+    DECLARE v_done INT DEFAULT 0;
+    /* Reads existing AI columns to later evaluate 1 by 1 */
+    DECLARE info_cursor CURSOR FOR SELECT `dd`.`DeviceId`, MAX(`seh`.`SecurityEvaluationId`) FROM `in_windows_security_risk_components` `iwsrc` INNER JOIN `device_details` `dd` ON `iwsrc`.`VolumeSerialNumber` = `dd`.`DeviceName` INNER JOIN `security_evaluation_headers` `seh` ON `dd`.`DeviceId` = `seh`.`DeviceId` GROUP BY `dd`.`DeviceId`;
+    DECLARE CONTINUE HANDLER FOR NOT FOUND SET v_done = 1;
+    /* Evaluate current situation for every single relevant column and table */
+    SET @dynamic_sql = "UPDATE `device_details` SET `MostRecentSecurityRiskEvaluationId` = ?, `LastSeen` = `LastSeen` WHERE (`DeviceId` = ?);";
+    PREPARE complete_sql FROM @dynamic_sql;
+    OPEN info_cursor;
+    REPEAT
+        FETCH info_cursor INTO v_DeviceId, v_SecurityEvaluationId;
+        IF NOT v_done THEN
+            SET @DeviceId = v_DeviceId;
+            SET @SecurityEvaluationId = v_SecurityEvaluationId;
+            EXECUTE complete_sql USING @SecurityEvaluationId, @DeviceId;
         END IF;
     UNTIL v_done END REPEAT;
     CLOSE info_cursor;

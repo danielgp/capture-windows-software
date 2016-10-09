@@ -1,0 +1,21 @@
+' ----------------------------------------------------------------------------------------------------------------------
+'
+' This is a configuration file to find all occurences of components considered Medium/High Security Risk 
+' amoung your installed and/or portable applications desired to be tracked
+' by "Capture Windows Software" script, so please customize it for your own specific needs
+'
+' Important things to mention!!!
+'   - as such applications may be stored on removable drives and used on various computers idealy any path
+'       would be specified starting with Volume Serial Number (so an USB stick would be always identified
+'       regardless of letter assigned in Windows, as in one computer would D: on another might be F:),
+'       but if you feel comfortable to keep the letter that is a choice too
+'   - as the script logic will scan for every single file in the specified path to find a match for the file name
+'       if you have folders with a lot of file the required time to complete the evaluation may get long or very long
+'
+' ----------------------------------------------------------------------------------------------------------------------
+
+D619411B\ssleay32.dll
+'           FC0FD58D is the fixed drive on the PC2016 main device
+FC0FD58D\ssleay32.dll
+'           AEF1D904 is the fixed drive on the PC2014 main device
+AEF1D904\ssleay32.dll
