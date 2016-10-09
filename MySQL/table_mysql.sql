@@ -21,15 +21,15 @@ CREATE TABLE IF NOT EXISTS `device_volumes` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE IF NOT EXISTS `in_windows_software_installed` (
-  `EvaluationTimestamp` datetime NOT NULL,
-  `HostName` varchar(64) NOT NULL,
-  `PublisherName` varchar(80) DEFAULT NULL,
-  `SoftwareName` varchar(80) NOT NULL,
-  `FullVersion` varchar(30) DEFAULT NULL,
+  `EvaluationTimestamp` DATETIME NOT NULL,
+  `HostName` VARCHAR(64) NOT NULL,
+  `PublisherName` VARCHAR(80) DEFAULT NULL,
+  `SoftwareName` VARCHAR(80) NOT NULL,
+  `FullVersion` VARCHAR(30) DEFAULT NULL,
   `InstallationDate` date DEFAULT NULL,
   `OtherInfo` JSON NULL DEFAULT NULL,
   `RegistryKeyTrunk` ENUM('Microsoft', 'Wow6432Node') NOT NULL,
-  `RegistrySubKey` varchar(100) NOT NULL,
+  `RegistrySubKey` VARCHAR(100) NOT NULL,
   PRIMARY KEY(`HostName`, `RegistryKeyTrunk`, `RegistrySubKey`),
   KEY `HostName` (`HostName`),
   KEY `PublisherName` (`PublisherName`),
@@ -39,15 +39,15 @@ CREATE TABLE IF NOT EXISTS `in_windows_software_installed` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE IF NOT EXISTS `in_windows_software_portable` (
-  `EvaluationTimestamp` datetime NOT NULL,
-  `VolumeSerialNumber` varchar(50) NOT NULL,
-  `FileNameSearched` varchar(100) NOT NULL,
+  `EvaluationTimestamp` DATETIME NOT NULL,
+  `VolumeSerialNumber` VARCHAR(50) NOT NULL,
+  `FileNameSearched` VARCHAR(100) NOT NULL,
   `MethodToFind` ENUM('Aproximate', 'Exact') NOT NULL,
-  `FilePathFound` varchar(255) NOT NULL,
-  `FileNameFound` varchar(100) NOT NULL,
-  `FileDateCreated` datetime NOT NULL,
-  `FileDateLastModified` datetime NOT NULL,
-  `FileVersionFound` varchar(30) DEFAULT NULL,
+  `FilePathFound` VARCHAR(255) NOT NULL,
+  `FileNameFound` VARCHAR(100) NOT NULL,
+  `FileDateCreated` DATETIME NOT NULL,
+  `FileDateLastModified` DATETIME NOT NULL,
+  `FileVersionFound` VARCHAR(30) DEFAULT NULL,
   `FileSizeFound` mediumint(8) unsigned DEFAULT NULL,
   `FilesCheckedForMatchUntilFound` mediumint(8) unsigned NOT NULL,
   PRIMARY KEY(`VolumeSerialNumber`, `FileNameSearched`, `FilePathFound`, `FileNameFound`)
@@ -108,7 +108,7 @@ CREATE TABLE IF NOT EXISTS `software_files` (
 
 CREATE TABLE IF NOT EXISTS `version_details` (
     `VersionId` SMALLINT(5) UNSIGNED NOT NULL AUTO_INCREMENT,
-    `FullVersion` varchar(30) NOT NULL,
+    `FullVersion` VARCHAR(30) NOT NULL,
     `FullVersionParts` JSON GENERATED ALWAYS AS (CONCAT('{ "Major": ', (CASE WHEN (`FullVersion` IS NULL) THEN NULL ELSE CAST(REPLACE((CASE WHEN (LOCATE(".", `FullVersion`) = 0) THEN `FullVersion` ELSE SUBSTRING_INDEX(`FullVersion`, '.', 1) END), "v", "") AS UNSIGNED) END), ', "Minor": ', (CASE WHEN (`FullVersion` IS NULL) THEN 0 ELSE CAST((CASE WHEN (LOCATE(".", `FullVersion`) = 0) THEN 0 ELSE REPLACE(SUBSTRING_INDEX(`FullVersion`, '.', 2), CONCAT(SUBSTRING_INDEX(`FullVersion`, '.', 1), '.'), '') END) AS UNSIGNED) END), ', "Build": ',(CASE WHEN (`FullVersion` IS NULL) THEN 0 ELSE CAST((CASE WHEN (LOCATE(".", `FullVersion`) = 0) THEN 0 WHEN ((CHAR_LENGTH(`FullVersion`) - CHAR_LENGTH(REPLACE(`FullVersion`, '.', ''))) < 2) THEN 0 ELSE REPLACE(SUBSTRING_INDEX(`FullVersion`, '.', 3), CONCAT(SUBSTRING_INDEX(`FullVersion`, '.', 2), '.'), '') END) AS UNSIGNED) END), ', "Revision": ', (CASE WHEN (`FullVersion` IS NULL) THEN 0 ELSE CAST((CASE WHEN (LOCATE(".", `FullVersion`) = 0) THEN 0 WHEN ((CHAR_LENGTH(`FullVersion`) - CHAR_LENGTH(REPLACE(`FullVersion`, '.', ''))) < 3) THEN 0 ELSE REPLACE(SUBSTRING_INDEX(`FullVersion`, '.', 4), CONCAT(SUBSTRING_INDEX(`FullVersion`, '.', 3), '.'), '') END) AS UNSIGNED) END), ' }')) STORED,
     `FullVersionNumeric` DECIMAL(25,7) ZEROFILL GENERATED ALWAYS AS (CASE WHEN (`FullVersion` IS NULL) THEN NULL ELSE CAST( ( CAST((JSON_EXTRACT(`FullVersionParts`, '$.Major') * POW(10, 14)) AS UNSIGNED) + CAST((JSON_EXTRACT(`FullVersionParts`, '$.Minor') * POW(10, 7)) AS UNSIGNED) + CAST((JSON_EXTRACT(`FullVersionParts`, '$.Build') * POW(10, 0)) AS UNSIGNED) + CAST((JSON_EXTRACT(`FullVersionParts`, '$.Revision') / POW(10, 7)) AS DECIMAL(8, 7)) ) AS DECIMAL(30, 7)) END) STORED,
     PRIMARY KEY(`VersionId`),
@@ -117,7 +117,7 @@ CREATE TABLE IF NOT EXISTS `version_details` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE IF NOT EXISTS `version_files` (
-    `FullVersion` varchar(30) NOT NULL,
+    `FullVersion` VARCHAR(30) NOT NULL,
     `FullVersionParts` JSON GENERATED ALWAYS AS (CONCAT('{ "Major": ', (CASE WHEN (`FullVersion` IS NULL) THEN NULL ELSE CAST(REPLACE((CASE WHEN (LOCATE(".", `FullVersion`) = 0) THEN `FullVersion` ELSE SUBSTRING_INDEX(`FullVersion`, '.', 1) END), "v", "") AS UNSIGNED) END), ', "Minor": ', (CASE WHEN (`FullVersion` IS NULL) THEN 0 ELSE CAST((CASE WHEN (LOCATE(".", `FullVersion`) = 0) THEN 0 ELSE REPLACE(SUBSTRING_INDEX(`FullVersion`, '.', 2), CONCAT(SUBSTRING_INDEX(`FullVersion`, '.', 1), '.'), '') END) AS UNSIGNED) END), ', "Build": ',(CASE WHEN (`FullVersion` IS NULL) THEN 0 ELSE CAST((CASE WHEN (LOCATE(".", `FullVersion`) = 0) THEN 0 WHEN ((CHAR_LENGTH(`FullVersion`) - CHAR_LENGTH(REPLACE(`FullVersion`, '.', ''))) < 2) THEN 0 ELSE REPLACE(SUBSTRING_INDEX(`FullVersion`, '.', 3), CONCAT(SUBSTRING_INDEX(`FullVersion`, '.', 2), '.'), '') END) AS UNSIGNED) END), ', "Revision": ', (CASE WHEN (`FullVersion` IS NULL) THEN 0 ELSE CAST((CASE WHEN (LOCATE(".", `FullVersion`) = 0) THEN 0 WHEN ((CHAR_LENGTH(`FullVersion`) - CHAR_LENGTH(REPLACE(`FullVersion`, '.', ''))) < 3) THEN 0 ELSE REPLACE(SUBSTRING_INDEX(`FullVersion`, '.', 4), CONCAT(SUBSTRING_INDEX(`FullVersion`, '.', 3), '.'), '') END) AS UNSIGNED) END), ' }')) STORED,
     `FullVersionNumeric` DECIMAL(25,7) ZEROFILL GENERATED ALWAYS AS (CASE WHEN (`FullVersion` IS NULL) THEN NULL ELSE CAST( ( CAST((JSON_EXTRACT(`FullVersionParts`, '$.Major') * POW(10, 14)) AS UNSIGNED) + CAST((JSON_EXTRACT(`FullVersionParts`, '$.Minor') * POW(10, 7)) AS UNSIGNED) + CAST((JSON_EXTRACT(`FullVersionParts`, '$.Build') * POW(10, 0)) AS UNSIGNED) + CAST((JSON_EXTRACT(`FullVersionParts`, '$.Revision') / POW(10, 7)) AS DECIMAL(8, 7)) ) AS DECIMAL(30, 7)) END) STORED,
     PRIMARY KEY(`FullVersion`),
@@ -179,25 +179,26 @@ CREATE TABLE IF NOT EXISTS `evaluation_lines` (
 
 /* View to provide a quick summary on various things */
 
-CREATE ALGORITHM=UNDEFINED SQL SECURITY DEFINER VIEW `view__devices` AS  
-SELECT 
+CREATE ALGORITHM=UNDEFINED SQL SECURITY DEFINER VIEW `view__devices` AS
+SELECT
     `dd`.`DeviceId` AS `DeviceId`,
     `dd`.`DeviceName` AS `DeviceName`,
-    REPLACE(json_extract(`dd`.`DeviceOSdetails`,'$."Caption"'),'"','') AS `Caption`,
-    REPLACE(json_extract(`dd`.`DeviceOSdetails`,'$."OS Architecture"'),'"','') AS `OS_Architecture`,
-    REPLACE(json_extract(`dd`.`DeviceOSdetails`,'$."Version"'),'"','') AS `Version`,
-    ROUND(CAST(REPLACE(json_extract(`dd`.`DeviceOSdetails`,'$."Total Visible Memory [MB]"'),'"','') AS UNSIGNED) / 1024, 0) AS `RAM [GB]`,
-    REPLACE(json_extract(`dd`.`DeviceOSdetails`,'$."Current Time Zone Description"'),'"','') AS `CurrentTimeZone`,
-    REPLACE(json_extract(`dd`.`DeviceOSdetails`,'$."OS Language Description"'),'"','') AS `OS_Language`,
-    REPLACE(json_extract(`dd`.`DeviceOSdetails`,'$."Locale Description"'),'"','') AS `Locale`,
-    COUNT(`eh`.`EvaluationId`) AS `Number of Evaluations`, 
-    MAX(`eh`.`DateOfGatheringTimestampLast`) AS `Most Recent Evaluation Timestamp`, 
-    DATEDIFF(NOW(), MAX(`eh`.`DateOfGatheringTimestampLast`)) AS `Most Recent Evaluation Aging` 
+    (CASE WHEN (`dd`.`DeviceOSdetails` IS NOT NULL) THEN REPLACE(JSON_EXTRACT(`dd`.`DeviceOSdetails`,'$."Caption"'),'"','') ELSE REPLACE(JSON_EXTRACT(`dv`.`DetailedInformation`,'$."Description"'),'"','') END) AS `Caption`,
+     (CASE WHEN (`dd`.`DeviceOSdetails` IS NOT NULL) THEN REPLACE(JSON_EXTRACT(`dd`.`DeviceOSdetails`,'$."OS Architecture"'),'"','') ELSE REPLACE(JSON_EXTRACT(`dv`.`DetailedInformation`,'$."File System"'),'"','') END) AS `Architecture`,
+    REPLACE(JSON_EXTRACT(`dd`.`DeviceOSdetails`,'$."Version"'),'"','') AS `Version`,
+    ROUND(CAST(REPLACE(JSON_EXTRACT(`dd`.`DeviceOSdetails`,'$."Total Visible Memory [MB]"'),'"','') AS UNSIGNED) / 1024, 0) AS `RAM [GB]`,
+    REPLACE(JSON_EXTRACT(`dd`.`DeviceOSdetails`,'$."Current Time Zone Description"'),'"','') AS `Current Time Zone`,
+    REPLACE(JSON_EXTRACT(`dd`.`DeviceOSdetails`,'$."OS Language Description"'),'"','') AS `Language`,
+    REPLACE(JSON_EXTRACT(`dd`.`DeviceOSdetails`,'$."Locale Description"'),'"','') AS `Locale`,
+    COUNT(`eh`.`EvaluationId`) AS `Number of Evaluations`,
+    MAX(`eh`.`DateOfGatheringTimestampLast`) AS `Most Recent Evaluation Timestamp`,
+    DATEDIFF(NOW(), MAX(`eh`.`DateOfGatheringTimestampLast`)) AS `Most Recent Evaluation Aging`
 FROM `device_details` `dd`
     LEFT JOIN `evaluation_headers` `eh` ON `dd`.`DeviceId` = `eh`.`DeviceId`
+    LEFT JOIN `device_volumes` `dv` ON `dd`.`DeviceName` = `dv`.`VolumeSerialNumber`
 GROUP BY `dd`.`DeviceId`, `dd`.`DeviceName`;
 
-CREATE ALGORITHM=UNDEFINED SQL SECURITY DEFINER VIEW `view__evaluations` AS  
+CREATE ALGORITHM=UNDEFINED SQL SECURITY DEFINER VIEW `view__evaluations` AS
 SELECT
     `el`.`EvaluationId`,
     `dd`.`DeviceId`,
@@ -206,10 +207,10 @@ SELECT
     `pd`.`PublisherName`,
     `sd`.`SoftwareId`,
     `sd`.`SoftwareName`,
-    (CASE WHEN (`sd`.`SoftwareName` IN ('Intel® Processor Graphics', 'Maxx Audio Installer', 'Microsoft redistributable runtime DLLs', 'Microsoft Visual C++ Additional Runtime', 'Microsoft Visual C++ Minimum Runtime', 'Microsoft Visual C++ Redistributable', 'Microsoft Visual Studio Tools for Office Runtime', 'Office Click-to-Run Extensibility Component', 'Office Click-to-Run Licensing Component', 'Office Click-to-Run Localization Component', 'Security Update for Microsoft .NET Framework')) THEN JSON_EXTRACT(`vd`.`FullVersionParts`, '$.Major') WHEN (`sd`.`SoftwareName` = 'Intel® Management Engine Components') THEN (CASE WHEN (JSON_EXTRACT(`vd`.`FullVersionParts`, '$.Major') = 1) THEN 1 ELSE "non 1" END) WHEN (`sd`.`SoftwareName` IN ('MySQL Documents', 'MySQL Examples and Samples', 'MySQL Server')) THEN (CASE WHEN (JSON_EXTRACT(`vd`.`FullVersionParts`, '$.Major') = 8) THEN "dmr" ELSE NULL END) ELSE NULL END) AS `RelevantMajorVersion`,
+    (CASE WHEN (`sd`.`SoftwareName` IN ('Intel® Processor Graphics', 'Maxx Audio Installer', 'Microsoft redistributable runtime DLLs', 'Microsoft Visual C++ Additional Runtime', 'Microsoft Visual C++ Minimum Runtime', 'Microsoft Visual C++ Redistributable', 'Microsoft Visual Studio Tools for Office Runtime', 'Office Click-to-Run Extensibility Component', 'Office Click-to-Run Licensing Component', 'Office Click-to-Run Localization Component', 'PHP', 'Security Update for Microsoft .NET Framework')) THEN JSON_EXTRACT(`vd`.`FullVersionParts`, '$.Major') WHEN (`sd`.`SoftwareName` = 'Intel® Management Engine Components') THEN (CASE WHEN (JSON_EXTRACT(`vd`.`FullVersionParts`, '$.Major') = 1) THEN 1 ELSE "non 1" END) WHEN (`sd`.`SoftwareName` IN ('MySQL Documents', 'MySQL Examples and Samples', 'MySQL Server')) THEN (CASE WHEN (JSON_EXTRACT(`vd`.`FullVersionParts`, '$.Major') = 8) THEN "dmr" ELSE NULL END) WHEN (`sd`.`SoftwareName` IN ('Mozilla Firefox')) THEN (CASE WHEN (JSON_EXTRACT(`vd`.`FullVersionParts`, '$.Major') = 50) THEN "Beta" WHEN (JSON_EXTRACT(`vd`.`FullVersionParts`, '$.Major') = 51) THEN "Developer" WHEN (JSON_EXTRACT(`vd`.`FullVersionParts`, '$.Major') = 52) THEN "Nightly" ELSE NULL END) ELSE NULL END) AS `RelevantMajorVersion`,
     `vd`.`VersionId`,
     `vd`.`FullVersion`,
-    `vd`.`FullVersionNumeric` 
+    `vd`.`FullVersionNumeric`
 FROM `evaluation_lines` `el`
     INNER JOIN `evaluation_headers` `eh` ON `el`.`EvaluationId` = `eh`.`EvaluationId`
     INNER JOIN `device_details` `dd` ON ((`eh`.`EvaluationId` = `dd`.`MostRecentEvaluationId`) AND (`eh`.`DeviceId` = `dd`.`DeviceId`))
@@ -217,7 +218,7 @@ FROM `evaluation_lines` `el`
     INNER JOIN `software_details` `sd` ON `el`.`SoftwareId` = `sd`.`SoftwareId`
     INNER JOIN `version_details` `vd` ON `el`.`VersionId` = `vd`.`VersionId`;
 
-CREATE ALGORITHM=UNDEFINED SQL SECURITY DEFINER VIEW `view__version_assesment` AS  
+CREATE ALGORITHM=UNDEFINED SQL SECURITY DEFINER VIEW `view__version_assesment` AS
 SELECT
     `ve`.`PublisherName`,
     `ve`.`SoftwareName`,
@@ -229,11 +230,11 @@ SELECT
     (CASE WHEN (SUM(CASE WHEN (`ve`.`DeviceId` = 1) THEN `ve`.`FullVersionNumeric` ELSE NULL END) IS NULL) THEN '---' WHEN SUM(CASE WHEN (`ve`.`DeviceId` = 1) THEN `ve`.`FullVersionNumeric` ELSE NULL END) = MAX(`ve`.`FullVersionNumeric`) THEN 'Ok' ELSE 'OLD' END) AS `PC_2013`,
     (CASE WHEN (SUM(CASE WHEN (`ve`.`DeviceId` = 5) THEN `ve`.`FullVersionNumeric` ELSE NULL END) IS NULL) THEN '---' WHEN SUM(CASE WHEN (`ve`.`DeviceId` = 5) THEN `ve`.`FullVersionNumeric` ELSE NULL END) = MAX(`ve`.`FullVersionNumeric`) THEN 'Ok' ELSE 'OLD' END) AS `Web_Server_H`,
     (CASE WHEN (SUM(CASE WHEN (`ve`.`DeviceId` = 4) THEN `ve`.`FullVersionNumeric` ELSE NULL END) IS NULL) THEN '---' WHEN SUM(CASE WHEN (`ve`.`DeviceId` = 4) THEN `ve`.`FullVersionNumeric` ELSE NULL END) = MAX(`ve`.`FullVersionNumeric`) THEN 'Ok' ELSE 'OLD' END) AS `Web_Server_M`,
-    MAX(`ve`.`FullVersionNumeric`) AS `Newest`, 
+    MAX(`ve`.`FullVersionNumeric`) AS `Newest`,
     MIN(`ve`.`FullVersionNumeric`) AS `Oldest`,
     GROUP_CONCAT(DISTINCT `ve`.`EvaluationId` SEPARATOR "; ") AS `Evaluations`,
     `ve`.`SoftwareId`,
-    (CASE WHEN MIN(`ve`.`FullVersionNumeric`) = MAX(`ve`.`FullVersionNumeric`) THEN 'Everything up-to-date' ELSE 'Differences...' END) AS `Assesment` 
+    (CASE WHEN MIN(`ve`.`FullVersionNumeric`) = MAX(`ve`.`FullVersionNumeric`) THEN 'Everything up-to-date' ELSE 'Differences...' END) AS `Assesment`
 FROM `view__evaluations` `ve`
 WHERE (`ve`.`DeviceId` IN (1, 2, 3, 4, 5))
 GROUP BY `ve`.`SoftwareName`, `ve`.`RelevantMajorVersion`
@@ -244,10 +245,10 @@ HAVING (`Assesment` = 'Differences...');
 DELIMITER //
 DROP PROCEDURE IF EXISTS `pr_MatchLatestEvaluationForSoftwarePortrable`//
 CREATE PROCEDURE `pr_MatchLatestEvaluationForSoftwarePortrable`()
-    NOT DETERMINISTIC 
-    READS SQL DATA 
-    SQL SECURITY DEFINER 
-    COMMENT 'Stores ' 
+    NOT DETERMINISTIC
+    READS SQL DATA
+    SQL SECURITY DEFINER
+    COMMENT 'Stores '
 BEGIN
     DECLARE v_DeviceId SMALLINT(5) UNSIGNED;
     DECLARE v_EvaluationId MEDIUMINT(8) UNSIGNED;
@@ -272,7 +273,9 @@ BEGIN
 END//
 DELIMITER ;
 
-/* ------------------------------------------------------------------------------------------------------------------ */
+/*--------------------------------------------------------------------------------------------------------------------*/
+/* Should you ever need to remove 1 particular evaluation from the pool use below queries sequence                    */
+/*--------------------------------------------------------------------------------------------------------------------*/
 SELECT 8 INTO @crtEvaluationIdToRemove;
 DELETE FROM `evaluation_lines` WHERE (`EvaluationId` = @crtEvaluationIdToRemove);
 UPDATE `device_details` `dd` SET `dd`.`MostRecentEvaluationId` = (SELECT MAX(`eh`.`EvaluationId`) FROM `evaluation_headers` `eh` WHERE (`eh`.`EvaluationId` < @crtEvaluationIdToRemove) AND (`eh`.`DeviceId` = (SELECT `DeviceId` FROM `evaluation_headers` WHERE (`EvaluationId` = @crtEvaluationIdToRemove)))), `LastSeen` = `LastSeen` WHERE (`dd`. `DeviceId` = (SELECT `DeviceId` FROM `evaluation_headers` WHERE (`EvaluationId` = @crtEvaluationIdToRemove)));
