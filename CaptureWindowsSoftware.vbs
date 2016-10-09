@@ -26,23 +26,38 @@ Const ForReading = 1
 Const HKLM = &H80000002 'HKEY_LOCAL_MACHINE
 Const strFieldSeparator = ";"
 Const strVersionPrefix = "v"
+Const strConfigurationWindowsComputerList = "ConfigurationWindowsComputerList.txt"
 Const strResultFileNameSoftware = "ResultWindowsSoftwareInstalled"
 Const strResultFileNameDeviceDetails = "ResultWindowsDeviceDetails"
 Const strResultFileNameDeviceVolumes = "ResultWindowsDeviceVolumes"
+Const strConfigurationPortableSoftware = "ConfigurationPortableSoftwareList.txt"
 Const strResultFileNamePortableSoftware = "ResultWindowsSoftwarePortable"
 Dim strResultFileType
 Set objFSO = CreateObject("Scripting.FileSystemObject")
 Set WshShell = WScript.CreateObject("WScript.Shell")
 Set dtmConvertedDate = CreateObject("WbemScripting.SWbemDateTime")
 '-----------------------------------------------------------------------------------------------------------------------
-MsgBox "This script will read from Windows Management Instrumentation (WMI) current Device Details and from Windows Registry the entire list of installed software and export it in a file with a pre-configured name!" & vbNewLine & vbNewLine & "please wait until script is completed...", vbOKOnly + vbInformation, "Start feedback"
-InputResultType = MsgBox("This is a script will read Windows Management Instrumentation (WMI) current Device Details and from Windows Registry all your installed software applications under current Windows installation!" & vbNewLine & vbNewLine & "Do you want to store obtained results into CSV format file?" & vbNewLine & vbNewLine & "if you choose No a SQL file will be used instead" & vbNewLine & "otherwise choosing Cancel will end current script without any processing and result.", vbYesNoCancel + vbQuestion, "Choose processing result type")
+Const strScriptIntroduction = "This script will read from Windows Management Instrumentation (WMI) current Device Details and from Windows Registry the entire list of installed/portable software applications and export it in a file with a pre-configured name!"
+strInput = InputBox(strScriptIntroduction & vbNewLine & vbNewLine & _
+    "Input one or multiple choices from list below (no separators required)" & vbNewLine & _
+	"  a = Device Details" & vbNewLine & _
+	"  b = Disk Volumes" & vbNewLine & _
+	"  c = Installed Software" & vbNewLine & _
+	"  d = Portable Software" & vbNewLine & _
+	"-------------------------------------------------" & vbNewLine & _
+	"  z = all above choices in same order" _
+	, "Capture Windows Software - start")
+If ((InStr(1, strInput, "a", vbTextCompare) = 0) And (InStr(1, strInput, "b", vbTextCompare) = 0) And (InStr(1, strInput, "c", vbTextCompare) = 0) And (InStr(1, strInput, "d", vbTextCompare) = 0) And (InStr(1, strInput, "z", vbTextCompare) = 0)) Then
+    InputResultType = vbCancel
+Else
+    InputResultType = MsgBox(strScriptIntroduction & vbNewLine & vbNewLine & "Do you want to store obtained results into CSV format file?" & vbNewLine & vbNewLine & "if you choose No a SQL file will be used instead" & vbNewLine & "otherwise choosing Cancel will end current script without any processing and result.", vbYesNoCancel + vbQuestion, "Choose processing result type")
+End If
 If (InputResultType = vbCancel) Then
-    MsgBox "This is a script intended to read from Windows Management Instrumentation (WMI) current Device Details and from Windows Registry all your installed software applications under current Windows installation!" & vbNewLine & vbNewLine & "You have chosen to terminate execution without any processing and no result, should you arrive at this point by mistake just re-execute it and pay greater attention to previous options dialogue, otherwise thanks for your attention!", vbOKOnly + vbExclamation, "Script end"
+    MsgBox Replace(strScriptIntroduction, " will ", " was intended to ") & vbNewLine & vbNewLine & "You have chosen to terminate execution without any processing and no result, should you arrive at this point by mistake just re-execute it and pay greater attention to previous options dialogue, otherwise thanks for your attention!", vbOKOnly + vbExclamation, "Capture Windows Software - cancelled"
 Else
     StartTime = Timer()
     strCurDir = WshShell.CurrentDirectory
-    Set SrvListFile = objFSO.OpenTextFile(strCurDir & "\WindowsComputerList.txt", ForReading)
+    Set SrvListFile = objFSO.OpenTextFile(strCurDir & "\" & strConfigurationWindowsComputerList, ForReading)
     Do Until SrvListFile.AtEndOfStream
         strComputer = LCase(SrvListFile.ReadLine)
         Select Case InputResultType
@@ -62,20 +77,34 @@ Else
                 strResultFileType = ".sql"
         End Select
         Set objWMIService = GetObject("winmgmts:{impersonationLevel=impersonate}!\\" & strComputer & "\root\cimv2")
-        ReadWMI_All objWMIService, strComputer, strResultFileType, strFieldSeparator, objFSO, strCurDir, strResultFileNameDeviceDetails, ForAppending, bolFileDeviceHeaderToAdd
-        ReadWMI_DeviceVolumes objWMIService, strComputer, strResultFileType, strFieldSeparator, objFSO, strCurDir, strResultFileNameDeviceVolumes, ForAppending
-        ReadRegistry_SofwareInstalled strComputer, strResultFileType, strFieldSeparator, objFSO, strCurDir, strResultFileNameSoftware, ForAppending
-        ReadLogicalDisk_PortableSoftware objFSO, objWMIService, strCurDir, ForReading, ForAppending, strResultFileNamePortableSoftware, strResultFileType, strFieldSeparator
+        strFilesResulted = ""
+        If ((InStr(1, strInput, "a", vbTextCompare) > 0) Or (InStr(1, strInput, "z", vbTextCompare) > 0)) Then
+            ReadWMI_All objWMIService, strComputer, strResultFileType, strFieldSeparator, objFSO, strCurDir, strResultFileNameDeviceDetails, ForAppending, bolFileDeviceHeaderToAdd
+            strFilesResulted = strFilesResulted & "  - " & strCurDir & "\" & strResultFileNameDeviceDetails & strResultFileType & vbNewLine
+        End If
+        If ((InStr(1, strInput, "b", vbTextCompare) > 0) Or (InStr(1, strInput, "z", vbTextCompare) > 0)) Then
+            ReadWMI_DeviceVolumes objWMIService, strComputer, strResultFileType, strFieldSeparator, objFSO, strCurDir, strResultFileNameDeviceVolumes, ForAppending
+            strFilesResulted = strFilesResulted & "  - " & strCurDir & "\" & strResultFileNameDeviceVolumes & strResultFileType & vbNewLine
+        End If
+        If ((InStr(1, strInput, "c", vbTextCompare) > 0) Or (InStr(1, strInput, "z", vbTextCompare) > 0)) Then
+            ReadRegistry_SofwareInstalled strComputer, strResultFileType, strFieldSeparator, objFSO, strCurDir, strResultFileNameSoftware, ForAppending
+            strFilesResulted = strFilesResulted & "  - " & strCurDir & "\" & strResultFileNameSoftware & strResultFileType & vbNewLine
+        End If
+        If ((InStr(1, strInput, "d", vbTextCompare) > 0) Or (InStr(1, strInput, "z", vbTextCompare) > 0)) Then
+            ReadLogicalDisk_PortableSoftware objFSO, objWMIService, strCurDir, ForReading, ForAppending, strResultFileNamePortableSoftware, strResultFileType, strFieldSeparator, True, strConfigurationPortableSoftware
+            strFilesResulted = strFilesResulted & "  - " & strCurDir & "\" & strResultFileNamePortableSoftware & strResultFileType & vbNewLine
+        End If
     Loop
     SrvListFile.Close
     EndTime = Timer()
-    MsgBox "This script has completed processing from Windows Management Instrumentation (WMI) current Device Details and from Windows Registry entire list of installed software under current Windows installation (in just " & FormatNumber(EndTime - StartTime, 0) & " seconds)." & vbNewLine & _
+    MsgBox Replace(strScriptIntroduction, " will ", " has ") & _
+        vbNewLine & vbNewLine & _
+        "Entire evaluation took " & FormatNumber(EndTime - StartTime, 0) & " seconds." & _
+        vbNewLine & vbNewLine & _
         "Consult results stored within following files:" & vbNewLine & _
-        "  - " & strCurDir & "\" & strResultFileNameDeviceDetails & strResultFileType & vbNewLine & _
-        "  - " & strCurDir & "\" & strResultFileNameDeviceVolumes & strResultFileType & vbNewLine & _
-        "  - " & strCurDir & "\" & strResultFileNameSoftware & strResultFileType & vbNewLine & _
-        "  - " & strCurDir & "\" & strResultFileNamePortableSoftware & strResultFileType & vbNewLine & _
-        vbNewLine & "Thank you for using this script, hope to see you back soon!", vbOKOnly + vbInformation, "Script end"
+        strFilesResulted & vbNewLine & _
+        "Thank you for using this script, hope to see you back soon!", _
+        vbOKOnly + vbInformation, "Capture Windows Software - finish"
 End If
 '-----------------------------------------------------------------------------------------------------------------------
 Function AdjustEmptyValueWithinArrayAndGlueIt(aryEntryArray, strValueToReplace, strGlue)
@@ -967,7 +996,7 @@ Function NumberWithTwoDigits(InputNo)
         NumberWithTwoDigits = InputNo
     End If
 End Function
-Function ReadLogicalDisk_PortableSoftware(objFSO, objWMIService, strCurDir, ForReading, ForAppending, strResultFileNamePortableSoftware, strResultFileType, strFieldSeparator)
+Function ReadLogicalDisk_PortableSoftware(objFSO, objWMIService, strCurDir, ForReading, ForAppending, strResultFileNamePortableSoftware, strResultFileType, strFieldSeparator, bolAddNormalization, strConfigurationFileName)
     If (LCase(strResultFileType) = ".csv") Then
         If (objFSO.FileExists(strCurDir & "\" & strResultFileNamePortableSoftware & strResultFileType)) Then
             bolFilePortableSoftwareHeaderToAdd = False
@@ -998,7 +1027,7 @@ Function ReadLogicalDisk_PortableSoftware(objFSO, objWMIService, strCurDir, ForR
         Case ".sql"
             objResultPortableSoftware.WriteLine "DELETE FROM `in_windows_software_portable`;"
     End Select
-    Set PortableSoftwareList = objFSO.OpenTextFile(strCurDir & "\PortableSoftwareList.txt", ForReading)
+    Set PortableSoftwareList = objFSO.OpenTextFile(strCurDir & "\" & strConfigurationFileName, ForReading)
     Do Until PortableSoftwareList.AtEndOfStream
         strFileToAnalyze = PortableSoftwareList.ReadLine
         ' will only consider lines with at least 10 characters AND not starting with ' used for keeping comments
@@ -1040,7 +1069,7 @@ Function ReadLogicalDisk_PortableSoftware(objFSO, objWMIService, strCurDir, ForR
             End If
         End If
     Loop
-    If (LCase(strResultFileType) = ".sql") Then
+    If ((LCase(strResultFileType) = ".sql") And (bolAddNormalization)) Then
         ApplySoftwareNormalizationForSoftwarePortable objResultPortableSoftware
     End If
     objResultPortableSoftware.Close

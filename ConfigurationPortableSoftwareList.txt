@@ -25,8 +25,6 @@ D619411B\www\App\Tomcat\tomcat*w.exe
 ' Applications usefull only as a Developer
 D619411B\www\AppForDeveloper\GetText\iconv.exe
 D619411B\www\AppForDeveloper\GetText\msgconv.exe
-D619411B\www\AppForDeveloper\MySQLWorkbench.exe
-D619411B\www\AppForDeveloper\Netbeans\netbeans64.exe
 D619411B\www\AppForDeveloper\Ruby\bin\ruby.exe
 D619411B\www\AppForDeveloper\SSL-scan\ssllabs-scan.exe
 D619411B\www\AppForDeveloper\JaspersoftStudio.exe
@@ -60,11 +58,3 @@ D619411B\PortableApps\MaintainedManual\PathEditor.exe
 D619411B\PortableApps\MaintainedManual\PortExpert.exe
 D619411B\PortableApps\MaintainedManual\PortScan.exe
 D619411B\PortableApps\MaintainedManual\Symlink Creator*.exe
-
-' Since OpenSSL is getting regularly flagged with vulnerability issues 
-'    I consider is important to assess what versions are included in the packages I use
-D619411B\ssleay32.dll
-'           FC0FD58D is the fixed drive on the PC2016 main device
-FC0FD58D\ssleay32.dll
-'           AEF1D904 is the fixed drive on the PC2014 main device
-AEF1D904\ssleay32.dll
