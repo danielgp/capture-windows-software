@@ -1,12 +1,14 @@
 CREATE TABLE IF NOT EXISTS `device_details` (
   `DeviceId` SMALLINT(5) UNSIGNED NOT NULL AUTO_INCREMENT,
-  `DeviceName` VARCHAR(60) NULL,
+  `DeviceParrentName` VARCHAR(60) NOT NULL,
+  `DeviceName` VARCHAR(60) NOT NULL,
   `DeviceOSdetails` JSON NULL DEFAULT NULL,
   `DeviceHardwareDetails` JSON NULL DEFAULT NULL,
   `MostRecentEvaluationId` MEDIUMINT(8) UNSIGNED DEFAULT NULL,
   `FirstSeen` DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
   `LastSeen` DATETIME(6) DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP(6),
   PRIMARY KEY (`DeviceId`),
+  KEY `ndx_dd_DeviceParrentName` (`DeviceParrentName`),
   UNIQUE INDEX `ndx_dd_DeviceName_UNIQUE` (`DeviceName` ASC)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
@@ -182,6 +184,7 @@ CREATE TABLE IF NOT EXISTS `evaluation_lines` (
 CREATE ALGORITHM=UNDEFINED SQL SECURITY DEFINER VIEW `view__devices` AS
 SELECT
     `dd`.`DeviceId` AS `DeviceId`,
+    `dd`.`DeviceParrentName` AS `DeviceParrentName`,
     `dd`.`DeviceName` AS `DeviceName`,
     (CASE WHEN (`dd`.`DeviceOSdetails` IS NOT NULL) THEN REPLACE(JSON_EXTRACT(`dd`.`DeviceOSdetails`,'$."Caption"'),'"','') ELSE REPLACE(JSON_EXTRACT(`dv`.`DetailedInformation`,'$."Description"'),'"','') END) AS `Caption`,
      (CASE WHEN (`dd`.`DeviceOSdetails` IS NOT NULL) THEN REPLACE(JSON_EXTRACT(`dd`.`DeviceOSdetails`,'$."OS Architecture"'),'"','') ELSE REPLACE(JSON_EXTRACT(`dv`.`DetailedInformation`,'$."File System"'),'"','') END) AS `Architecture`,
@@ -196,7 +199,8 @@ SELECT
 FROM `device_details` `dd`
     LEFT JOIN `evaluation_headers` `eh` ON `dd`.`DeviceId` = `eh`.`DeviceId`
     LEFT JOIN `device_volumes` `dv` ON `dd`.`DeviceName` = `dv`.`VolumeSerialNumber`
-GROUP BY `dd`.`DeviceId`, `dd`.`DeviceName`;
+GROUP BY `dd`.`DeviceId`, `dd`.`DeviceName`
+ORDER BY `dd`.`DeviceParrentName`, `dd`.`DeviceName`;
 
 CREATE ALGORITHM=UNDEFINED SQL SECURITY DEFINER VIEW `view__evaluations` AS
 SELECT

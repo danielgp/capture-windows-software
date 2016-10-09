@@ -95,9 +95,9 @@ End Function
 Function ApplySoftwareNormalizationForLogicalDisks(ReportFile)
     ReportFile.WriteLine "ALTER TABLE `device_details` AUTO_INCREMENT = 1; /* Ensure no end gaps are present in the auto incrementing sequence for Device */"
     ReportFile.WriteLine "INSERT INTO `device_details` " & _
-        "(`DeviceName`, `DeviceOSdetails`, `DeviceHardwareDetails`) " & _
-        "SELECT `dv`.`VolumeSerialNumber`, NULL, `dv`.`DetailedInformation` " & _
-        "FROM `device_volumes` `dv` ON DUPLICATE KEY UPDATE `DeviceHardwareDetails` = `dv`.`DetailedInformation`;"
+        "(`DeviceParrentName`, `DeviceName`, `DeviceOSdetails`, `DeviceHardwareDetails`) " & _
+        "SELECT (CASE WHEN (JSON_EXTRACT(`dv`.`DetailedInformation`, '$.""Drive Type Code""') = 3) THEN REPLACE(JSON_EXTRACT(`dv`.`DetailedInformation`, '$.""System Name""'), '""', '') ELSE NULL END), `dv`.`VolumeSerialNumber`, NULL, `dv`.`DetailedInformation` " & _
+        "FROM `device_volumes` `dv` ON DUPLICATE KEY UPDATE `DeviceParrentName` = (CASE WHEN (JSON_EXTRACT(`dv`.`DetailedInformation`, '$.""Drive Type Code""') = 3) THEN REPLACE(JSON_EXTRACT(`dv`.`DetailedInformation`, '$.""System Name""'), '""', '') ELSE NULL END), `DeviceHardwareDetails` = `dv`.`DetailedInformation`;"
     ReportFile.WriteLine "ALTER TABLE `device_details` AUTO_INCREMENT = 1; /* Ensure no end gaps are present in the auto incrementing sequence for Device */"
 End Function
 Function ApplySoftwareNormalizationForSoftwareInstalled(strComputer, ReportFile)
@@ -1936,7 +1936,8 @@ Function ReadWMI_All(objWMIService, strComputer, strResultFileType, strFieldSepa
                 " }"
             objResultDeviceDetails.WriteLine "ALTER TABLE `device_details` AUTO_INCREMENT = 1; /* Ensure no end gaps are present in the auto incrementing sequence for Device */"
             objResultDeviceDetails.WriteLine "INSERT INTO `device_details` " & _
-                "(`DeviceName`, `DeviceOSdetails`, `DeviceHardwareDetails`) VALUES('" & strComputer & "', " & _
+                "(`DeviceParrentName`, `DeviceName`, `DeviceOSdetails`, `DeviceHardwareDetails`) " & _
+                "VALUES('" & strComputer & "', '" & strComputer & "', " & _
                 "'" & JSONinformationComputerSystemSQL & "', " & _
                 "'" & JSONinformationHardwareSQL & "') " & _
                 "ON DUPLICATE KEY UPDATE " & _
