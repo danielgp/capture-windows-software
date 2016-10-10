@@ -26,6 +26,7 @@ Const ForReading = 1
 Const HKLM = &H80000002 'HKEY_LOCAL_MACHINE
 Const strFieldSeparator = ";"
 Const strVersionPrefix = "v"
+Const strOutputResultType = "SQL" ' another supported options is CSV
 Const strConfigurationWindowsComputerList = "ConfigurationWindowsComputerList.txt"
 Const strResultFileNameSoftware = "ResultWindowsSoftwareInstalled"
 Const strResultFileNameDeviceDetails = "ResultWindowsDeviceDetails"
@@ -55,20 +56,15 @@ strInput = InputBox(strScriptIntroduction & vbNewLine & vbNewLine & _
 	"  z = all choices (a+b+c+d+h) in same order" _
 	, "Capture Windows Software - start")
 If ((InStr(1, strInput, "a", vbTextCompare) = 0) And (InStr(1, strInput, "b", vbTextCompare) = 0) And (InStr(1, strInput, "c", vbTextCompare) = 0) And (InStr(1, strInput, "d", vbTextCompare) = 0) And (InStr(1, strInput, "h", vbTextCompare) = 0) And (InStr(1, strInput, "x", vbTextCompare) = 0) And (InStr(1, strInput, "y", vbTextCompare) = 0) And (InStr(1, strInput, "z", vbTextCompare) = 0)) Then
-    InputResultType = vbCancel
-Else
-    InputResultType = MsgBox(strScriptIntroduction & vbNewLine & vbNewLine & "Do you want to store obtained results into CSV format file?" & vbNewLine & vbNewLine & "if you choose No a SQL file will be used instead" & vbNewLine & "otherwise choosing Cancel will end current script without any processing and result.", vbYesNoCancel + vbQuestion, "Choose processing result type")
-End If
-If (InputResultType = vbCancel) Then
     MsgBox Replace(strScriptIntroduction, " will ", " was intended to ") & vbNewLine & vbNewLine & "You have chosen to terminate execution without any processing and no result, should you arrive at this point by mistake just re-execute it and pay greater attention to previous options dialogue, otherwise thanks for your attention!", vbOKOnly + vbExclamation, "Capture Windows Software - cancelled"
 Else
     StartTime = Timer()
     strCurDir = WshShell.CurrentDirectory
     Set SrvListFile = objFSO.OpenTextFile(strCurDir & "\" & strConfigurationWindowsComputerList, ForReading)
     Do Until SrvListFile.AtEndOfStream
-        strComputer = LCase(SrvListFile.ReadLine)
-        Select Case InputResultType
-            Case vbYes
+        strComputer = CurrentComputerName(LCase(SrvListFile.ReadLine))
+        Select Case UCase(strOutputResultType)
+            Case "CSV"
                 strResultFileType = ".csv"
                 If (objFSO.FileExists(strCurDir & "\" & strResultFileNameDeviceDetails & strResultFileType)) Then
                     bolFileDeviceHeaderToAdd = False
@@ -80,7 +76,7 @@ Else
                 Else
                     bolFileSoftwareHeaderToAdd = True
                 End If
-            Case vbNo
+            Case "SQL"
                 strResultFileType = ".sql"
         End Select
         Set objWMIService = GetObject("winmgmts:{impersonationLevel=impersonate}!\\" & strComputer & "\root\cimv2")
@@ -513,6 +509,14 @@ Function CurrentOperatingSystemVersionForComparison()
         intOSVersion = CInt(aryVersionParts(0)) * 10 + aryVersionParts(1)
     Next
     CurrentOperatingSystemVersionForComparison = intOSVersion
+End Function
+Function CurrentComputerName(strGivenComputerName)
+    If ((LCase(strGivenComputerName) = "localhost") Or (strGivenComputerName = "127.0.0.1") Or (strGivenComputerName = "::1")) Then
+        Set objSysInfo = CreateObject("WinNTSystemInfo")
+        CurrentComputerName = objSysInfo.ComputerName
+    Else
+        CurrentComputerName = strGivenComputerName
+    End If
 End Function
 Function FolderHasSubfolders(oFolder)
     On Error Resume Next
