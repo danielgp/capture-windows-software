@@ -25,7 +25,9 @@ CREATE TABLE IF NOT EXISTS `device_details` (
   `DeviceOSdetails` JSON DEFAULT NULL,
   `DeviceHardwareDetails` JSON DEFAULT NULL,
   `MostRecentEvaluationId` MEDIUMINT(8) UNSIGNED DEFAULT NULL,
+  `CountedEvaluations` MEDIUMINT(8) UNSIGNED DEFAULT NULL,
   `MostRecentSecurityEvaluationId` MEDIUMINT(8) UNSIGNED DEFAULT NULL,
+  `CountedSecurityEvaluations` MEDIUMINT(8) UNSIGNED DEFAULT NULL,
   `FirstSeen` DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
   `LastSeen` DATETIME(6) DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP(6),
   PRIMARY KEY (`DeviceId`),
@@ -384,12 +386,16 @@ SELECT
     REPLACE(JSON_EXTRACT(`dd`.`DeviceOSdetails`,'$."Current Time Zone Description"'),'"','') AS `Current Time Zone`,
     REPLACE(JSON_EXTRACT(`dd`.`DeviceOSdetails`,'$."OS Language Description"'),'"','') AS `Language`,
     REPLACE(JSON_EXTRACT(`dd`.`DeviceOSdetails`,'$."Locale Description"'),'"','') AS `Locale`,
-    COUNT(`eh`.`EvaluationId`) AS `Number of Evaluations`,
+    `dd`.`CountedEvaluations` AS `Number of Evaluations`,
     MAX(`eh`.`DateOfGatheringTimestampLast`) AS `Most Recent Evaluation Timestamp`,
-    DATEDIFF(NOW(), MAX(`eh`.`DateOfGatheringTimestampLast`)) AS `Most Recent Evaluation Aging`
+    DATEDIFF(NOW(), MAX(`eh`.`DateOfGatheringTimestampLast`)) AS `Most Recent Evaluation Aging`,
+    `dd`.`CountedSecurityEvaluations` AS `Number of Security Evaluations`,
+    MAX(`seh`.`DateOfGatheringTimestampLast`) AS `Most Recent Evaluation Timestamp`,
+    DATEDIFF(NOW(), MAX(`seh`.`DateOfGatheringTimestampLast`)) AS `Most Recent Evaluation Aging` 
 FROM `device_details` `dd`
     LEFT JOIN `evaluation_headers` `eh` ON `dd`.`DeviceId` = `eh`.`DeviceId`
     LEFT JOIN `device_volumes` `dv` ON `dd`.`DeviceName` = `dv`.`VolumeSerialNumber`
+    LEFT JOIN `security_evaluation_headers` `seh` ON `dd`.`DeviceId` = `seh`.`DeviceId`
 GROUP BY `dd`.`DeviceId`, `dd`.`DeviceName`
 ORDER BY `dd`.`DeviceParrentName`, `dd`.`DeviceName` */;
 /*!50001 SET character_set_client      = @saved_cs_client */;
@@ -481,7 +487,7 @@ HAVING (`Assesment` = 'Differences...') */;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'NO_AUTO_VALUE_ON_ZERO,STRICT_ALL_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER //
-CREATE PROCEDURE `pr_MatchLatestEvaluationForSoftwarePortrable`()
+CREATE PROCEDURE `pr_MatchLatestEvaluationForSoftwarePortable`()
     NOT DETERMINISTIC
     READS SQL DATA
     SQL SECURITY DEFINER
@@ -489,20 +495,22 @@ CREATE PROCEDURE `pr_MatchLatestEvaluationForSoftwarePortrable`()
 BEGIN
     DECLARE v_DeviceId SMALLINT(5) UNSIGNED;
     DECLARE v_EvaluationId MEDIUMINT(8) UNSIGNED;
+    DECLARE v_CountedEvaluations MEDIUMINT(8) UNSIGNED;
     DECLARE v_done INT DEFAULT 0;
     /* Reads existing AI columns to later evaluate 1 by 1 */
-    DECLARE info_cursor CURSOR FOR SELECT `dd`.`DeviceId`, MAX(`eh`.`EvaluationId`) FROM `in_windows_software_portable` `iwsp` INNER JOIN `device_details` `dd` ON `iwsp`.`VolumeSerialNumber` = `dd`.`DeviceName` INNER JOIN `evaluation_headers` `eh` ON `dd`.`DeviceId` = `eh`.`DeviceId` GROUP BY `dd`.`DeviceId`;
+    DECLARE info_cursor CURSOR FOR SELECT `dd`.`DeviceId`, MAX(`eh`.`EvaluationId`), COUNT(DISTINCT `eh`.`EvaluationId`) FROM `in_windows_software_portable` `iwsp` INNER JOIN `device_details` `dd` ON `iwsp`.`VolumeSerialNumber` = `dd`.`DeviceName` INNER JOIN `evaluation_headers` `eh` ON `dd`.`DeviceId` = `eh`.`DeviceId` GROUP BY `dd`.`DeviceId`;
     DECLARE CONTINUE HANDLER FOR NOT FOUND SET v_done = 1;
     /* Evaluate current situation for every single relevant column and table */
-    SET @dynamic_sql = "UPDATE `device_details` SET `MostRecentEvaluationId` = ?, `LastSeen` = `LastSeen` WHERE (`DeviceId` = ?);";
+    SET @dynamic_sql = "UPDATE `device_details` SET `MostRecentEvaluationId` = ?, `CountedEvaluations` = ?, `LastSeen` = `LastSeen` WHERE (`DeviceId` = ?);";
     PREPARE complete_sql FROM @dynamic_sql;
     OPEN info_cursor;
     REPEAT
-        FETCH info_cursor INTO v_DeviceId, v_EvaluationId;
+        FETCH info_cursor INTO v_DeviceId, v_EvaluationId, v_CountedEvaluations;
         IF NOT v_done THEN
             SET @DeviceId = v_DeviceId;
             SET @EvaluationId = v_EvaluationId;
-            EXECUTE complete_sql USING @EvaluationId, @DeviceId;
+            SET @CountedEvaluations = v_CountedEvaluations;
+            EXECUTE complete_sql USING @EvaluationId, @CountedEvaluations, @DeviceId;
         END IF;
     UNTIL v_done END REPEAT;
     CLOSE info_cursor;
@@ -535,20 +543,22 @@ CREATE PROCEDURE `pr_MatchLatestEvaluationForSecurityRiskComponents`()
 BEGIN
     DECLARE v_DeviceId SMALLINT(5) UNSIGNED;
     DECLARE v_SecurityEvaluationId MEDIUMINT(8) UNSIGNED;
+    DECLARE v_CountedSecurityEvaluations MEDIUMINT(8) UNSIGNED;
     DECLARE v_done INT DEFAULT 0;
     /* Reads existing AI columns to later evaluate 1 by 1 */
-    DECLARE info_cursor CURSOR FOR SELECT `dd`.`DeviceId`, MAX(`seh`.`SecurityEvaluationId`) FROM `in_windows_security_risk_components` `iwsrc` INNER JOIN `device_details` `dd` ON `iwsrc`.`VolumeSerialNumber` = `dd`.`DeviceName` INNER JOIN `security_evaluation_headers` `seh` ON `dd`.`DeviceId` = `seh`.`DeviceId` GROUP BY `dd`.`DeviceId`;
+    DECLARE info_cursor CURSOR FOR SELECT `dd`.`DeviceId`, MAX(`seh`.`SecurityEvaluationId`), COUNT(DISTINCT `seh`.`SecurityEvaluationId`) FROM `in_windows_security_risk_components` `iwsrc` INNER JOIN `device_details` `dd` ON `iwsrc`.`VolumeSerialNumber` = `dd`.`DeviceName` INNER JOIN `security_evaluation_headers` `seh` ON `dd`.`DeviceId` = `seh`.`DeviceId` GROUP BY `dd`.`DeviceId`;
     DECLARE CONTINUE HANDLER FOR NOT FOUND SET v_done = 1;
     /* Evaluate current situation for every single relevant column and table */
-    SET @dynamic_sql = "UPDATE `device_details` SET `MostRecentSecurityEvaluationId` = ?, `LastSeen` = `LastSeen` WHERE (`DeviceId` = ?);";
+    SET @dynamic_sql = "UPDATE `device_details` SET `MostRecentSecurityEvaluationId` = ?, `CountedSecurityEvaluations` = ?, `LastSeen` = `LastSeen` WHERE (`DeviceId` = ?);";
     PREPARE complete_sql FROM @dynamic_sql;
     OPEN info_cursor;
     REPEAT
-        FETCH info_cursor INTO v_DeviceId, v_SecurityEvaluationId;
+        FETCH info_cursor INTO v_DeviceId, v_SecurityEvaluationId, v_CountedSecurityEvaluations;
         IF NOT v_done THEN
             SET @DeviceId = v_DeviceId;
             SET @SecurityEvaluationId = v_SecurityEvaluationId;
-            EXECUTE complete_sql USING @SecurityEvaluationId, @DeviceId;
+            SET @CountedSecurityEvaluations = v_CountedSecurityEvaluations;
+            EXECUTE complete_sql USING @SecurityEvaluationId, @CountedSecurityEvaluations, @DeviceId;
         END IF;
     UNTIL v_done END REPEAT;
     CLOSE info_cursor;
