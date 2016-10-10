@@ -1081,15 +1081,15 @@ Function ReadLogicalDisk_PortableSoftware(objFSO, objWMIService, strCurDir, ForR
             If (PiecesCounted = 1) Then
                 strFilePath = strFilePath & "\"
             End If
-            If ((Not IsNull(strFilePath)) And (Len(strFileNameToSearch) > 0)) Then
+            If ((Len(strDeviceId) > 0) And (Len(strFileNameToSearch) > 0)) Then
                 If (objFSO.FolderExists(strFilePath)) Then
                     Set strFolderToSearch = objFSO.GetFolder(strFilePath)
                     intFilesCheckedForMatchUntilFound = 0
-                    If (InStr(1, strFileNameToSearch, "*", vbTextCompare)) Then
-                            aryFileNamePieces = Split(strFileNameToSearch, "*")
-                            If (UBound(aryFileNamePieces) = 1) Then ' only 1 single * is supported
-                                RecursiveFileSearchToFileOutput strFolderToSearch, strFileNameToSearch, strResultFileType, objResultPortableSoftware, strFieldsGlued, strFieldSeparator, crtVolumeSerialNumber, intFilesCheckedForMatchUntilFound, strTableResults
-                            End If
+                    If (InStr(1, strFileNameToSearch, "*", vbTextCompare) > 0) Then
+                        aryFileNamePieces = Split(strFileNameToSearch, "*")
+                        If (UBound(aryFileNamePieces) = 1) Then ' only 1 single * is supported
+                            RecursiveFileSearchToFileOutput strFolderToSearch, strFileNameToSearch, strResultFileType, objResultPortableSoftware, strFieldsGlued, strFieldSeparator, crtVolumeSerialNumber, intFilesCheckedForMatchUntilFound, strTableResults
+                        End If
                     Else
                         RecursiveFileSearchToFileOutput strFolderToSearch, strFileNameToSearch, strResultFileType, objResultPortableSoftware, strFieldsGlued, strFieldSeparator, crtVolumeSerialNumber, intFilesCheckedForMatchUntilFound, strTableResults
                     End If
