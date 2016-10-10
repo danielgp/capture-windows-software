@@ -390,8 +390,8 @@ SELECT
     MAX(`eh`.`DateOfGatheringTimestampLast`) AS `Most Recent Evaluation Timestamp`,
     DATEDIFF(NOW(), MAX(`eh`.`DateOfGatheringTimestampLast`)) AS `Most Recent Evaluation Aging`,
     `dd`.`CountedSecurityEvaluations` AS `Number of Security Evaluations`,
-    MAX(`seh`.`DateOfGatheringTimestampLast`) AS `Most Recent Evaluation Timestamp`,
-    DATEDIFF(NOW(), MAX(`seh`.`DateOfGatheringTimestampLast`)) AS `Most Recent Evaluation Aging` 
+    MAX(`seh`.`DateOfGatheringTimestampLast`) AS `Most Recent Security Evaluation Timestamp`,
+    DATEDIFF(NOW(), MAX(`seh`.`DateOfGatheringTimestampLast`)) AS `Most Recent Security Evaluation Aging` 
 FROM `device_details` `dd`
     LEFT JOIN `evaluation_headers` `eh` ON `dd`.`DeviceId` = `eh`.`DeviceId`
     LEFT JOIN `device_volumes` `dv` ON `dd`.`DeviceName` = `dv`.`VolumeSerialNumber`
