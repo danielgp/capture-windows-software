@@ -1,7 +1,8 @@
 # Capture-Windows-Software
 ## About
 Visual Basic Script to capture all the software installed/portable in Windows
- as well as OS, hardware and logical disk details
+ as well as OS, hardware and logical disk details and save results 
+ in either CSV format or SQL (to be used w/ MySQL, see below details)
 
 ## Supported environments and Testing
 Following Operating systems are targeted as supported environments:
