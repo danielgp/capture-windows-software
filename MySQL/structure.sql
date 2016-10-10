@@ -556,7 +556,7 @@ BEGIN
     DECLARE info_cursor CURSOR FOR SELECT `dd`.`DeviceId`, MAX(`seh`.`SecurityEvaluationId`) FROM `in_windows_security_risk_components` `iwsrc` INNER JOIN `device_details` `dd` ON `iwsrc`.`VolumeSerialNumber` = `dd`.`DeviceName` INNER JOIN `security_evaluation_headers` `seh` ON `dd`.`DeviceId` = `seh`.`DeviceId` GROUP BY `dd`.`DeviceId`;
     DECLARE CONTINUE HANDLER FOR NOT FOUND SET v_done = 1;
     /* Evaluate current situation for every single relevant column and table */
-    SET @dynamic_sql = "UPDATE `device_details` SET `MostRecentSecurityRiskEvaluationId` = ?, `LastSeen` = `LastSeen` WHERE (`DeviceId` = ?);";
+    SET @dynamic_sql = "UPDATE `device_details` SET `MostRecentSecurityEvaluationId` = ?, `LastSeen` = `LastSeen` WHERE (`DeviceId` = ?);";
     PREPARE complete_sql FROM @dynamic_sql;
     OPEN info_cursor;
     REPEAT
