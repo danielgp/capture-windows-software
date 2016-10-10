@@ -283,6 +283,7 @@ CREATE TABLE IF NOT EXISTS `evaluation_lines` (
   `SoftwareId` SMALLINT(5) UNSIGNED NOT NULL,
   `VersionId` SMALLINT(5) UNSIGNED NOT NULL,
   `InstallationDate` date DEFAULT NULL,
+  `Folders` TEXT DEFAULT NULL,
   CONSTRAINT `FK_el_EvaluationId`
     FOREIGN KEY (`EvaluationId`)
     REFERENCES `evaluation_headers` (`EvaluationId`)
