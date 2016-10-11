@@ -25,8 +25,8 @@ where above used noting stands for:
 * [--] did not have an environment to test upon
 
 ## SQL results compatibility
-* [No-] MySQL Server 5.0.x
-* [No-] MySQL Server 5.1.x
-* [No-] MySQL Server 5.5.x
-* [No-] MySQL Server 5.6.x
-* [Yes] MySQL Server 5.7.x
+* :no_entry: MySQL Server 5.0.x
+* :no_entry: MySQL Server 5.1.x
+* :no_entry: MySQL Server 5.5.x
+* :no_entry: MySQL Server 5.6.x
+* :white_check_mark: MySQL Server 5.7.x
