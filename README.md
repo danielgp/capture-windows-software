@@ -6,8 +6,9 @@ Visual Basic Script to capture all the software installed/portable in Windows
 
 ## Supported environments and Testing
 Following Operating systems are targeted as supported environments:
+
 Home | Business
----- | ---------
+---- | --------
 :sun_with_face: Microsoft Windows 10 | :partly_sunny: Microsoft Windows Server 2016
 :partly_sunny: Microsoft Windows 8.1 | :partly_sunny: Microsoft Windows Server 2012 R2
 :partly_sunny: Microsoft Windows 8 | :partly_sunny: Microsoft Windows Server 2012
@@ -21,6 +22,9 @@ where above used emoticons stands for:
 * :new_moon_with_face: rare testing
 * :partly_sunny: never tested *(as did not have an environment to test upon)*
 
-## SQL results compatibility for
+## SQL results compatibility for MySQL versions
 * :white_check_mark: MySQL Server 5.7.x
 * :no_entry: MySQL Server 5.6.x through 3.23.x
+
+## MySQL EER schema for results storage and traceability
+https://github.com/danielgp/capture-windows-software/blob/master/MySQL/CaptureWindowsSoftware-EER_Diagram.svg
