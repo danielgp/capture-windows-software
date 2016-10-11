@@ -8,18 +8,18 @@ Visual Basic Script to capture all the software installed/portable in Windows
 Following Operating systems are targeted as supported environments:
 Home | Business
 ---- | ---------
-:sun_with_face: | Microsoft Windows 10 | :crescent_moon: Microsoft Windows Server 2016
-:crescent_moon: Microsoft Windows 8.1 | :crescent_moon: Microsoft Windows Server 2012 R2
-:crescent_moon: Microsoft Windows 8 | :crescent_moon: Microsoft Windows Server 2012
+:sun_with_face: Microsoft Windows 10 | :partly_sunny: Microsoft Windows Server 2016
+:partly_sunny: Microsoft Windows 8.1 | :partly_sunny: Microsoft Windows Server 2012 R2
+:partly_sunny: Microsoft Windows 8 | :partly_sunny: Microsoft Windows Server 2012
 :first_quarter_moon: Microsoft Windows 7 | :first_quarter_moon: Microsoft Windows Server 2008 R2
-:crescent_moon: Microsoft Windows Vista | :crescent_moon: | Microsoft Windows Server 2008
-:crescent_moon: Microsoft Windows XP | :crescent_moon: | Microsoft Windows Server 2003
+:partly_sunny: Microsoft Windows Vista | :partly_sunny: Microsoft Windows Server 2008
+:partly_sunny: Microsoft Windows XP | :partly_sunny: Microsoft Windows Server 2003
 
 where above used emoticons stands for:
 * :sun_with_face: frequent testing
 * :first_quarter_moon: seldom testing
 * :new_moon_with_face: rare testing
-* :crescent_moon: did not have an environment to test upon
+* :partly_sunny: never tested *(as did not have an environment to test upon)*
 
 ## SQL results compatibility for
 * :white_check_mark: MySQL Server 5.7.x
