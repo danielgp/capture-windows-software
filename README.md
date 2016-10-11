@@ -27,5 +27,4 @@ where above used emoticons stands for:
 * :no_entry: MySQL Server 5.6.x through 3.23.x
 
 ## MySQL EER schema for results storage and traceability
-![Capture-Windows-Software - MySQL EER schema](
-https://github.com/danielgp/capture-windows-software/blob/master/MySQL/CaptureWindowsSoftware-EER_Diagram.svg)
+![Capture-Windows-Software - MySQL EER schema](https://github.com/danielgp/capture-windows-software/blob/master/MySQL/CaptureWindowsSoftware-EER_Diagram.svg)
