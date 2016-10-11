@@ -24,7 +24,7 @@ where above used emoticons stands for:
 
 ## SQL results compatibility for MySQL versions
 * :white_check_mark: MySQL Server 5.7.x
-* :no_entry: MySQL Server 5.6.x through 3.23.x
+* :no_entry: MySQL Server 5.6.x through 3.23.x (no support for generated columns used to automatically determine certain things)
 
 ## MySQL EER schema for results storage and traceability
-![Capture-Windows-Software - MySQL EER schema](https://github.com/danielgp/capture-windows-software/blob/master/MySQL/CaptureWindowsSoftware-EER_Diagram.svg)
+![Capture-Windows-Software - MySQL EER schema](https://github.com/danielgp/capture-windows-software/MySQL/CaptureWindowsSoftware-EER_Diagram.svg)
