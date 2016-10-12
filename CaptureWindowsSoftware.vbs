@@ -1534,6 +1534,7 @@ Function ReadWMI__Win32_LogicalDisk(objWMIService, strComputer, strResultFileTyp
     aryDetailsToReturn(0) = ""
     aryDetailsToReturn(1) = ""
     For Each crtObjLogicalDisk in objLogicalDisk
+        strDriveTypeDescription =  MappingDriveTypeCodeInDescriptionOut(crtObjLogicalDisk.DriveType)
         aryValuesLogicalDisk = Array(_
             crtObjLogicalDisk.Access, _
             crtObjLogicalDisk.Availability, _
@@ -1546,7 +1547,7 @@ Function ReadWMI__Win32_LogicalDisk(objWMIService, strComputer, strResultFileTyp
             crtObjLogicalDisk.Description, _
             crtObjLogicalDisk.DeviceID, _
             crtObjLogicalDisk.DriveType, _
-            MappingDriveTypeCodeInDescriptionOut(crtObjLogicalDisk.DriveType), _
+            strDriveTypeDescription, _
             crtObjLogicalDisk.ErrorCleared, _
             crtObjLogicalDisk.ErrorDescription, _
             crtObjLogicalDisk.ErrorMethodology, _
@@ -1576,7 +1577,6 @@ Function ReadWMI__Win32_LogicalDisk(objWMIService, strComputer, strResultFileTyp
             crtObjLogicalDisk.VolumeName, _
             crtObjLogicalDisk.VolumeSerialNumber _
         )
-        strDiskNameCleaned = crtObjLogicalDisk.VolumeSerialNumber
         Select Case LCase(strResultFileType)
             Case ".csv"
                 If (bolFileDeviceVolumeHeaderToAdd) Then
@@ -1590,9 +1590,14 @@ Function ReadWMI__Win32_LogicalDisk(objWMIService, strComputer, strResultFileTyp
                     crtValue = Trim(aryValuesLogicalDisk(intCounter))
                     Select Case crtField
                         Case "Volume Serial Number"
-                            aryJSONinformationSQL(intCounter) = """" & crtField & """: " & """" & crtValue & """"
+                            If ((crtValue = "") Or (IsNull(crtValue))) Then
+                                strVolumeSerialNumber = strComputer & "--" & strDriveTypeDescription & "--" & crtObjLogicalDisk.DeviceID
+                            Else
+                                strVolumeSerialNumber = crtObjLogicalDisk.VolumeSerialNumber
+                            End If
+                            aryJSONinformationSQL(intCounter) = """" & crtField & """: " & """" & strVolumeSerialNumber & "" & """"
                         Case Else
-                            If (IsNull(crtValue)) Then
+                            If ((crtValue = "") Or (IsNull(crtValue))) Then
                                 crtValue = "-"
                             End If
                             If (IsNumericExtended(crtValue)) Then
@@ -1605,7 +1610,7 @@ Function ReadWMI__Win32_LogicalDisk(objWMIService, strComputer, strResultFileTyp
                 Next
                 aryValuesToExpose = Null
                 aryValuesToExpose = Array(_
-                    crtObjLogicalDisk.VolumeSerialNumber, _
+                    strVolumeSerialNumber, _
                     "{ " & Replace(Join(aryJSONinformationSQL, ", "), "\", "\\\\") & " }" _
                 )
                 ReportFile.WriteLine "ALTER TABLE `device_volumes` AUTO_INCREMENT = 1; /* Ensure no end gaps are present in the auto incrementing sequence for Device Volumes */"
