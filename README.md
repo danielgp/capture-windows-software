@@ -22,6 +22,7 @@ Home (Client) | Business (Server) |  Device Details | Logical Disk Details | Ins
 :first_quarter_moon: 7 | :first_quarter_moon: 2008 R2 | :white_check_mark: | :white_check_mark: | :white_check_mark: | :white_check_mark: | :white_check_mark:
 :partly_sunny: Vista | :partly_sunny: 2008 | :white_check_mark: | :white_check_mark: | :white_check_mark: | :white_check_mark: | :white_check_mark:
 :partly_sunny: XP | :partly_sunny: 2003 | :no_entry: | :no_entry: | :white_check_mark: |:white_check_mark: | :white_check_mark:
+:partly_sunny: 2000 | --- | :no_entry: | :no_entry: | :white_check_mark: |:white_check_mark: | :white_check_mark:
 
 where above used emoticons stands for:
 * :sun_with_face: frequent testing
@@ -39,8 +40,8 @@ where above used emoticons stands for:
 
 Reference name | URL
 -------------- | ---
-VBScript Reference | https://technet.microsoft.com/en-us/library/ee198844.aspx
 GetFileVersion Method | https://msdn.microsoft.com/en-us/library/b4e05k97(v=vs.84).aspx
+VBScript Reference | https://technet.microsoft.com/en-us/library/ee198844.aspx
 Win32_BaseBoard class | https://msdn.microsoft.com/en-us/library/aa394072(v=vs.85).aspx
 Win32_BIOS class | https://msdn.microsoft.com/en-us/library/aa394077(v=vs.85).aspx
 Win32_ComputerSystem class | https://msdn.microsoft.com/en-us/library/aa394102(v=vs.85).aspx
