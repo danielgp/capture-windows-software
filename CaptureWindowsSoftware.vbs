@@ -1655,8 +1655,8 @@ Function ReadWMI__Win32_PhysicalMemoryArray(objWMIService, strComputer, strResul
     Set objPMA = objWMIService.ExecQuery("Select * from Win32_PhysicalMemoryArray")
     For Each crtObjPMA in objPMA
         strMaxCapacityEx = "N/A"
-        ' for Windows 7 and Server 2012 or newer
-        If (intOSVersion >= 61) Then
+        ' for Windows 10 and Server 2016 or newer
+        If (intOSVersion >= 100) Then
             strMaxCapacityEx = crtObjPMA.MaxCapacityEx
         End If
         aryValuesPMA = Array(_
