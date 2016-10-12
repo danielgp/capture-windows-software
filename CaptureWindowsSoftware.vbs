@@ -198,7 +198,7 @@ Function BuildInsertOrUpdateSQLstructure(aryFieldNames, aryFieldValues, strInser
                 Counter = Counter + 1
             Next
     End Select
-    BuildInsertOrUpdateSQLstructure = Replace(Replace(Replace(strUpdateSQLstructure, "'NULL'", "NULL"), "\", "\\"), "t's", "t\'s")
+    BuildInsertOrUpdateSQLstructure = Replace(Replace(Replace(Replace(strUpdateSQLstructure, "'NULL'", "NULL"), "\", "\\"), "t's", "t\'s"), """""", """")
 End Function
 Function CheckSoftware(strComputer, bolWriteHeader, ReportFile, objReg, strKey)
     Dim aryJSONinformationCSV(7)
