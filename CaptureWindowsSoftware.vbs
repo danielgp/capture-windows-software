@@ -1292,6 +1292,11 @@ Function ReadWMI__Win32_ComputerSystem(objWMIService, strComputer, strResultFile
         For Each crtObjOS in objOperatingSystem
             For Each crtObjTZ in colTimeZone
                 dtmConvertedDate.Value = crtObjOS.InstallDate
+                strOSArchitecture = "N/A"
+                ' for Windows Vista and Server 2008 or newer
+                If (intOSVersion >= 60) Then
+                    strOSArchitecture = crtObjOS.OSArchitecture
+                End If
                 aryValuesCS = Array(_
                     crtObjOS.BootDevice, _
                     crtObjOS.BuildNumber, _
@@ -1308,7 +1313,7 @@ Function ReadWMI__Win32_ComputerSystem(objWMIService, strComputer, strResultFile
                     MappingLanguageLCIDinDescriptionOut("LCID Hexadecimal", crtObjOS.Locale, "Language - Country/Region"), _
                     crtObjOS.Manufacturer, _
                     crtObjOS.Organization, _
-                    crtObjOS.OSArchitecture, _
+                    strOSArchitecture, _
                     crtObjOS.OSLanguage, _
                     MappingLanguageLCIDinDescriptionOut("LCID Decimal", crtObjOS.OSLanguage, "Language - Country/Region"), _
                     crtObjOS.OSProductSuite, _
@@ -1383,18 +1388,25 @@ Function ReadWMI__Win32_DiskDrive(objWMIService, strComputer, strResultFileType,
         Else
             StrSignatureSafe = crtObjDiskDrive.Signature
         End If
+        strFirmwareRevision = "#N/A"
+        strSerialNumber = "#N/A"
+        ' for Windows Vista and Server 2008 or newer
+        If (intOSVersion >= 60) Then
+            strFirmwareRevision = crtObjDiskDrive.FirmwareRevision
+            strSerialNumber = crtObjDiskDrive.SerialNumber
+        End If
         aryValuesDiskDrive = Array(_
             crtObjDiskDrive.BytesPerSector, _
             crtObjDiskDrive.Caption, _
             crtObjDiskDrive.Description, _
-            crtObjDiskDrive.FirmwareRevision, _
+            strFirmwareRevision, _
             crtObjDiskDrive.InterfaceType, _
             crtObjDiskDrive.Manufacturer, _
             crtObjDiskDrive.Model, _
             crtObjDiskDrive.Name, _
             crtObjDiskDrive.Partitions, _
             crtObjDiskDrive.SectorsPerTrack, _
-            crtObjDiskDrive.SerialNumber, _
+            strSerialNumber, _
             strSignatureSafe, _
             Round((crtObjDiskDrive.Size /(1024 * 1024 * 1024)), 0), _
             crtObjDiskDrive.Status, _
@@ -1749,6 +1761,7 @@ Function ReadWMI__Win32_Processor(objWMIService, strComputer, strResultFileType,
     ' actual Win32_Processor determination
     Set objCPU = objWMIService.ExecQuery("Select * from Win32_Processor")
     For Each crtObjCPU in objCPU
+        strL3CacheSize = "N/A"
         strSecondLevelAddressTranslationExtensions = "N/A"
         strVirtualizationFirmwareEnabled = "N/A"
         strVMMonitorModeExtensions = "N/A"
@@ -1757,18 +1770,22 @@ Function ReadWMI__Win32_Processor(objWMIService, strComputer, strResultFileType,
         strPartNumber = "N/A"
         strThreadCount = "N/A"
         strSerialNumber = "N/A"
-        ' for Windows 8 and Server 2012 R2 or newer
-        If (intOSVersion >= 62) Then
-            strSecondLevelAddressTranslationExtensions = crtObjCPU.SecondLevelAddressTranslationExtensions
-            strVirtualizationFirmwareEnabled = crtObjCPU.VirtualizationFirmwareEnabled
-            strVMMonitorModeExtensions = crtObjCPU.VMMonitorModeExtensions
-            ' for Windows 10 and Server 2016 or newer
-            If (intOSVersion >= 100) Then
-                strCharacteristics = crtObjCPU.Characteristics
-                strNumberOfEnabledCore = crtObjCPU.NumberOfEnabledCore
-                strPartNumber = crtObjCPU.PartNumber
-                strThreadCount = crtObjCPU.ThreadCount
-                strSerialNumber = crtObjCPU.SerialNumber
+        ' for Windows Vista and Server 2008 or newer
+        If (intOSVersion >= 60) Then
+            strL3CacheSize = crtObjCPU.L3CacheSize
+            ' for Windows 8 and Server 2012 R2 or newer
+            If (intOSVersion >= 62) Then
+                strSecondLevelAddressTranslationExtensions = crtObjCPU.SecondLevelAddressTranslationExtensions
+                strVirtualizationFirmwareEnabled = crtObjCPU.VirtualizationFirmwareEnabled
+                strVMMonitorModeExtensions = crtObjCPU.VMMonitorModeExtensions
+                ' for Windows 10 and Server 2016 or newer
+                If (intOSVersion >= 100) Then
+                    strCharacteristics = crtObjCPU.Characteristics
+                    strNumberOfEnabledCore = crtObjCPU.NumberOfEnabledCore
+                    strPartNumber = crtObjCPU.PartNumber
+                    strThreadCount = crtObjCPU.ThreadCount
+                    strSerialNumber = crtObjCPU.SerialNumber
+                End If
             End If
         End If
         aryValuesCPU = Array(_
@@ -1785,7 +1802,7 @@ Function ReadWMI__Win32_Processor(objWMIService, strComputer, strResultFileType,
             crtObjCPU.ExtClock, _
             crtObjCPU.Family, _
             crtObjCPU.L2CacheSize, _
-            crtObjCPU.L3CacheSize, _
+            strL3CacheSize, _
             crtObjCPU.Level, _
             crtObjCPU.LoadPercentage, _
             crtObjCPU.Manufacturer, _

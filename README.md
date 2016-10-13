@@ -19,7 +19,7 @@ Home (Client) | Business (Server) |  Device Details | Logical Disk Details | Ins
 :partly_sunny: 8 | :partly_sunny: 2012 | :white_check_mark: | :white_check_mark: | :white_check_mark: | :white_check_mark: | :white_check_mark:
 :first_quarter_moon: 7 | :first_quarter_moon: 2008 R2 | :white_check_mark: | :white_check_mark: | :white_check_mark: | :white_check_mark: | :white_check_mark:
 :partly_sunny: Vista | :partly_sunny: 2008 | :white_check_mark: | :white_check_mark: | :white_check_mark: | :white_check_mark: | :white_check_mark:
-:partly_sunny: XP | :partly_sunny: 2003 | :no_entry: | :no_entry: | :white_check_mark: |:white_check_mark: | :white_check_mark:
+:first_quarter_moon: XP | :partly_sunny: 2003 | :white_check_mark: | :white_check_mark: | :white_check_mark: |:white_check_mark: | :white_check_mark:
 :partly_sunny: ME | :partly_sunny: 2000 | :no_entry: | :no_entry: | :white_check_mark: |:white_check_mark: | :white_check_mark:
 
 where above used emoticons stands for:
@@ -47,6 +47,7 @@ Win32_BIOS class | https://msdn.microsoft.com/en-us/library/aa394077(v=vs.85).as
 Win32_ComputerSystem class | https://msdn.microsoft.com/en-us/library/aa394102(v=vs.85).aspx
 Win32_DiskDrive class | https://msdn.microsoft.com/en-us/library/aa394132(v=vs.85).aspx
 Win32_LogicalDisk class | https://msdn.microsoft.com/en-us/library/aa394173(v=vs.85).aspx
+Win32_OperatingSystem | https://msdn.microsoft.com/en-us/library/aa394239(v=vs.85).aspx
 Win32_PhysicalMemoryArray class | https://msdn.microsoft.com/en-us/library/aa394348(v=vs.85).aspx
 Win32_Processor class | https://msdn.microsoft.com/en-us/library/aa394373(v=vs.85).aspx
 Win32_VideoController class | https://msdn.microsoft.com/en-us/library/aa394512(v=vs.85).aspx
