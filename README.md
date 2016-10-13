@@ -3,8 +3,8 @@
 Visual Basic Script to capture all the software installed/portable in Windows as well as OS, hardware and logical disk details and save results in either CSV format or SQL (to be used w/ MySQL, see below details)
 
 # Features
-* Reads Device Details from WMI (only Windows Vista/Server 2008 or newer)
-* Reads Logical Disk Details from WMI (only Windows Vista/Server 2008 or newer)
+* Reads Device Details from WMI
+* Reads Logical Disk Details from WMI
 * Reads all installed applications/drivers/runtimes/libraries/modules (both 32-bit and 64-bit) from Windows Registry
 * Extracts versions from inscope portable applications (from whitelisted)
 * Scans configured targeted pathes for versions of blacklisted EXE/DLL to assess vulnerabilities or End Of Life versions
