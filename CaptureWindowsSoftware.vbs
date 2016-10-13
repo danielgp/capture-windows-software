@@ -325,7 +325,9 @@ Function CheckSoftware(strComputer, bolWriteHeader, ReportFile, objReg, strKey)
                         strDisplayVersionCleaned = aryDisplayVersion(0)
                     Case Else
                         ' In some cases DisplayVersion has a date before the version so we're going to take in consideration only the very last group of continuous string splitted by space
-                        strDisplayVersionPieces = Split(CStr(Replace(Replace(strDisplayVersion, " beta ", "."), "a", ".")), " ")
+                        strDisplayVersionPiecesTemp = Replace(CStr(strDisplayVersion), " release candidate ", ".10")
+                        strDisplayVersionPiecesTemp = CleanStringWithBlacklistArray(strDisplayVersionPiecesTemp, Array("a", " beta "), ".")
+                        strDisplayVersionPieces = Split(strDisplayVersionPiecesTemp, " ")
                         For Each strDisplayVersionPieceValue In strDisplayVersionPieces
                             If (IsNumeric(strDisplayVersionPieceValue)) Then
                                 strDisplayVersionCleaned = strVersionPrefix & strDisplayVersionPieceValue
