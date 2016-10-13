@@ -17,15 +17,17 @@ Home (Client) | Business (Server) |  Device Details | Logical Disk Details | Ins
 :sun_with_face: 10 | :partly_sunny: 2016 | :white_check_mark: | :white_check_mark: | :white_check_mark: | :white_check_mark: | :white_check_mark:
 :partly_sunny: 8.1 | :partly_sunny: 2012 R2 | :white_check_mark: | :white_check_mark: | :white_check_mark: | :white_check_mark: | :white_check_mark:
 :partly_sunny: 8 | :partly_sunny: 2012 | :white_check_mark: | :white_check_mark: | :white_check_mark: | :white_check_mark: | :white_check_mark:
-:first_quarter_moon: 7 | :first_quarter_moon: 2008 R2 | :white_check_mark: | :white_check_mark: | :white_check_mark: | :white_check_mark: | :white_check_mark:
-:partly_sunny: Vista | :partly_sunny: 2008 | :white_check_mark: | :white_check_mark: | :white_check_mark: | :white_check_mark: | :white_check_mark:
-:first_quarter_moon: XP | :partly_sunny: 2003 | :white_check_mark: | :white_check_mark: | :white_check_mark: |:white_check_mark: | :white_check_mark:
-:partly_sunny: ME | :first_quarter_moon: 2000 | :no_entry: | :no_entry: | :white_check_mark: |:white_check_mark: | :white_check_mark:
+:first_quarter_moon: 7 | :first_quarter_moon: 2008 R2 | :wavy_dash: | :white_check_mark: | :white_check_mark: | :white_check_mark: | :white_check_mark:
+:partly_sunny: Vista | :partly_sunny: 2008 | :wavy_dash: | :white_check_mark: | :white_check_mark: | :white_check_mark: | :white_check_mark:
+:first_quarter_moon: XP | :partly_sunny: 2003 | :wavy_dash: | :white_check_mark: | :white_check_mark: |:white_check_mark: | :white_check_mark:
+:partly_sunny: ME | :first_quarter_moon: 2000 |  :wavy_dash: |  :wavy_dash: | :white_check_mark: |:white_check_mark: | :white_check_mark:
 
 where above used emoticons stands for:
 * :sun_with_face: frequent testing
 * :first_quarter_moon: seldom testing
 * :partly_sunny: never tested _(as did not have an environment to test upon)_
+* :white_check_mark: full support
+* :wavy_dash: supported with most features (few values will be #N/A)
 
 ## SQL results compatibility for MySQL versions
 * :white_check_mark: MySQL Server 5.7.x
@@ -38,7 +40,9 @@ where above used emoticons stands for:
 
 Reference name | URL
 -------------- | ---
+Emoji Cheat Sheet | http://www.webpagefx.com/tools/emoji-cheat-sheet/
 GetFileVersion Method | https://msdn.microsoft.com/en-us/library/b4e05k97(v=vs.84).aspx
+Mastering Markdown | https://guides.github.com/features/mastering-markdown/
 Operating System Version | https://msdn.microsoft.com/en-us/library/windows/desktop/ms724832(v=vs.85).aspx
 MySQL Community Downloads | http://dev.mysql.com/downloads/
 VBScript Features | https://msdn.microsoft.com/en-us/library/273zc69c.aspx
