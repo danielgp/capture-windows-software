@@ -1,8 +1,6 @@
 # Capture-Windows-Software
 ## About
-Visual Basic Script to capture all the software installed/portable in Windows
- as well as OS, hardware and logical disk details and save results
- in either CSV format or SQL (to be used w/ MySQL, see below details)
+Visual Basic Script to capture all the software installed/portable in Windows as well as OS, hardware and logical disk details and save results in either CSV format or SQL (to be used w/ MySQL, see below details)
 
 # Features
 * Reads Device Details from WMI (only Windows Vista/Server 2008 or newer)
@@ -42,6 +40,7 @@ Reference name | URL
 -------------- | ---
 GetFileVersion Method | https://msdn.microsoft.com/en-us/library/b4e05k97(v=vs.84).aspx
 Operating System Version | https://msdn.microsoft.com/en-us/library/windows/desktop/ms724832(v=vs.85).aspx
+MySQL Community Downloads | http://dev.mysql.com/downloads/
 VBScript Reference | https://technet.microsoft.com/en-us/library/ee198844.aspx
 Win32_BaseBoard class | https://msdn.microsoft.com/en-us/library/aa394072(v=vs.85).aspx
 Win32_BIOS class | https://msdn.microsoft.com/en-us/library/aa394077(v=vs.85).aspx
