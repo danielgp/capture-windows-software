@@ -21,9 +21,6 @@
 ' OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 ' SOFTWARE.
 '-----------------------------------------------------------------------------------------------------------------------
-Const ForAppending = 8
-Const ForReading = 1
-Const HKLM = &H80000002 'HKEY_LOCAL_MACHINE
 Const strFieldSeparator = ";"
 Const strVersionPrefix = "v"
 Const strOutputResultType = "SQL" ' another supported options is CSV
@@ -35,83 +32,94 @@ Const strConfigurationPortableSoftware = "ConfigurationPortableSoftwareList.txt"
 Const strResultFileNamePortableSoftware = "ResultWindowsSoftwarePortable"
 Const strConfigurationSecurityRiskComponents = "ConfigurationSecurityRiskComponents.txt"
 Const strResultFileNameSecurityRiskComponents = "ResultSecurityRiskComponents"
+'-----------------------------------------------------------------------------------------------------------------------
+Const ForAppending = 8
+Const ForReading = 1
+Const HKLM = &H80000002 'HKEY_LOCAL_MACHINE
 Dim strResultFileType
 Set objFSO = CreateObject("Scripting.FileSystemObject")
-Set WshShell = WScript.CreateObject("WScript.Shell")
-Set dtmConvertedDate = CreateObject("WbemScripting.SWbemDateTime")
 '-----------------------------------------------------------------------------------------------------------------------
 Const strScriptIntroduction = "This script will read from Windows Management Instrumentation (WMI) current Device Details and from Windows Registry the entire list of installed/portable software applications and export it in a file with a pre-configured name!"
-strInput = InputBox(strScriptIntroduction & vbNewLine & vbNewLine & _
-    "Input one or multiple choices from list below (no separators required)" & vbNewLine & _
-	"  a = Device Details" & vbNewLine & _
-	"  b = Disk Volumes" & vbNewLine & _
-	"  c = Installed Software" & vbNewLine & _
-	"  d = Portable Software" & vbNewLine & _
-	"-------------------------------------------------" & vbNewLine & _
-	"  x = a through c" & vbNewLine & _
-	"  y = a through d" & vbNewLine & _
-	"-------------------------------------------------" & vbNewLine & _
-	"  h = High Security Components Scanning" & vbNewLine & _
-	"-------------------------------------------------" & vbNewLine & _
-	"  z = all choices (a+b+c+d+h) in same order" _
-	, "Capture Windows Software - start")
-If ((InStr(1, strInput, "a", vbTextCompare) = 0) And (InStr(1, strInput, "b", vbTextCompare) = 0) And (InStr(1, strInput, "c", vbTextCompare) = 0) And (InStr(1, strInput, "d", vbTextCompare) = 0) And (InStr(1, strInput, "h", vbTextCompare) = 0) And (InStr(1, strInput, "x", vbTextCompare) = 0) And (InStr(1, strInput, "y", vbTextCompare) = 0) And (InStr(1, strInput, "z", vbTextCompare) = 0)) Then
-    MsgBox Replace(strScriptIntroduction, " will ", " was intended to ") & vbNewLine & vbNewLine & "You have chosen to terminate execution without any processing and no result, should you arrive at this point by mistake just re-execute it and pay greater attention to previous options dialogue, otherwise thanks for your attention!", vbOKOnly + vbExclamation, "Capture Windows Software - cancelled"
+' only required to be able to differentiate a few attributes present only in modern OS versions
+Set objWMIServiceLocal = GetObject("winmgmts:{impersonationLevel=impersonate}!\\.\root\cimv2")
+intOSVersion = CurrentOperatingSystemVersionForComparisonGeneric(objWMIServiceLocal)
+If (intOSVersion < 50) Then
+    MsgBox strScriptIntroduction & vbNewLine & vbNewLine & _
+        "Unfortunately for you, this version of Windows is too old to be supported!" & vbNewLine & _
+        "You are advised to consult README file for supported Windows environments and I hope to see you later!", _
+        vbOKOnly + vbExclamation, "Capture Windows Software - unsuported environment"
 Else
-    StartTime = Timer()
-    strCurDir = WshShell.CurrentDirectory
-    Set SrvListFile = objFSO.OpenTextFile(strCurDir & "\" & strConfigurationWindowsComputerList, ForReading)
-    Do Until SrvListFile.AtEndOfStream
-        strComputer = CurrentComputerName(LCase(SrvListFile.ReadLine))
-        Select Case UCase(strOutputResultType)
-            Case "CSV"
-                strResultFileType = ".csv"
-                If (objFSO.FileExists(strCurDir & "\" & strResultFileNameDeviceDetails & strResultFileType)) Then
-                    bolFileDeviceHeaderToAdd = False
-                Else
-                    bolFileDeviceHeaderToAdd = True
-                End If
-                If (objFSO.FileExists(strCurDir & "\" & strResultFileNameSoftware & strResultFileType)) Then
-                    bolFileSoftwareHeaderToAdd = False
-                Else
-                    bolFileSoftwareHeaderToAdd = True
-                End If
-            Case "SQL"
-                strResultFileType = ".sql"
-        End Select
-        Set objWMIService = GetObject("winmgmts:{impersonationLevel=impersonate}!\\" & strComputer & "\root\cimv2")
-        strFilesResulted = ""
-        If ((InStr(1, strInput, "a", vbTextCompare) > 0) Or (InStr(1, strInput, "x", vbTextCompare) > 0) Or (InStr(1, strInput, "y", vbTextCompare) > 0) Or (InStr(1, strInput, "z", vbTextCompare) > 0)) Then
-            ReadWMI_All objWMIService, strComputer, strResultFileType, strFieldSeparator, objFSO, strCurDir, strResultFileNameDeviceDetails, ForAppending, bolFileDeviceHeaderToAdd
-            strFilesResulted = strFilesResulted & "  - " & strCurDir & "\" & strResultFileNameDeviceDetails & strResultFileType & vbNewLine
-        End If
-        If ((InStr(1, strInput, "b", vbTextCompare) > 0) Or (InStr(1, strInput, "x", vbTextCompare) > 0) Or (InStr(1, strInput, "y", vbTextCompare) > 0) Or (InStr(1, strInput, "z", vbTextCompare) > 0)) Then
-            ReadWMI_DeviceVolumes objWMIService, strComputer, strResultFileType, strFieldSeparator, objFSO, strCurDir, strResultFileNameDeviceVolumes, ForAppending
-            strFilesResulted = strFilesResulted & "  - " & strCurDir & "\" & strResultFileNameDeviceVolumes & strResultFileType & vbNewLine
-        End If
-        If ((InStr(1, strInput, "c", vbTextCompare) > 0) Or (InStr(1, strInput, "x", vbTextCompare) > 0) Or (InStr(1, strInput, "y", vbTextCompare) > 0) Or (InStr(1, strInput, "z", vbTextCompare) > 0)) Then
-            ReadRegistry_SofwareInstalled strComputer, strResultFileType, strFieldSeparator, objFSO, strCurDir, strResultFileNameSoftware, ForAppending
-            strFilesResulted = strFilesResulted & "  - " & strCurDir & "\" & strResultFileNameSoftware & strResultFileType & vbNewLine
-        End If
-        If ((InStr(1, strInput, "d", vbTextCompare) > 0) Or (InStr(1, strInput, "y", vbTextCompare) > 0) Or (InStr(1, strInput, "z", vbTextCompare) > 0)) Then
-            ReadLogicalDisk_PortableSoftware objFSO, objWMIService, strCurDir, ForReading, ForAppending, strResultFileNamePortableSoftware, strResultFileType, strFieldSeparator, strConfigurationPortableSoftware, "in_windows_software_portable"
-            strFilesResulted = strFilesResulted & "  - " & strCurDir & "\" & strResultFileNamePortableSoftware & strResultFileType & vbNewLine
-        End If
-        If ((InStr(1, strInput, "h", vbTextCompare) > 0) Or (InStr(1, strInput, "z", vbTextCompare) > 0)) Then
-            ReadLogicalDisk_PortableSoftware objFSO, objWMIService, strCurDir, ForReading, ForAppending, strResultFileNameSecurityRiskComponents, strResultFileType, strFieldSeparator, strConfigurationSecurityRiskComponents, "in_windows_security_risk_components"
-            strFilesResulted = strFilesResulted & "  - " & strCurDir & "\" & strResultFileNameSecurityRiskComponents & strResultFileType & vbNewLine
-        End If
-    Loop
-    SrvListFile.Close
-    EndTime = Timer()
-    MsgBox Replace(strScriptIntroduction, " will ", " has ") & _
-        vbNewLine & vbNewLine & _
-        "Entire evaluation took " & FormatNumber(EndTime - StartTime, 0) & " seconds." & _
-        vbNewLine & vbNewLine & _
-        "Consult results stored within following file(s):" & vbNewLine & _
-        strFilesResulted & vbNewLine & _
-        "Thank you for using this script and hope to see you back soon!", _
-        vbOKOnly + vbInformation, "Capture Windows Software - finish"
+    strInput = InputBox(strScriptIntroduction & vbNewLine & vbNewLine & _
+        "  a = Device Details" & vbNewLine & _
+            "  b = Disk Volumes" & vbNewLine & _
+            "  c = Installed Software" & vbNewLine & _
+            "  d = Portable Software" & vbNewLine & _
+            "-------------------------------------------------" & vbNewLine & _
+            "  x = a through c" & vbNewLine & _
+            "  y = a through d" & vbNewLine & _
+            "-------------------------------------------------" & vbNewLine & _
+            "  h = High Security Components Scanning" & vbNewLine & _
+            "-------------------------------------------------" & vbNewLine & _
+            "  z = all choices (a+b+c+d+h) in same order" _
+            , "Capture Windows Software - start")
+    If ((InStr(1, strInput, "a", vbTextCompare) = 0) And (InStr(1, strInput, "b", vbTextCompare) = 0) And (InStr(1, strInput, "c", vbTextCompare) = 0) And (InStr(1, strInput, "d", vbTextCompare) = 0) And (InStr(1, strInput, "h", vbTextCompare) = 0) And (InStr(1, strInput, "x", vbTextCompare) = 0) And (InStr(1, strInput, "y", vbTextCompare) = 0) And (InStr(1, strInput, "z", vbTextCompare) = 0)) Then
+        MsgBox Replace(strScriptIntroduction, " will ", " was intended to ") & vbNewLine & vbNewLine & "You have chosen to terminate execution without any processing and no result, should you arrive at this point by mistake just re-execute it and pay greater attention to previous options dialogue, otherwise thanks for your attention!", vbOKOnly + vbExclamation, "Capture Windows Software - cancelled"
+    Else
+        StartTime = Timer()
+        strCurDir = objFSO.GetParentFolderName(Wscript.ScriptFullName)
+        Set SrvListFile = objFSO.OpenTextFile(strCurDir & "\" & strConfigurationWindowsComputerList, ForReading)
+        Do Until SrvListFile.AtEndOfStream
+            strComputer = CurrentComputerName(LCase(SrvListFile.ReadLine))
+            Select Case UCase(strOutputResultType)
+                Case "CSV"
+                    strResultFileType = ".csv"
+                    If (objFSO.FileExists(strCurDir & "\" & strResultFileNameDeviceDetails & strResultFileType)) Then
+                        bolFileDeviceHeaderToAdd = False
+                    Else
+                        bolFileDeviceHeaderToAdd = True
+                    End If
+                    If (objFSO.FileExists(strCurDir & "\" & strResultFileNameSoftware & strResultFileType)) Then
+                        bolFileSoftwareHeaderToAdd = False
+                    Else
+                        bolFileSoftwareHeaderToAdd = True
+                    End If
+                Case "SQL"
+                    strResultFileType = ".sql"
+            End Select
+            Set objWMIService = GetObject("winmgmts:{impersonationLevel=impersonate}!\\" & strComputer & "\root\cimv2")
+            strFilesResulted = ""
+            If ((InStr(1, strInput, "a", vbTextCompare) > 0) Or (InStr(1, strInput, "x", vbTextCompare) > 0) Or (InStr(1, strInput, "y", vbTextCompare) > 0) Or (InStr(1, strInput, "z", vbTextCompare) > 0)) Then
+                ReadWMI_All objWMIService, strComputer, strResultFileType, strFieldSeparator, objFSO, strCurDir, strResultFileNameDeviceDetails, ForAppending, bolFileDeviceHeaderToAdd
+                strFilesResulted = strFilesResulted & "  - " & strCurDir & "\" & strResultFileNameDeviceDetails & strResultFileType & vbNewLine
+            End If
+            If ((InStr(1, strInput, "b", vbTextCompare) > 0) Or (InStr(1, strInput, "x", vbTextCompare) > 0) Or (InStr(1, strInput, "y", vbTextCompare) > 0) Or (InStr(1, strInput, "z", vbTextCompare) > 0)) Then
+                ReadWMI_DeviceVolumes objWMIService, strComputer, strResultFileType, strFieldSeparator, objFSO, strCurDir, strResultFileNameDeviceVolumes, ForAppending
+                strFilesResulted = strFilesResulted & "  - " & strCurDir & "\" & strResultFileNameDeviceVolumes & strResultFileType & vbNewLine
+            End If
+            If ((InStr(1, strInput, "c", vbTextCompare) > 0) Or (InStr(1, strInput, "x", vbTextCompare) > 0) Or (InStr(1, strInput, "y", vbTextCompare) > 0) Or (InStr(1, strInput, "z", vbTextCompare) > 0)) Then
+                ReadRegistry_SofwareInstalled strComputer, strResultFileType, strFieldSeparator, objFSO, strCurDir, strResultFileNameSoftware, ForAppending
+                strFilesResulted = strFilesResulted & "  - " & strCurDir & "\" & strResultFileNameSoftware & strResultFileType & vbNewLine
+            End If
+            If ((InStr(1, strInput, "d", vbTextCompare) > 0) Or (InStr(1, strInput, "y", vbTextCompare) > 0) Or (InStr(1, strInput, "z", vbTextCompare) > 0)) Then
+                ReadLogicalDisk_PortableSoftware objFSO, objWMIService, strCurDir, ForReading, ForAppending, strResultFileNamePortableSoftware, strResultFileType, strFieldSeparator, strConfigurationPortableSoftware, "in_windows_software_portable"
+                strFilesResulted = strFilesResulted & "  - " & strCurDir & "\" & strResultFileNamePortableSoftware & strResultFileType & vbNewLine
+            End If
+            If ((InStr(1, strInput, "h", vbTextCompare) > 0) Or (InStr(1, strInput, "z", vbTextCompare) > 0)) Then
+                ReadLogicalDisk_PortableSoftware objFSO, objWMIService, strCurDir, ForReading, ForAppending, strResultFileNameSecurityRiskComponents, strResultFileType, strFieldSeparator, strConfigurationSecurityRiskComponents, "in_windows_security_risk_components"
+                strFilesResulted = strFilesResulted & "  - " & strCurDir & "\" & strResultFileNameSecurityRiskComponents & strResultFileType & vbNewLine
+            End If
+        Loop
+        SrvListFile.Close
+        EndTime = Timer()
+        MsgBox Replace(strScriptIntroduction, " will ", " has ") & _
+            vbNewLine & vbNewLine & _
+            "Entire evaluation took " & FormatNumber(EndTime - StartTime, 0) & " seconds." & _
+            vbNewLine & vbNewLine & _
+            "Consult results stored within following file(s):" & vbNewLine & _
+            strFilesResulted & vbNewLine & _
+            "Thank you for using this script and hope to see you back soon!", _
+            vbOKOnly + vbInformation, "Capture Windows Software - finish"
+    End If
 End If
 '-----------------------------------------------------------------------------------------------------------------------
 Function AdjustEmptyValueWithinArrayAndGlueIt(aryEntryArray, strValueToReplace, strGlue)
@@ -486,6 +494,11 @@ Function ConvertDateToSqlFormat(dtGivenDate)
     ConvertDateToSqlFormat = DatePart("yyyy", dtGivenDate) & _
         "-" & NumberWithTwoDigits(DatePart("m", dtGivenDate)) & _
         "-" & NumberWithTwoDigits(DatePart("d", dtGivenDate))
+End Function
+Function ConvertStringDateIntoSqlFormat(strGivenDate)
+    ConvertStringDateIntoSqlFormat = Left(strGivenDate, 4) & _
+        "-" & Mid(strGivenDate, 5, 2) & _
+        "-" & Right(strGivenDate, 2)
 End Function
 Function CSVfieldNamesIntoSQLfieldName(aryFieldNames)
     strFieldListForMySQLinsert = Join(aryFieldNames, "|")
@@ -1291,11 +1304,17 @@ Function ReadWMI__Win32_ComputerSystem(objWMIService, strComputer, strResultFile
     For Each crtObjCS in objComputerSystem
         For Each crtObjOS in objOperatingSystem
             For Each crtObjTZ in colTimeZone
-                dtmConvertedDate.Value = crtObjOS.InstallDate
+                strEncryptionLevel = "N/A"
+                strSystemDrive = "N/A"
                 strOSArchitecture = "N/A"
-                ' for Windows Vista and Server 2008 or newer
-                If (intOSVersion >= 60) Then
-                    strOSArchitecture = crtObjOS.OSArchitecture
+                ' for Windows XP and Server 2003 or newer
+                If (intOSVersion >= 51) Then
+                    strEncryptionLevel = crtObjOS.EncryptionLevel
+                    strSystemDrive = crtObjOS.SystemDrive
+                    ' for Windows Vista and Server 2008 or newer
+                    If (intOSVersion >= 60) Then
+                        strOSArchitecture = crtObjOS.OSArchitecture
+                    End If
                 End If
                 aryValuesCS = Array(_
                     crtObjOS.BootDevice, _
@@ -1306,9 +1325,9 @@ Function ReadWMI__Win32_ComputerSystem(objWMIService, strComputer, strResultFile
                     crtObjOS.CountryCode, _
                     crtObjOS.CurrentTimeZone, _
                     crtObjTZ.Description, _
-                    crtObjOS.EncryptionLevel, _
+                    strEncryptionLevel, _
                     crtObjOS.ForegroundApplicationBoost, _
-                    dtmConvertedDate.GetVarDate, _
+                    ConvertStringDateIntoSqlFormat(crtObjOS.InstallDate), _
                     crtObjOS.Locale, _
                     MappingLanguageLCIDinDescriptionOut("LCID Hexadecimal", crtObjOS.Locale, "Language - Country/Region"), _
                     crtObjOS.Manufacturer, _
@@ -1322,7 +1341,7 @@ Function ReadWMI__Win32_ComputerSystem(objWMIService, strComputer, strResultFile
                     crtObjOS.Primary, _
                     crtObjOS.RegisteredUser, _
                     crtObjOS.SerialNumber, _
-                    crtObjOS.SystemDrive, _
+                    strSystemDrive, _
                     crtObjOS.SystemDirectory, _
                     Round((crtObjOS.TotalVirtualMemorySize / 1024), 0), _
                     Round((crtObjOS.TotalVisibleMemorySize / 1024), 0), _
@@ -1383,17 +1402,22 @@ Function ReadWMI__Win32_DiskDrive(objWMIService, strComputer, strResultFileType,
     aryDetailsToReturn(0) = ""
     aryDetailsToReturn(1) = ""
     For Each crtObjDiskDrive in objDiskDrive
-        If (IsNull(crtObjDiskDrive.Signature) Or (crtObjDiskDrive.Signature = "")) Then
-            strSignatureSafe = "-"
-        Else
-            StrSignatureSafe = crtObjDiskDrive.Signature
-        End If
+        strDiskDriveSignature = "#N/A"
         strFirmwareRevision = "#N/A"
         strSerialNumber = "#N/A"
-        ' for Windows Vista and Server 2008 or newer
-        If (intOSVersion >= 60) Then
-            strFirmwareRevision = crtObjDiskDrive.FirmwareRevision
-            strSerialNumber = crtObjDiskDrive.SerialNumber
+        ' for Windows XP and Server 2003 or newer
+        If (intOSVersion >= 51) Then
+            strDiskDriveSignature = crtObjDiskDrive.Signature
+            ' for Windows Vista and Server 2008 or newer
+            If (intOSVersion >= 60) Then
+                strFirmwareRevision = crtObjDiskDrive.FirmwareRevision
+                strSerialNumber = crtObjDiskDrive.SerialNumber
+            End If
+        End If
+        If (IsNull(strDiskDriveSignature) Or (strDiskDriveSignature = "")) Then
+            strSignatureSafe = "-"
+        Else
+            strSignatureSafe = strDiskDriveSignature
         End If
         aryValuesDiskDrive = Array(_
             crtObjDiskDrive.BytesPerSector, _
@@ -1546,6 +1570,19 @@ Function ReadWMI__Win32_LogicalDisk(objWMIService, strComputer, strResultFileTyp
     aryDetailsToReturn(0) = ""
     aryDetailsToReturn(1) = ""
     For Each crtObjLogicalDisk in objLogicalDisk
+        strQuotasDisabled = "N/A"
+        strQuotasIncomplete = "N/A"
+        strQuotasRebuilding = "N/A"
+        strSupportsDiskQuotas = "N/A"
+        strVolumeDirty = "N/A"
+        ' for Windows XP and Server 2003 or newer
+        If (intOSVersion >= 51) Then
+            strQuotasDisabled = crtObjLogicalDisk.QuotasDisabled
+            strQuotasIncomplete = crtObjLogicalDisk.QuotasIncomplete
+            strQuotasRebuilding = crtObjLogicalDisk.QuotasRebuilding
+            strSupportsDiskQuotas = crtObjLogicalDisk.SupportsDiskQuotas
+            strVolumeDirty = crtObjLogicalDisk.VolumeDirty
+        End If
         strDriveTypeDescription =  MappingDriveTypeCodeInDescriptionOut(crtObjLogicalDisk.DriveType)
         aryValuesLogicalDisk = Array(_
             crtObjLogicalDisk.Access, _
@@ -1576,16 +1613,16 @@ Function ReadWMI__Win32_LogicalDisk(objWMIService, strComputer, strResultFileTyp
             crtObjLogicalDisk.PowerManagementSupported, _
             crtObjLogicalDisk.ProviderName, _
             crtObjLogicalDisk.Purpose, _
-            crtObjLogicalDisk.QuotasDisabled, _
-            crtObjLogicalDisk.QuotasIncomplete, _
-            crtObjLogicalDisk.QuotasRebuilding, _
+            strQuotasDisabled, _
+            strQuotasIncomplete, _
+            strQuotasRebuilding, _
             crtObjLogicalDisk.Size, _
             crtObjLogicalDisk.Status, _
             crtObjLogicalDisk.StatusInfo, _
-            crtObjLogicalDisk.SupportsDiskQuotas, _
+            strSupportsDiskQuotas, _
             crtObjLogicalDisk.SupportsFileBasedCompression, _
             crtObjLogicalDisk.SystemName, _
-            crtObjLogicalDisk.VolumeDirty, _
+            strVolumeDirty, _
             crtObjLogicalDisk.VolumeName, _
             crtObjLogicalDisk.VolumeSerialNumber _
         )
@@ -1761,6 +1798,8 @@ Function ReadWMI__Win32_Processor(objWMIService, strComputer, strResultFileType,
     ' actual Win32_Processor determination
     Set objCPU = objWMIService.ExecQuery("Select * from Win32_Processor")
     For Each crtObjCPU in objCPU
+        strNumberOfCores = "N/A"
+        strNumberOfLogicalProcessors = "N/A"
         strL3CacheSize = "N/A"
         strSecondLevelAddressTranslationExtensions = "N/A"
         strVirtualizationFirmwareEnabled = "N/A"
@@ -1770,21 +1809,26 @@ Function ReadWMI__Win32_Processor(objWMIService, strComputer, strResultFileType,
         strPartNumber = "N/A"
         strThreadCount = "N/A"
         strSerialNumber = "N/A"
-        ' for Windows Vista and Server 2008 or newer
-        If (intOSVersion >= 60) Then
-            strL3CacheSize = crtObjCPU.L3CacheSize
-            ' for Windows 8 and Server 2012 R2 or newer
-            If (intOSVersion >= 62) Then
-                strSecondLevelAddressTranslationExtensions = crtObjCPU.SecondLevelAddressTranslationExtensions
-                strVirtualizationFirmwareEnabled = crtObjCPU.VirtualizationFirmwareEnabled
-                strVMMonitorModeExtensions = crtObjCPU.VMMonitorModeExtensions
-                ' for Windows 10 and Server 2016 or newer
-                If (intOSVersion >= 100) Then
-                    strCharacteristics = crtObjCPU.Characteristics
-                    strNumberOfEnabledCore = crtObjCPU.NumberOfEnabledCore
-                    strPartNumber = crtObjCPU.PartNumber
-                    strThreadCount = crtObjCPU.ThreadCount
-                    strSerialNumber = crtObjCPU.SerialNumber
+        ' for Windows XP and Server 2003 or newer
+        If (intOSVersion >= 51) Then
+            strNumberOfCores = crtObjCPU.NumberOfCores
+            strNumberOfLogicalProcessors = crtObjCPU.NumberOfLogicalProcessors
+            ' for Windows Vista and Server 2008 or newer
+            If (intOSVersion >= 60) Then
+                strL3CacheSize = crtObjCPU.L3CacheSize
+                ' for Windows 8 and Server 2012 R2 or newer
+                If (intOSVersion >= 62) Then
+                    strSecondLevelAddressTranslationExtensions = crtObjCPU.SecondLevelAddressTranslationExtensions
+                    strVirtualizationFirmwareEnabled = crtObjCPU.VirtualizationFirmwareEnabled
+                    strVMMonitorModeExtensions = crtObjCPU.VMMonitorModeExtensions
+                    ' for Windows 10 and Server 2016 or newer
+                    If (intOSVersion >= 100) Then
+                        strCharacteristics = crtObjCPU.Characteristics
+                        strNumberOfEnabledCore = crtObjCPU.NumberOfEnabledCore
+                        strPartNumber = crtObjCPU.PartNumber
+                        strThreadCount = crtObjCPU.ThreadCount
+                        strSerialNumber = crtObjCPU.SerialNumber
+                    End If
                 End If
             End If
         End If
@@ -1808,9 +1852,9 @@ Function ReadWMI__Win32_Processor(objWMIService, strComputer, strResultFileType,
             crtObjCPU.Manufacturer, _
             crtObjCPU.MaxClockSpeed, _
             crtObjCPU.Name, _
-            crtObjCPU.NumberOfCores, _
+            strNumberOfCores, _
             strNumberOfEnabledCore, _
-            crtObjCPU.NumberOfLogicalProcessors, _
+            strNumberOfLogicalProcessors, _
             strPartNumber, _
             crtObjCPU.ProcessorId, _
             crtObjCPU.ProcessorType, _

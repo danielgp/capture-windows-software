@@ -20,7 +20,7 @@ Home (Client) | Business (Server) |  Device Details | Logical Disk Details | Ins
 :first_quarter_moon: 7 | :first_quarter_moon: 2008 R2 | :white_check_mark: | :white_check_mark: | :white_check_mark: | :white_check_mark: | :white_check_mark:
 :partly_sunny: Vista | :partly_sunny: 2008 | :white_check_mark: | :white_check_mark: | :white_check_mark: | :white_check_mark: | :white_check_mark:
 :first_quarter_moon: XP | :partly_sunny: 2003 | :white_check_mark: | :white_check_mark: | :white_check_mark: |:white_check_mark: | :white_check_mark:
-:partly_sunny: ME | :partly_sunny: 2000 | :no_entry: | :no_entry: | :white_check_mark: |:white_check_mark: | :white_check_mark:
+:partly_sunny: ME | :first_quarter_moon: 2000 | :no_entry: | :no_entry: | :white_check_mark: |:white_check_mark: | :white_check_mark:
 
 where above used emoticons stands for:
 * :sun_with_face: frequent testing
@@ -41,7 +41,9 @@ Reference name | URL
 GetFileVersion Method | https://msdn.microsoft.com/en-us/library/b4e05k97(v=vs.84).aspx
 Operating System Version | https://msdn.microsoft.com/en-us/library/windows/desktop/ms724832(v=vs.85).aspx
 MySQL Community Downloads | http://dev.mysql.com/downloads/
+VBScript Features | https://msdn.microsoft.com/en-us/library/273zc69c.aspx
 VBScript Reference | https://technet.microsoft.com/en-us/library/ee198844.aspx
+VBScript Version Information | https://msdn.microsoft.com/en-us/library/4y5y7bh5.aspx
 Win32_BaseBoard class | https://msdn.microsoft.com/en-us/library/aa394072(v=vs.85).aspx
 Win32_BIOS class | https://msdn.microsoft.com/en-us/library/aa394077(v=vs.85).aspx
 Win32_ComputerSystem class | https://msdn.microsoft.com/en-us/library/aa394102(v=vs.85).aspx
