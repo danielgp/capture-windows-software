@@ -19,3 +19,7 @@ D619411B\ssleay32.dll
 FC0FD58D\ssleay32.dll
 '           AEF1D904 is the fixed drive on the PC2014 main device
 AEF1D904\ssleay32.dll
+'           following drives are from drive on the PC2013
+9EBD3666\ssleay32.dll
+A8C575CC\ssleay32.dll
+CA303CE5\ssleay32.dll

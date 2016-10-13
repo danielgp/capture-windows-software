@@ -25,21 +25,23 @@ D619411B\www\App\Tomcat\tomcat*w.exe
 ' Applications usefull only as a Developer
 D619411B\www\AppForDeveloper\GetText\iconv.exe
 D619411B\www\AppForDeveloper\GetText\msgconv.exe
+D619411B\www\AppForDeveloper\NodeJS\node.exe
 D619411B\www\AppForDeveloper\Ruby\bin\ruby.exe
 D619411B\www\AppForDeveloper\SSL-scan\ssllabs-scan.exe
 D619411B\www\AppForDeveloper\JaspersoftStudio.exe
 
 ' Portable Applications packages provided by http://portableapps.com/
 D619411B\PortableApps\Start.exe
+D619411B\PortableApps\PortableApps\7z.exe
+D619411B\PortableApps\PortableApps\audacity.exe
+D619411B\PortableApps\PortableApps\avidemux.exe
 D619411B\PortableApps\PortableApps\firefox.exe
-D619411B\PortableApps\PortableApps\7-ZipPortable\7z.exe
-D619411B\PortableApps\PortableApps\AudacityPortable\audacity.exe
-D619411B\PortableApps\PortableApps\Avidemux64Portable\avidemux.exe
-D619411B\PortableApps\PortableApps\PuTTYPortable\PUTTY.EXE
-D619411B\PortableApps\PortableApps\PWGenPortable\PWGen.exe
-D619411B\PortableApps\PortableApps\RufusPortable\rufusp.exe
-D619411B\PortableApps\PortableApps\TeamViewerPortable\TeamViewer.exe
-D619411B\PortableApps\PortableApps\WinSCPPortable\WinSCP.exe
+D619411B\PortableApps\PortableApps\Opera.exe
+D619411B\PortableApps\PortableApps\PUTTY.EXE
+D619411B\PortableApps\PortableApps\PWGen.exe
+D619411B\PortableApps\PortableApps\rufusp.exe
+D619411B\PortableApps\PortableApps\TeamViewer.exe
+D619411B\PortableApps\PortableApps\WinSCP.exe
 
 ' Additional portable applications that require manual download as not included in packages from http://portableapps.com/
 D619411B\PortableApps\MaintainedManual\Defraggler\Defraggler.exe
@@ -47,14 +49,15 @@ D619411B\PortableApps\MaintainedManual\DoubleCommander\DoubleCommander.exe
 D619411B\PortableApps\MaintainedManual\epCheck\epCheck.exe
 D619411B\PortableApps\MaintainedManual\GetFoldersizePortable\GetFoldersizePortable.exe
 D619411B\PortableApps\MaintainedManual\MemHistory\MemHistoryFree.exe
+D619411B\PortableApps\MaintainedManual\PathEditor.exe
+D619411B\PortableApps\MaintainedManual\PortExpert.exe
+D619411B\PortableApps\MaintainedManual\PortScan.exe
 D619411B\PortableApps\MaintainedManual\QTranslate\QTranslate.exe
 D619411B\PortableApps\MaintainedManual\RenameMaster\RenameMaster.exe
 D619411B\PortableApps\MaintainedManual\RunAsDate.exe
+D619411B\PortableApps\MaintainedManual\SimpleWMIView.exe
+D619411B\PortableApps\MaintainedManual\Symlink Creator*.exe
 D619411B\PortableApps\MaintainedManual\Tixati\tixati_Windows*bit.exe
 D619411B\PortableApps\MaintainedManual\USB Image Tool\USB Image Tool.exe
 D619411B\PortableApps\MaintainedManual\XMediaRecode\XMedia Recode.exe
 D619411B\PortableApps\MaintainedManual\YTD-HD\YouTubeDownloaderHD.exe
-D619411B\PortableApps\MaintainedManual\PathEditor.exe
-D619411B\PortableApps\MaintainedManual\PortExpert.exe
-D619411B\PortableApps\MaintainedManual\PortScan.exe
-D619411B\PortableApps\MaintainedManual\Symlink Creator*.exe
