@@ -516,14 +516,17 @@ Function CurrentDateToSqlFormat()
     CurrentDateToSqlFormat = ConvertDateToSqlFormat(Now())
 End Function
 Function CurrentOperatingSystemVersionForComparison()
+    CurrentOperatingSystemVersionForComparison = CurrentOperatingSystemVersionForComparisonGeneric(objWMIService)
+End Function
+Function CurrentOperatingSystemVersionForComparisonGeneric(objWMIServiceParameter)
     intOSVersion = 0
     ' only required to be able to differentiate a few attributes present only in modern OS versions
-    Set objOperatingSystem = objWMIService.ExecQuery("Select * from Win32_OperatingSystem")
+    Set objOperatingSystem = objWMIServiceParameter.ExecQuery("Select * from Win32_OperatingSystem")
     For Each crtObjOS in objOperatingSystem
         aryVersionParts = Split(crtObjOS.Version, ".")
         intOSVersion = CInt(aryVersionParts(0)) * 10 + aryVersionParts(1)
     Next
-    CurrentOperatingSystemVersionForComparison = intOSVersion
+    CurrentOperatingSystemVersionForComparisonGeneric = intOSVersion
 End Function
 Function CurrentComputerName(strGivenComputerName)
     If ((LCase(strGivenComputerName) = "localhost") Or (strGivenComputerName = "127.0.0.1") Or (strGivenComputerName = "::1")) Then
