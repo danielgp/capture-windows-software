@@ -45,6 +45,7 @@ GetFileVersion Method | https://msdn.microsoft.com/en-us/library/b4e05k97(v=vs.8
 Mastering Markdown | https://guides.github.com/features/mastering-markdown/
 Operating System Version | https://msdn.microsoft.com/en-us/library/windows/desktop/ms724832(v=vs.85).aspx
 MySQL Community Downloads | http://dev.mysql.com/downloads/
+Uninstall Registry Key | https://msdn.microsoft.com/en-us/library/windows/desktop/aa372105(v=vs.85).aspx
 VBScript Features | https://msdn.microsoft.com/en-us/library/273zc69c.aspx
 VBScript Reference | https://technet.microsoft.com/en-us/library/ee198844.aspx
 VBScript Version Information | https://msdn.microsoft.com/en-us/library/4y5y7bh5.aspx
