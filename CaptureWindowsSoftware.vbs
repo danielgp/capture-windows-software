@@ -242,6 +242,7 @@ Function CheckSoftware(strComputer, bolWriteHeader, ReportFile, objReg, strKey)
     strEntryEstimatedSize = "EstimatedSize"
     strEntryDisplayVersion = "DisplayVersion"
     strEntryURLInfoAbout = "URLInfoAbout"
+    strEntryDisplayIcon = "DisplayIcon"
     If (LCase(strResultFileType) = ".csv") Then
         If (bolWriteHeader) Then
             ReportFile.writeline Join(aryInformationToExpose, strFieldSeparator)
@@ -257,6 +258,7 @@ Function CheckSoftware(strComputer, bolWriteHeader, ReportFile, objReg, strKey)
             intReturnP = objReg.GetStringValue(HKLM, strKey & strSubkey, strEntryPublisher, strPublisher)
             intReturnL = objReg.GetStringValue(HKLM, strKey & strSubkey, strEntryInstallLocation, strInstallLocation)
             intReturnD = objReg.GetStringValue(HKLM, strKey & strSubkey, strEntryInstallDate, strInstallDate)
+            intReturnDI = objReg.GetStringValue(HKLM, strKey & strSubkey, strEntryDisplayIcon, strDisplayIcon)
             objReg.GetDWORDValue HKLM, strKey & strSubkey, strEntryVersionMajor, intValueVersionMajor
             objReg.GetDWORDValue HKLM, strKey & strSubkey, strEntryVersionMinor, intValueVersionMinor
             objReg.GetDWORDValue HKLM, strKey & strSubkey, strEntryEstimatedSize, intEstimatedSize
@@ -308,21 +310,41 @@ Function CheckSoftware(strComputer, bolWriteHeader, ReportFile, objReg, strKey)
                 strDisplayVersionCleaned = "NULL"
                 ' as LAME software is an just an encoder for MP3 the version seem to require special handling for both FullVersion and Publisher
                 Select Case strSoftwareNameCleaned
-                    Case "LAME"
-                        aryDisplayName = Split(strDisplayName, " ")
-                        strPublisherName = aryDisplayName(1)
-                        strDisplayVersionCleaned = aryDisplayName(2)
                     Case "Double Commander"
                         strPublisherName = "alexx2000"
+                        If (strDisplayVersionCleaned = "NULL") Then
+                            aryDisplayName = Split(strDisplayName, " ")
+                            strDisplayVersionCleaned = strVersionPrefix & aryDisplayName(2)
+                        End If
+                    Case "Glance"
+                        If (strDisplayVersionCleaned = "NULL") Then
+                            aryDisplayName = Split(strDisplayName, " ")
+                            strDisplayVersionCleaned = strVersionPrefix & aryDisplayName(1)
+                        End If
+                    Case "LAME"
                         aryDisplayName = Split(strDisplayName, " ")
-                        strDisplayVersionCleaned = aryDisplayName(2)
+                        strPublisherName = aryDisplayName(0)
+                        strSoftwareNameCleaned = aryDisplayName(0)
+                        If (strDisplayVersionCleaned = "NULL") Then
+                            strDisplayVersionCleaned = strVersionPrefix & aryDisplayName(1)
+                        End If
+                    Case "Tixati"
+                        If (strPublisherName = "NULL") Then
+                            strPublisherName = "Tixati Software Inc."
+                        End If
                 End Select
+                If (Left(strSoftwareNameCleaned, 8) = "OpenSSL ") Then
+                    If (strDisplayVersionCleaned = "NULL") Then
+                        aryDisplayName = Split(strDisplayName, " ")
+                        strDisplayVersionCleaned = strVersionPrefix & aryDisplayName(1)
+                    End If
+                End If
             Else
                 Select Case strSoftwareNameCleaned
                     ' AIMP seems to store DisplayVersion as "vX.XX.XXXX, Date" so needs special handling to get only the first part without the ","
                     Case "AIMP"
                         aryDisplayVersion = Split(strDisplayVersion, ", ")
-                        strDisplayVersionCleaned = aryDisplayVersion(0)
+                        strDisplayVersionCleaned = strVersionPrefix & aryDisplayVersion(1)
                     Case Else
                         ' In some cases DisplayVersion has a date before the version so we're going to take in consideration only the very last group of continuous string splitted by space
                         strDisplayVersionPiecesTemp = Replace(CStr(strDisplayVersion), " release candidate ", ".10")
@@ -331,9 +353,51 @@ Function CheckSoftware(strComputer, bolWriteHeader, ReportFile, objReg, strKey)
                         For Each strDisplayVersionPieceValue In strDisplayVersionPieces
                             If (IsNumeric(strDisplayVersionPieceValue)) Then
                                 strDisplayVersionCleaned = strVersionPrefix & strDisplayVersionPieceValue
+                            Else
+                                If ((Left(strDisplayVersionPieceValue, 1) = "v") And (IsNumeric(Replace(Replace(strDisplayVersionPieceValue, "v", ""), ".", "")))) Then
+                                    strDisplayVersionCleaned = strVersionPrefix & strDisplayVersionPieceValue
+                                End If
                             End If
                         Next
                 End Select
+            End If
+            If (Left(strDisplayName, 16) = "GlassFish Server") Then
+                If (strPublisherName = "NULL") Then
+                    strPublisherName = "Oracle Corporation"
+                End If
+            End If
+            If (Left(strSoftwareNameCleaned, 13) = "Apache Tomcat") Then
+                If (strPublisherName = "NULL") Then
+                    strPublisherName = "Apache Software Foundation"
+                End If
+            End If
+            If ((Left(strDisplayName, 16) = "GlassFish Server") Or (Left(strSoftwareNameCleaned, 13) = "Apache Tomcat")) Then
+                If (strDisplayVersionCleaned = "NULL") Then
+                    aryDisplayName = Split(strDisplayName, " ")
+                    intDisplayNamePieces = UBound(aryDisplayName)
+                    If (IsNumeric(Replace(aryDisplayName(intDisplayNamePieces), ".", ""))) Then
+                        strDisplayVersionCleaned = strVersionPrefix & aryDisplayName(intDisplayNamePieces)
+                    End If
+                End If
+            End If
+            If ((strDisplayVersionCleaned = "NULL") And (intReturnDI = 0) And (strDisplayIcon <> "")) Then
+                strIconFile = Replace(strDisplayIcon, """", "")
+                If (InStr(1, strInput, ",", vbTextCompare) = 0) Then
+                    aryIconFile = Split(strIconFile, ",")
+                    strIconFile = aryIconFile(0)
+                End If
+                If (objFSO.FileExists(strIconFile)) Then
+                    strDisplayVersionCleaned = strVersionPrefix & objFSO.GetFileVersion(strIconFile)
+                End If
+            End If
+            If ((Left(strSoftwareNameCleaned, 7) = "OpenSSL") And (strDisplayVersionCleaned <> "NULL")) Then
+                strSoftwareNameCleaned = "OpenSSL"
+                strLastLetter = Right(strDisplayVersionCleaned, 1)
+                strLastLetterCode = Asc(strLastLetter)
+                MsgBox strSoftwareNameCleaned & " ~ " & strLastLetter & " => " & strLastLetterCode
+                If ((strLastLetterCode >= Asc("a")) And (strLastLetterCode <= Asc("z"))) Then
+                    strDisplayVersionCleaned = Replace(strDisplayVersionCleaned, strLastLetter, "." & (Asc(strLastLetter) - Asc("a") + 1))
+                End If
             End If
             If ((intReturnU <> 0) Or (IsNull(strURLInfoAbout)) Or (Len(Trim(strURLInfoAbout)) = 0)) Then
                 strURLInfoAbout = "-"
@@ -567,6 +631,7 @@ Function HarmonizedPublisher(strPublisherName)
         Array("McAfee", "McAfee, Inc."), _
         Array("Microsoft", "Microsoft Corporation"), _
         Array("Oracle", "Oracle Corporation"), _
+        Array("OpenSSL Win64 Installer Team", "OpenSSL"), _
         Array("Qualcomm Atheros", "Qualcomm Atheros Communications"), _
         Array("Realtek", "Realtek Semiconductor Corp."), _
         Array("SAP", "SAP AG"), _
