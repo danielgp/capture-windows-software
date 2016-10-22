@@ -394,7 +394,6 @@ Function CheckSoftware(strComputer, bolWriteHeader, ReportFile, objReg, strKey)
                 strSoftwareNameCleaned = "OpenSSL"
                 strLastLetter = Right(strDisplayVersionCleaned, 1)
                 strLastLetterCode = Asc(strLastLetter)
-                MsgBox strSoftwareNameCleaned & " ~ " & strLastLetter & " => " & strLastLetterCode
                 If ((strLastLetterCode >= Asc("a")) And (strLastLetterCode <= Asc("z"))) Then
                     strDisplayVersionCleaned = Replace(strDisplayVersionCleaned, strLastLetter, "." & (Asc(strLastLetter) - Asc("a") + 1))
                 End If
