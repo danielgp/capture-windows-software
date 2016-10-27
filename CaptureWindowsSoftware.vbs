@@ -35,6 +35,7 @@ Const strResultFileNameSecurityRiskComponents = "ResultSecurityRiskComponents"
 '-----------------------------------------------------------------------------------------------------------------------
 Const ForAppending = 8
 Const ForReading = 1
+Const HKCU = &H80000001 'HKEY_CURRENT_USER
 Const HKLM = &H80000002 'HKEY_LOCAL_MACHINE
 Dim strResultFileType
 Set objFSO = CreateObject("Scripting.FileSystemObject")
@@ -211,7 +212,7 @@ Function BuildInsertOrUpdateSQLstructure(aryFieldNames, aryFieldValues, strInser
     End Select
     BuildInsertOrUpdateSQLstructure = Replace(Replace(Replace(Replace(strUpdateSQLstructure, "'NULL'", "NULL"), "\", "\\"), "t's", "t\'s"), """""", """")
 End Function
-Function CheckSoftware(strComputer, bolWriteHeader, ReportFile, objReg, strKey)
+Function CheckSoftware(strComputer, bolWriteHeader, ReportFile, objReg, RegistryHive, strKey)
     Dim aryJSONinformationCSV(7)
     Dim aryJSONinformationSQL(7)
     aryInformationToExpose = Array(_
@@ -222,8 +223,9 @@ Function CheckSoftware(strComputer, bolWriteHeader, ReportFile, objReg, strKey)
         "Full Version", _
         "Installation Date", _
         "Other Info", _
-        "Registry Key Trunk", _
-        "Registry SubKey" _
+        "Registry Hive", _
+        "Registry SubKey", _
+        "Bits 32 Or 64" _
     )
     aryInformationToExposeOtherInfo = Array(_
         "Install Location", _
@@ -251,22 +253,22 @@ Function CheckSoftware(strComputer, bolWriteHeader, ReportFile, objReg, strKey)
             ReportFile.writeline Join(aryInformationToExpose, strFieldSeparator)
         End If
     End If
-    objReg.EnumKey HKLM, strKey, arrSubkeys
+    objReg.EnumKey RegistryHive, strKey, arrSubkeys
     For Each strSubkey In arrSubkeys
-        intReturnN = objReg.GetStringValue(HKLM, strKey & strSubkey, strEntryDisplayName, strDisplayName)
+        intReturnN = objReg.GetStringValue(RegistryHive, strKey & strSubkey, strEntryDisplayName, strDisplayName)
         If (intReturnN <> 0) Then
-            objReg.GetStringValue HKLM, strKey & strSubkey, strEntryQuietDisplayName, strDisplayName
+            objReg.GetStringValue RegistryHive, strKey & strSubkey, strEntryQuietDisplayName, strDisplayName
         End If
         If (strDisplayName <> "") Then
-            intReturnP = objReg.GetStringValue(HKLM, strKey & strSubkey, strEntryPublisher, strPublisher)
-            intReturnL = objReg.GetStringValue(HKLM, strKey & strSubkey, strEntryInstallLocation, strInstallLocation)
-            intReturnD = objReg.GetStringValue(HKLM, strKey & strSubkey, strEntryInstallDate, strInstallDate)
-            intReturnDI = objReg.GetStringValue(HKLM, strKey & strSubkey, strEntryDisplayIcon, strDisplayIcon)
-            objReg.GetDWORDValue HKLM, strKey & strSubkey, strEntryVersionMajor, intValueVersionMajor
-            objReg.GetDWORDValue HKLM, strKey & strSubkey, strEntryVersionMinor, intValueVersionMinor
-            objReg.GetDWORDValue HKLM, strKey & strSubkey, strEntryEstimatedSize, intEstimatedSize
-            intReturnV = objReg.GetStringValue(HKLM, strKey & strSubkey, strEntryDisplayVersion, strDisplayVersion)
-            intReturnU = objReg.GetStringValue(HKLM, strKey & strSubkey, strEntryURLInfoAbout, strURLInfoAbout)
+            intReturnP = objReg.GetStringValue(RegistryHive, strKey & strSubkey, strEntryPublisher, strPublisher)
+            intReturnL = objReg.GetStringValue(RegistryHive, strKey & strSubkey, strEntryInstallLocation, strInstallLocation)
+            intReturnD = objReg.GetStringValue(RegistryHive, strKey & strSubkey, strEntryInstallDate, strInstallDate)
+            intReturnDI = objReg.GetStringValue(RegistryHive, strKey & strSubkey, strEntryDisplayIcon, strDisplayIcon)
+            objReg.GetDWORDValue RegistryHive, strKey & strSubkey, strEntryVersionMajor, intValueVersionMajor
+            objReg.GetDWORDValue RegistryHive, strKey & strSubkey, strEntryVersionMinor, intValueVersionMinor
+            objReg.GetDWORDValue RegistryHive, strKey & strSubkey, strEntryEstimatedSize, intEstimatedSize
+            intReturnV = objReg.GetStringValue(RegistryHive, strKey & strSubkey, strEntryDisplayVersion, strDisplayVersion)
+            intReturnU = objReg.GetStringValue(RegistryHive, strKey & strSubkey, strEntryURLInfoAbout, strURLInfoAbout)
             If (intReturnP = 0) Then
                 strPublisherName = HarmonizedPublisher(strPublisher)
             Else
@@ -411,7 +413,6 @@ Function CheckSoftware(strComputer, bolWriteHeader, ReportFile, objReg, strKey)
                     strURLInfoAbout = Left(strURLInfoAbout, (Len(strURLInfoAbout) - 1))
                 End If
             End If
-            strSubkeyPieces = Split(strKey, "\")
             aryValuesToExposeOtherInfo = Array(_
                 strInstallLocation, _
                 strPublisher, _
@@ -447,6 +448,23 @@ Function CheckSoftware(strComputer, bolWriteHeader, ReportFile, objReg, strKey)
                     Next
                     strOtherInfo = "{ " & Join(aryJSONinformationSQL, ", ") & " }"
             End Select
+            Select Case RegistryHive
+                Case HKCU
+                    strMachineLocal = "HKEY_CURRENT_USER"
+                Case HKLM
+                    strMachineLocal = "HKEY_LOCAL_MACHINE"
+                Case Else
+                    strMachineLocal = "Unknown"
+            End Select
+            strSubkeyPieces = Split(strKey, "\")
+            Select Case strSubkeyPieces(1)
+                Case "Microsoft"
+                    strBits32or34 = "32"
+                Case "Wow6432Node"
+                    strBits32or34 = "64"
+                Case Else
+                    strBits32or34 = "0"
+            End Select
             aryValuesToExpose = Array(_
                 CurrentDateTimeToSqlFormat(), _
                 strComputer, _
@@ -455,19 +473,20 @@ Function CheckSoftware(strComputer, bolWriteHeader, ReportFile, objReg, strKey)
                 strDisplayVersionCleaned, _
                 strDateYMD , _
                 strOtherInfo, _
-                strSubkeyPieces(1), _
-                strSubkey _
+                strMachineLocal, _
+                strSubkey, _
+                strBits32or34 _
             )
             Select Case LCase(strResultFileType)
                 Case ".csv"
                     ReportFile.WriteLine Join(aryValuesToExpose, strFieldSeparator)
                 Case ".sql"
                     ReportFile.WriteLine "INSERT INTO `in_windows_software_installed` (" & _
-                        BuildInsertOrUpdateSQLstructure(aryInformationToExpose, aryValuesToExpose, "InsertFields", 0, 2) & _
+                        BuildInsertOrUpdateSQLstructure(aryInformationToExpose, aryValuesToExpose, "InsertFields", 0, 3) & _
                         ") VALUES(" & _
-                        BuildInsertOrUpdateSQLstructure(aryInformationToExpose, aryValuesToExpose, "InsertValues", 0, 2) & _
+                        BuildInsertOrUpdateSQLstructure(aryInformationToExpose, aryValuesToExpose, "InsertValues", 0, 3) & _
                         ") ON DUPLICATE KEY UPDATE " & _
-                        BuildInsertOrUpdateSQLstructure(aryInformationToExpose, aryValuesToExpose, "Update", 0, 2) & _
+                        BuildInsertOrUpdateSQLstructure(aryInformationToExpose, aryValuesToExpose, "Update", 0, 3) & _
                         ";"
             End Select
         End If
@@ -1200,10 +1219,11 @@ Function ReadRegistry_SofwareInstalled(strComputer, strResultFileType, strFieldS
     End If
     Set objRegistry = GetObject("winmgmts:{impersonationLevel=impersonate}!\\" & strComputer & "\root\default:StdRegProv")
     objRegistry.GetStringValue HKLM, "SYSTEM\CurrentControlSet\Control\Session Manager\Environment", "PROCESSOR_ARCHITECTURE", strOStype
-    CheckSoftware strComputer, bolFileSoftwareHeaderToAdd, objResultSoftware, objRegistry, "SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\"
+    CheckSoftware strComputer, bolFileSoftwareHeaderToAdd, objResultSoftware, objRegistry, HKLM, "SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\"
+    CheckSoftware strComputer, bolFileSoftwareHeaderToAdd, objResultSoftware, objRegistry, HKCU, "SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\"
     ' if Windows is 64-bit an additional Registry Key has to be analyzed
     If (strOStype = "AMD64") Then
-        CheckSoftware strComputer, False, objResultSoftware, objRegistry, "SOFTWARE\Wow6432Node\Microsoft\Windows\CurrentVersion\Uninstall\"
+        CheckSoftware strComputer, False, objResultSoftware, objRegistry, HKLM, "SOFTWARE\Wow6432Node\Microsoft\Windows\CurrentVersion\Uninstall\"
     End If
     If (LCase(strResultFileType) = ".sql") Then
         ApplySoftwareNormalizationForSoftwareInstalled strComputer, objResultSoftware
