@@ -285,9 +285,7 @@ Function CheckSoftware(strComputer, bolWriteHeader, ReportFile, objReg, Registry
             Else
                 If (IsNumeric(strInstallDate)) Then
                     If (strInstallDate > 0) Then
-                        strDateYMD = Mid(strInstallDate, 1, 4) & _
-                            "-" & Mid(strInstallDate, 5, 2) & _
-                            "-" & Mid(strInstallDate, 7, 2)
+                        strDateYMD = ConvertStringDateIntoSqlFormat(strInstallDate)
                     Else
                         strDateYMD = "NULL"
                     End If
@@ -349,7 +347,7 @@ Function CheckSoftware(strComputer, bolWriteHeader, ReportFile, objReg, Registry
                     ' AIMP seems to store DisplayVersion as "vX.XX.XXXX, Date" so needs special handling to get only the first part without the ","
                     Case "AIMP"
                         aryDisplayVersion = Split(strDisplayVersion, ", ")
-                        strDisplayVersionCleaned = strVersionPrefix & aryDisplayVersion(1)
+                        strDisplayVersionCleaned = strVersionPrefix & Replace(aryDisplayVersion(0), "v", "")
                     Case Else
                         ' In some cases DisplayVersion has a date before the version so we're going to take in consideration only the very last group of continuous string splitted by space
                         strDisplayVersionPiecesTemp = Replace(CStr(strDisplayVersion), " release candidate ", ".10")
@@ -584,8 +582,8 @@ Function ConvertDateToSqlFormat(dtGivenDate)
 End Function
 Function ConvertStringDateIntoSqlFormat(strGivenDate)
     ConvertStringDateIntoSqlFormat = Left(strGivenDate, 4) & _
-        "-" & Mid(strGivenDate, 5, 2) & _
-        "-" & Right(strGivenDate, 2)
+        "-" & Replace(Mid(strGivenDate, 5, 2), "00", "01") & _
+        "-" & Replace(Right(strGivenDate, 2), "00", "01")
 End Function
 Function CSVfieldNamesIntoSQLfieldName(aryFieldNames)
     strFieldListForMySQLinsert = Join(aryFieldNames, "|")
