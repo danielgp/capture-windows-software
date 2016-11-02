@@ -248,6 +248,7 @@ Function CheckSoftware(strComputer, bolWriteHeader, ReportFile, objReg, Registry
     strEntryDisplayVersion = "DisplayVersion"
     strEntryURLInfoAbout = "URLInfoAbout"
     strEntryDisplayIcon = "DisplayIcon"
+    strEntryUninstallString = "UninstallString"
     If (LCase(strResultFileType) = ".csv") Then
         If (bolWriteHeader) Then
             ReportFile.writeline Join(aryInformationToExpose, strFieldSeparator)
@@ -264,6 +265,7 @@ Function CheckSoftware(strComputer, bolWriteHeader, ReportFile, objReg, Registry
             intReturnL = objReg.GetStringValue(RegistryHive, strKey & strSubkey, strEntryInstallLocation, strInstallLocation)
             intReturnD = objReg.GetStringValue(RegistryHive, strKey & strSubkey, strEntryInstallDate, strInstallDate)
             intReturnDI = objReg.GetStringValue(RegistryHive, strKey & strSubkey, strEntryDisplayIcon, strDisplayIcon)
+            intReturnUS = objReg.GetStringValue(RegistryHive, strKey & strSubkey, strEntryUninstallString, strUninstallString)
             objReg.GetDWORDValue RegistryHive, strKey & strSubkey, strEntryVersionMajor, intValueVersionMajor
             objReg.GetDWORDValue RegistryHive, strKey & strSubkey, strEntryVersionMinor, intValueVersionMinor
             objReg.GetDWORDValue RegistryHive, strKey & strSubkey, strEntryEstimatedSize, intEstimatedSize
@@ -319,6 +321,10 @@ Function CheckSoftware(strComputer, bolWriteHeader, ReportFile, objReg, Registry
                             aryDisplayName = Split(strDisplayName, " ")
                             strDisplayVersionCleaned = strVersionPrefix & aryDisplayName(2)
                         End If
+                    Case "f.lux"
+                        If (strPublisherName = "NULL") Then
+                            strPublisherName = "F.Lux Software LLC"
+                        End If
                     Case "Glance"
                         If (strDisplayVersionCleaned = "NULL") Then
                             aryDisplayName = Split(strDisplayName, " ")
@@ -351,7 +357,7 @@ Function CheckSoftware(strComputer, bolWriteHeader, ReportFile, objReg, Registry
                     Case Else
                         ' In some cases DisplayVersion has a date before the version so we're going to take in consideration only the very last group of continuous string splitted by space
                         strDisplayVersionPiecesTemp = Replace(CStr(strDisplayVersion), " release candidate ", ".10")
-                        strDisplayVersionPiecesTemp = CleanStringWithBlacklistArray(strDisplayVersionPiecesTemp, Array("a", " beta "), ".")
+                        strDisplayVersionPiecesTemp = CleanStringWithBlacklistArray(strDisplayVersionPiecesTemp, Array("a", " beta ", "-beta-", " Compilation "), ".")
                         strDisplayVersionPieces = Split(strDisplayVersionPiecesTemp, " ")
                         For Each strDisplayVersionPieceValue In strDisplayVersionPieces
                             If (IsNumeric(strDisplayVersionPieceValue)) Then
@@ -391,6 +397,23 @@ Function CheckSoftware(strComputer, bolWriteHeader, ReportFile, objReg, Registry
                 End If
                 If (objFSO.FileExists(strIconFile)) Then
                     strDisplayVersionCleaned = strVersionPrefix & objFSO.GetFileVersion(strIconFile)
+                End If
+            End If
+            If ((strDisplayVersionCleaned = "NULL") And (intReturnUS = 0) And (strUninstallString <> "")) Then
+                strUninstallStringCleaned = Replace(strUninstallString, """", "")
+                aryUninstallFile = Split(strUninstallStringCleaned, " ")
+                strUninstallFileNameWithPath = aryUninstallFile(0)
+                aryUninstallFileParts = Split(strUninstallFileNameWithPath, "\")
+                intUFcount = UBound(aryUninstallFileParts)
+                strUninstallFileName = aryUninstallFileParts(intUFcount)
+                strUninstallPath = Replace(strUninstallFileNameWithPath, strUninstallFileName, "")
+                strFileWithVersion = FileSearchToFileOutput(objFSO, strUninstallPath, ".exe", strUninstallFileName)
+                If (Not IsNull(strFileWithVersion)) Then
+                    strDisplayVersionCleaned = strVersionPrefix & objFSO.GetFileVersion(strFileWithVersion)
+                    If (strDateYMD = "NULL") Then
+                        Set objFile = objFSO.GetFile(strFileWithVersion)
+                        strDateYMD = ConvertDateToSqlFormat(objFile.DateCreated)
+                    End If
                 End If
             End If
             If ((Left(strSoftwareNameCleaned, 7) = "OpenSSL") And (strDisplayVersionCleaned <> "NULL")) Then
@@ -2186,7 +2209,7 @@ Function RecursiveFileSearchToFileOutput(strFolderToSearch, strFileNameToSearch,
         strMethodToFind = "Aproximate"
     Else
         strMethodToFind = "Exact"
-    End IF
+    End If
     aryFields = Split(strFieldsGlued, "||")
     If (FolderHasSubFolders(strFolderToSearch)) Then
         For Each oSubFolder In strFolderToSearch.SubFolders
@@ -2234,5 +2257,20 @@ Function RecursiveFileSearchToFileOutput(strFolderToSearch, strFileNameToSearch,
             End If
         Next
     End If
+End Function
+Function FileSearchToFileOutput(objFSO, strFolderToSearch, strFileExtensionToFind, strFileToExempt)
+    Dim strCurrentFile
+    strFileMatched = Null
+    If (objFSO.FolderExists(strFolderToSearch)) Then
+        Set objFolder = objFSO.GetFolder(strFolderToSearch)
+        For Each strCurrentFile In objFolder.Files
+            If (strCurrentFile.Name <> strFileToExempt) Then
+                If (Right(strCurrentFile.Name, Len(strFileExtensionToFind)) = strFileExtensionToFind) Then
+                    strFileMatched = strCurrentFile
+                End If
+            End If
+        Next
+    End If
+    FileSearchToFileOutput = strFileMatched
 End Function
 '-----------------------------------------------------------------------------------------------------------------------
