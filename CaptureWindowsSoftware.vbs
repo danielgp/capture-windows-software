@@ -35,6 +35,7 @@ Const strResultFileNameSecurityRiskComponents = "ResultSecurityRiskComponents"
 '-----------------------------------------------------------------------------------------------------------------------
 Const ForAppending = 8
 Const ForReading = 1
+Const HKCU = &H80000001 'HKEY_CURRENT_USER
 Const HKLM = &H80000002 'HKEY_LOCAL_MACHINE
 Dim strResultFileType
 Set objFSO = CreateObject("Scripting.FileSystemObject")
@@ -211,7 +212,7 @@ Function BuildInsertOrUpdateSQLstructure(aryFieldNames, aryFieldValues, strInser
     End Select
     BuildInsertOrUpdateSQLstructure = Replace(Replace(Replace(Replace(strUpdateSQLstructure, "'NULL'", "NULL"), "\", "\\"), "t's", "t\'s"), """""", """")
 End Function
-Function CheckSoftware(strComputer, bolWriteHeader, ReportFile, objReg, strKey)
+Function CheckSoftware(strComputer, bolWriteHeader, ReportFile, objReg, RegistryHive, strKey)
     Dim aryJSONinformationCSV(7)
     Dim aryJSONinformationSQL(7)
     aryInformationToExpose = Array(_
@@ -222,8 +223,9 @@ Function CheckSoftware(strComputer, bolWriteHeader, ReportFile, objReg, strKey)
         "Full Version", _
         "Installation Date", _
         "Other Info", _
-        "Registry Key Trunk", _
-        "Registry SubKey" _
+        "Registry Hive", _
+        "Registry SubKey", _
+        "Bits 32 Or 64" _
     )
     aryInformationToExposeOtherInfo = Array(_
         "Install Location", _
@@ -246,27 +248,29 @@ Function CheckSoftware(strComputer, bolWriteHeader, ReportFile, objReg, strKey)
     strEntryDisplayVersion = "DisplayVersion"
     strEntryURLInfoAbout = "URLInfoAbout"
     strEntryDisplayIcon = "DisplayIcon"
+    strEntryUninstallString = "UninstallString"
     If (LCase(strResultFileType) = ".csv") Then
         If (bolWriteHeader) Then
             ReportFile.writeline Join(aryInformationToExpose, strFieldSeparator)
         End If
     End If
-    objReg.EnumKey HKLM, strKey, arrSubkeys
+    objReg.EnumKey RegistryHive, strKey, arrSubkeys
     For Each strSubkey In arrSubkeys
-        intReturnN = objReg.GetStringValue(HKLM, strKey & strSubkey, strEntryDisplayName, strDisplayName)
+        intReturnN = objReg.GetStringValue(RegistryHive, strKey & strSubkey, strEntryDisplayName, strDisplayName)
         If (intReturnN <> 0) Then
-            objReg.GetStringValue HKLM, strKey & strSubkey, strEntryQuietDisplayName, strDisplayName
+            objReg.GetStringValue RegistryHive, strKey & strSubkey, strEntryQuietDisplayName, strDisplayName
         End If
         If (strDisplayName <> "") Then
-            intReturnP = objReg.GetStringValue(HKLM, strKey & strSubkey, strEntryPublisher, strPublisher)
-            intReturnL = objReg.GetStringValue(HKLM, strKey & strSubkey, strEntryInstallLocation, strInstallLocation)
-            intReturnD = objReg.GetStringValue(HKLM, strKey & strSubkey, strEntryInstallDate, strInstallDate)
-            intReturnDI = objReg.GetStringValue(HKLM, strKey & strSubkey, strEntryDisplayIcon, strDisplayIcon)
-            objReg.GetDWORDValue HKLM, strKey & strSubkey, strEntryVersionMajor, intValueVersionMajor
-            objReg.GetDWORDValue HKLM, strKey & strSubkey, strEntryVersionMinor, intValueVersionMinor
-            objReg.GetDWORDValue HKLM, strKey & strSubkey, strEntryEstimatedSize, intEstimatedSize
-            intReturnV = objReg.GetStringValue(HKLM, strKey & strSubkey, strEntryDisplayVersion, strDisplayVersion)
-            intReturnU = objReg.GetStringValue(HKLM, strKey & strSubkey, strEntryURLInfoAbout, strURLInfoAbout)
+            intReturnP = objReg.GetStringValue(RegistryHive, strKey & strSubkey, strEntryPublisher, strPublisher)
+            intReturnL = objReg.GetStringValue(RegistryHive, strKey & strSubkey, strEntryInstallLocation, strInstallLocation)
+            intReturnD = objReg.GetStringValue(RegistryHive, strKey & strSubkey, strEntryInstallDate, strInstallDate)
+            intReturnDI = objReg.GetStringValue(RegistryHive, strKey & strSubkey, strEntryDisplayIcon, strDisplayIcon)
+            intReturnUS = objReg.GetStringValue(RegistryHive, strKey & strSubkey, strEntryUninstallString, strUninstallString)
+            objReg.GetDWORDValue RegistryHive, strKey & strSubkey, strEntryVersionMajor, intValueVersionMajor
+            objReg.GetDWORDValue RegistryHive, strKey & strSubkey, strEntryVersionMinor, intValueVersionMinor
+            objReg.GetDWORDValue RegistryHive, strKey & strSubkey, strEntryEstimatedSize, intEstimatedSize
+            intReturnV = objReg.GetStringValue(RegistryHive, strKey & strSubkey, strEntryDisplayVersion, strDisplayVersion)
+            intReturnU = objReg.GetStringValue(RegistryHive, strKey & strSubkey, strEntryURLInfoAbout, strURLInfoAbout)
             If (intReturnP = 0) Then
                 strPublisherName = HarmonizedPublisher(strPublisher)
             Else
@@ -283,9 +287,7 @@ Function CheckSoftware(strComputer, bolWriteHeader, ReportFile, objReg, strKey)
             Else
                 If (IsNumeric(strInstallDate)) Then
                     If (strInstallDate > 0) Then
-                        strDateYMD = Mid(strInstallDate, 1, 4) & _
-                            "-" & Mid(strInstallDate, 5, 2) & _
-                            "-" & Mid(strInstallDate, 7, 2)
+                        strDateYMD = ConvertStringDateIntoSqlFormat(strInstallDate)
                     Else
                         strDateYMD = "NULL"
                     End If
@@ -319,6 +321,10 @@ Function CheckSoftware(strComputer, bolWriteHeader, ReportFile, objReg, strKey)
                             aryDisplayName = Split(strDisplayName, " ")
                             strDisplayVersionCleaned = strVersionPrefix & aryDisplayName(2)
                         End If
+                    Case "f.lux"
+                        If (strPublisherName = "NULL") Then
+                            strPublisherName = "F.Lux Software LLC"
+                        End If
                     Case "Glance"
                         If (strDisplayVersionCleaned = "NULL") Then
                             aryDisplayName = Split(strDisplayName, " ")
@@ -347,11 +353,11 @@ Function CheckSoftware(strComputer, bolWriteHeader, ReportFile, objReg, strKey)
                     ' AIMP seems to store DisplayVersion as "vX.XX.XXXX, Date" so needs special handling to get only the first part without the ","
                     Case "AIMP"
                         aryDisplayVersion = Split(strDisplayVersion, ", ")
-                        strDisplayVersionCleaned = strVersionPrefix & aryDisplayVersion(1)
+                        strDisplayVersionCleaned = strVersionPrefix & Replace(aryDisplayVersion(0), "v", "")
                     Case Else
                         ' In some cases DisplayVersion has a date before the version so we're going to take in consideration only the very last group of continuous string splitted by space
                         strDisplayVersionPiecesTemp = Replace(CStr(strDisplayVersion), " release candidate ", ".10")
-                        strDisplayVersionPiecesTemp = CleanStringWithBlacklistArray(strDisplayVersionPiecesTemp, Array("a", " beta "), ".")
+                        strDisplayVersionPiecesTemp = CleanStringWithBlacklistArray(strDisplayVersionPiecesTemp, Array("a", " beta ", "-beta-", " Compilation "), ".")
                         strDisplayVersionPieces = Split(strDisplayVersionPiecesTemp, " ")
                         For Each strDisplayVersionPieceValue In strDisplayVersionPieces
                             If (IsNumeric(strDisplayVersionPieceValue)) Then
@@ -393,6 +399,23 @@ Function CheckSoftware(strComputer, bolWriteHeader, ReportFile, objReg, strKey)
                     strDisplayVersionCleaned = strVersionPrefix & objFSO.GetFileVersion(strIconFile)
                 End If
             End If
+            If ((strDisplayVersionCleaned = "NULL") And (intReturnUS = 0) And (strUninstallString <> "")) Then
+                strUninstallStringCleaned = Replace(strUninstallString, """", "")
+                aryUninstallFile = Split(strUninstallStringCleaned, " ")
+                strUninstallFileNameWithPath = aryUninstallFile(0)
+                aryUninstallFileParts = Split(strUninstallFileNameWithPath, "\")
+                intUFcount = UBound(aryUninstallFileParts)
+                strUninstallFileName = aryUninstallFileParts(intUFcount)
+                strUninstallPath = Replace(strUninstallFileNameWithPath, strUninstallFileName, "")
+                strFileWithVersion = FileSearchToFileOutput(objFSO, strUninstallPath, ".exe", strUninstallFileName)
+                If (Not IsNull(strFileWithVersion)) Then
+                    strDisplayVersionCleaned = strVersionPrefix & objFSO.GetFileVersion(strFileWithVersion)
+                    If (strDateYMD = "NULL") Then
+                        Set objFile = objFSO.GetFile(strFileWithVersion)
+                        strDateYMD = ConvertDateToSqlFormat(objFile.DateCreated)
+                    End If
+                End If
+            End If
             If ((Left(strSoftwareNameCleaned, 7) = "OpenSSL") And (strDisplayVersionCleaned <> "NULL")) Then
                 strSoftwareNameCleaned = "OpenSSL"
                 strLastLetter = Right(strDisplayVersionCleaned, 1)
@@ -411,7 +434,6 @@ Function CheckSoftware(strComputer, bolWriteHeader, ReportFile, objReg, strKey)
                     strURLInfoAbout = Left(strURLInfoAbout, (Len(strURLInfoAbout) - 1))
                 End If
             End If
-            strSubkeyPieces = Split(strKey, "\")
             aryValuesToExposeOtherInfo = Array(_
                 strInstallLocation, _
                 strPublisher, _
@@ -447,6 +469,23 @@ Function CheckSoftware(strComputer, bolWriteHeader, ReportFile, objReg, strKey)
                     Next
                     strOtherInfo = "{ " & Join(aryJSONinformationSQL, ", ") & " }"
             End Select
+            Select Case RegistryHive
+                Case HKCU
+                    strMachineLocal = "HKEY_CURRENT_USER"
+                Case HKLM
+                    strMachineLocal = "HKEY_LOCAL_MACHINE"
+                Case Else
+                    strMachineLocal = "Unknown"
+            End Select
+            strSubkeyPieces = Split(strKey, "\")
+            Select Case strSubkeyPieces(1)
+                Case "Microsoft"
+                    strBits32or34 = "32"
+                Case "Wow6432Node"
+                    strBits32or34 = "64"
+                Case Else
+                    strBits32or34 = "0"
+            End Select
             aryValuesToExpose = Array(_
                 CurrentDateTimeToSqlFormat(), _
                 strComputer, _
@@ -455,19 +494,20 @@ Function CheckSoftware(strComputer, bolWriteHeader, ReportFile, objReg, strKey)
                 strDisplayVersionCleaned, _
                 strDateYMD , _
                 strOtherInfo, _
-                strSubkeyPieces(1), _
-                strSubkey _
+                strMachineLocal, _
+                strSubkey, _
+                strBits32or34 _
             )
             Select Case LCase(strResultFileType)
                 Case ".csv"
                     ReportFile.WriteLine Join(aryValuesToExpose, strFieldSeparator)
                 Case ".sql"
                     ReportFile.WriteLine "INSERT INTO `in_windows_software_installed` (" & _
-                        BuildInsertOrUpdateSQLstructure(aryInformationToExpose, aryValuesToExpose, "InsertFields", 0, 2) & _
+                        BuildInsertOrUpdateSQLstructure(aryInformationToExpose, aryValuesToExpose, "InsertFields", 0, 3) & _
                         ") VALUES(" & _
-                        BuildInsertOrUpdateSQLstructure(aryInformationToExpose, aryValuesToExpose, "InsertValues", 0, 2) & _
+                        BuildInsertOrUpdateSQLstructure(aryInformationToExpose, aryValuesToExpose, "InsertValues", 0, 3) & _
                         ") ON DUPLICATE KEY UPDATE " & _
-                        BuildInsertOrUpdateSQLstructure(aryInformationToExpose, aryValuesToExpose, "Update", 0, 2) & _
+                        BuildInsertOrUpdateSQLstructure(aryInformationToExpose, aryValuesToExpose, "Update", 0, 3) & _
                         ";"
             End Select
         End If
@@ -576,8 +616,8 @@ Function ConvertDateToSqlFormat(dtGivenDate)
 End Function
 Function ConvertStringDateIntoSqlFormat(strGivenDate)
     ConvertStringDateIntoSqlFormat = Left(strGivenDate, 4) & _
-        "-" & Mid(strGivenDate, 5, 2) & _
-        "-" & Right(strGivenDate, 2)
+        "-" & Replace(Mid(strGivenDate, 5, 2), "00", "01") & _
+        "-" & Replace(Right(strGivenDate, 2), "00", "01")
 End Function
 Function CSVfieldNamesIntoSQLfieldName(aryFieldNames)
     strFieldListForMySQLinsert = Join(aryFieldNames, "|")
@@ -1211,10 +1251,11 @@ Function ReadRegistry_SofwareInstalled(strComputer, strResultFileType, strFieldS
     End If
     Set objRegistry = GetObject("winmgmts:{impersonationLevel=impersonate}!\\" & strComputer & "\root\default:StdRegProv")
     objRegistry.GetStringValue HKLM, "SYSTEM\CurrentControlSet\Control\Session Manager\Environment", "PROCESSOR_ARCHITECTURE", strOStype
-    CheckSoftware strComputer, bolFileSoftwareHeaderToAdd, objResultSoftware, objRegistry, "SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\"
+    CheckSoftware strComputer, bolFileSoftwareHeaderToAdd, objResultSoftware, objRegistry, HKLM, "SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\"
+    CheckSoftware strComputer, bolFileSoftwareHeaderToAdd, objResultSoftware, objRegistry, HKCU, "SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\"
     ' if Windows is 64-bit an additional Registry Key has to be analyzed
     If (strOStype = "AMD64") Then
-        CheckSoftware strComputer, False, objResultSoftware, objRegistry, "SOFTWARE\Wow6432Node\Microsoft\Windows\CurrentVersion\Uninstall\"
+        CheckSoftware strComputer, False, objResultSoftware, objRegistry, HKLM, "SOFTWARE\Wow6432Node\Microsoft\Windows\CurrentVersion\Uninstall\"
     End If
     If (LCase(strResultFileType) = ".sql") Then
         ApplySoftwareNormalizationForSoftwareInstalled strComputer, objResultSoftware
@@ -2175,7 +2216,7 @@ Function RecursiveFileSearchToFileOutput(strFolderToSearch, strFileNameToSearch,
         strMethodToFind = "Aproximate"
     Else
         strMethodToFind = "Exact"
-    End IF
+    End If
     aryFields = Split(strFieldsGlued, "||")
     If (FolderHasSubFolders(strFolderToSearch)) Then
         For Each oSubFolder In strFolderToSearch.SubFolders
@@ -2223,5 +2264,20 @@ Function RecursiveFileSearchToFileOutput(strFolderToSearch, strFileNameToSearch,
             End If
         Next
     End If
+End Function
+Function FileSearchToFileOutput(objFSO, strFolderToSearch, strFileExtensionToFind, strFileToExempt)
+    Dim strCurrentFile
+    strFileMatched = Null
+    If (objFSO.FolderExists(strFolderToSearch)) Then
+        Set objFolder = objFSO.GetFolder(strFolderToSearch)
+        For Each strCurrentFile In objFolder.Files
+            If (strCurrentFile.Name <> strFileToExempt) Then
+                If (Right(strCurrentFile.Name, Len(strFileExtensionToFind)) = strFileExtensionToFind) Then
+                    strFileMatched = strCurrentFile
+                End If
+            End If
+        Next
+    End If
+    FileSearchToFileOutput = strFileMatched
 End Function
 '-----------------------------------------------------------------------------------------------------------------------
