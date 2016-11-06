@@ -473,6 +473,17 @@ Function CheckSoftware(strComputer, bolWriteHeader, ReportFile, objReg, strKey)
         End If
     Next
 End Function
+Function CleanStringLeavingLattinLettersAndNumbers(strToClean)
+	Dim objRegExp, outputStr
+	Set objRegExp = New Regexp
+	objRegExp.IgnoreCase = True
+	objRegExp.Global = True
+	objRegExp.Pattern = "((?![a-zA-Z0-9]).)+"
+	outputStr = objRegExp.Replace(strToClean, "-")
+	objRegExp.Pattern = "\-+"
+	outputStr = objRegExp.Replace(outputStr, "-")
+	CleanStringLeavingLattinLettersAndNumbers = outputStr
+End Function
 Function CleanStringOfNumericPiece(strFullStringToClean)
     ' break entire string into pieces with space as separator
     aryFullStringToClean = Split(strFullStringToClean, " ")
@@ -1545,11 +1556,7 @@ Function ReadWMI__Win32_DiskDrive(objWMIService, strComputer, strResultFileType,
                             aryJSONinformationSQL(intCounter) = """" & crtField & """: " & _
                                 """" & Trim(strDiskNameCleaned) & """"
                         Case "Serial Number"
-                            If ((StrComp(crtValue, "", 0) <> 0) And (StrComp(crtValue, "", 0) <> 0)) Then
-                                aryJSONinformationSQL(intCounter) = """" & crtField & """: " & """" & crtValue & """"
-                            Else
-                                aryJSONinformationSQL(intCounter) = """" & crtField & """: " & """-"""
-                            End If
+							aryJSONinformationSQL(intCounter) = """" & crtField & """: " & """" & CleanStringLeavingLattinLettersAndNumbers(crtValue) & """"
                         Case Else
                             If (IsNumericExtended(crtValue)) Then
                                 aryJSONinformationSQL(intCounter) = """" & crtField & """: " & crtValue
