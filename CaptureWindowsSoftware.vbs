@@ -370,6 +370,10 @@ Function CheckSoftware(strComputer, bolWriteHeader, ReportFile, objReg, Registry
                         Next
                 End Select
             End If
+            Select Case strSoftwareNameCleaned
+                Case "Total Commander"
+                    strDisplayVersionCleaned = strVersionPrefix & intValueVersionMajor & "." & intValueVersionMinor
+            End Select
             If (Left(strDisplayName, 16) = "GlassFish Server") Then
                 If (strPublisherName = "NULL") Then
                     strPublisherName = "Oracle Corporation"
