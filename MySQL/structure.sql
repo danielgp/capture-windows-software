@@ -80,7 +80,7 @@ CREATE TABLE IF NOT EXISTS `in_windows_software_installed` (
   `InstallationDate` DATE DEFAULT NULL,
   `OtherInfo` JSON DEFAULT NULL,
   `RegistryHive` ENUM('HKEY_LOCAL_MACHINE', 'HKEY_CURRENT_USER', 'Unknown') NOT NULL DEFAULT 'Unknown',
-  `RegistrySubKey` VARCHAR(100) NOT NULL,
+  `RegistrySubKey` VARCHAR(200) NOT NULL,
   `Bits32Or64` ENUM('0', '32', '64') NOT NULL DEFAULT '0',
   PRIMARY KEY(`HostName`, `RegistryHive`, `RegistrySubKey`, `Bits32Or64`),
   KEY `ndx_iwsi_HostName` (`HostName`),
@@ -423,7 +423,7 @@ SELECT
     `pd`.`PublisherName`,
     `sd`.`SoftwareId`,
     `sd`.`SoftwareName`,
-    (CASE WHEN (`sd`.`SoftwareName` IN ('Intel® Processor Graphics', 'Maxx Audio Installer', 'Microsoft redistributable runtime DLLs', 'Microsoft Visual C++ Additional Runtime', 'Microsoft Visual C++ Minimum Runtime', 'Microsoft Visual C++ Redistributable', 'Microsoft Visual Studio Tools for Office Runtime', 'Office Click-to-Run Extensibility Component', 'Office Click-to-Run Licensing Component', 'Office Click-to-Run Localization Component', 'PHP', 'Security Update for Microsoft .NET Framework')) THEN JSON_EXTRACT(`vd`.`FullVersionParts`, '$.Major') WHEN (`sd`.`SoftwareName` LIKE 'Intel® Management Engine Components') THEN (CASE WHEN (JSON_EXTRACT(`vd`.`FullVersionParts`, '$.Major') = 1) THEN 1 ELSE "non 1" END) WHEN (`sd`.`SoftwareName` IN ('MySQL Documents', 'MySQL Examples and Samples', 'MySQL Server')) THEN (CASE WHEN (JSON_EXTRACT(`vd`.`FullVersionParts`, '$.Major') = 8) THEN "dmr" ELSE NULL END) WHEN (`sd`.`SoftwareName` LIKE 'Mozilla Firefox') THEN (CASE WHEN (JSON_EXTRACT(`vd`.`FullVersionParts`, '$.Major') = 50) THEN "Beta" WHEN (JSON_EXTRACT(`vd`.`FullVersionParts`, '$.Major') = 51) THEN "Developer" WHEN (JSON_EXTRACT(`vd`.`FullVersionParts`, '$.Major') = 52) THEN "Nightly" ELSE NULL END) ELSE NULL END) AS `RelevantMajorVersion`,
+    (CASE WHEN (`sd`.`SoftwareName` IN ('Intel® Processor Graphics', 'Maxx Audio Installer', 'Microsoft redistributable runtime DLLs', 'Microsoft Visio Professional', 'Microsoft Visio Standard', 'Microsoft Visual C++ Additional Runtime', 'Microsoft Visual C++ Minimum Runtime', 'Microsoft Visual C++ Redistributable', 'Microsoft Visual Studio Tools for Office Runtime', 'Office Click-to-Run Extensibility Component', 'Office Click-to-Run Licensing Component', 'Office Click-to-Run Localization Component', 'PHP', 'Security Update for Microsoft .NET Framework')) THEN JSON_EXTRACT(`vd`.`FullVersionParts`, '$.Major') WHEN (`sd`.`SoftwareName` LIKE 'Intel® Management Engine Components') THEN (CASE WHEN (JSON_EXTRACT(`vd`.`FullVersionParts`, '$.Major') = 1) THEN 1 ELSE "non 1" END) WHEN (`sd`.`SoftwareName` IN ('MySQL Documents', 'MySQL Examples and Samples', 'MySQL Server')) THEN (CASE WHEN (JSON_EXTRACT(`vd`.`FullVersionParts`, '$.Major') = 8) THEN "dmr" ELSE NULL END) WHEN (`sd`.`SoftwareName` LIKE 'Mozilla Firefox') THEN (CASE WHEN (JSON_EXTRACT(`vd`.`FullVersionParts`, '$.Major') = 50) THEN "Beta" WHEN (JSON_EXTRACT(`vd`.`FullVersionParts`, '$.Major') = 51) THEN "Developer" WHEN (JSON_EXTRACT(`vd`.`FullVersionParts`, '$.Major') = 52) THEN "Nightly" ELSE NULL END) WHEN (`sd`.`SoftwareName` LIKE 'Tableau') THEN CONCAT(JSON_EXTRACT(`vd`.`FullVersionParts`, '$.Major'), '.', JSON_EXTRACT(`vd`.`FullVersionParts`, '$.Minor')) ELSE NULL END) AS `RelevantMajorVersion`,
     `vd`.`VersionId`,
     `vd`.`FullVersion`,
     `vd`.`FullVersionNumeric`
