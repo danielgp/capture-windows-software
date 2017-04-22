@@ -75,7 +75,7 @@ CREATE TABLE IF NOT EXISTS `in_windows_software_installed` (
   `EvaluationTimestamp` DATETIME NOT NULL,
   `HostName` VARCHAR(64) NOT NULL,
   `PublisherName` VARCHAR(80) DEFAULT NULL,
-  `SoftwareName` VARCHAR(80) NOT NULL,
+  `SoftwareName` VARCHAR(254) NOT NULL,
   `FullVersion` VARCHAR(30) DEFAULT NULL,
   `InstallationDate` DATE DEFAULT NULL,
   `OtherInfo` JSON DEFAULT NULL,
@@ -175,7 +175,7 @@ DROP TABLE IF EXISTS `software_details`;
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE IF NOT EXISTS `software_details` (
   `SoftwareId` SMALLINT(5) UNSIGNED NOT NULL AUTO_INCREMENT,
-  `SoftwareName` VARCHAR(80) NOT NULL,
+  `SoftwareName` VARCHAR(254) NOT NULL,
   `FirstSeen` DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
   `LastSeen` DATETIME(6) DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP(6),
   PRIMARY KEY (`SoftwareId`),
