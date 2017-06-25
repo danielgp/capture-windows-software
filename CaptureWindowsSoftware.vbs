@@ -1,7 +1,7 @@
 '-----------------------------------------------------------------------------------------------------------------------
 ' IT License
 '
-' Copyright (c) 2016 Daniel Popiniuc
+' Copyright (c) 2017 Daniel Popiniuc
 '
 ' Permission is hereby granted, free of charge, to any person obtaining a copy
 ' of this software and associated documentation files (the "Software"), to deal
@@ -373,6 +373,14 @@ Function CheckSoftware(strComputer, bolWriteHeader, ReportFile, objReg, Registry
             Select Case strSoftwareNameCleaned
                 Case "Total Commander"
                     strDisplayVersionCleaned = strVersionPrefix & intValueVersionMajor & "." & intValueVersionMinor
+                Case "SourceTree" ' seems SourTree does not really updates the Registry when releasing a new version via AutoUpdate from within application, so we have to search manually for newest version of application main file
+                    strFileWithVersion = RecursiveFileSearchNewest(objFSO, strInstallLocation, "SourceTree.exe")
+                    If strFileWithVersion <> "" Then
+                        strDisplayVersion = strVersionPrefix & objFSO.GetFileVersion(strFileWithVersion)
+                        strDisplayVersionCleaned = strVersionPrefix & objFSO.GetFileVersion(strFileWithVersion)
+                        Set objFile = objFSO.GetFile(strFileWithVersion)
+                        strDateYMD = ConvertDateToSqlFormat(objFile.DateCreated)
+                    End If
             End Select
             If (Left(strDisplayName, 16) = "GlassFish Server") Then
                 If (strPublisherName = "NULL") Then
@@ -2269,6 +2277,23 @@ Function RecursiveFileSearchToFileOutput(strFolderToSearch, strFileNameToSearch,
                 intFilesCheckedForMatchUntilFound = 0
             End If
         Next
+    End If
+End Function
+Function RecursiveFileSearchNewest(objFSO, strFolderToSearch, strFileToFind)
+    On Error Resume Next
+    Dim subFolder, oSubFolder, strCurrentFile, crtFileDate, lngNewestFileDate
+    strFileMatched = ""
+    lngNewestFolderDate = 19700101
+    If (objFSO.FolderExists(strFolderToSearch)) Then
+        Set objFolder = objFSO.GetFolder(strFolderToSearch)
+        For Each oSubFolder In objFolder.SubFolders
+            If (Left(oSubFolder.Name, 4) = "app-") Then
+                If DateDiff("d", lngNewestFolderDate, oSubFolder.DateCreated) > 0 Then
+                    subFolder = oSubFolder.Name
+                End If
+            End If
+        Next
+        RecursiveFileSearchNewest = strFolderToSearch & "\" & subFolder & "\" & strFileToFind
     End If
 End Function
 Function FileSearchToFileOutput(objFSO, strFolderToSearch, strFileExtensionToFind, strFileToExempt)
