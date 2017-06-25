@@ -393,7 +393,7 @@ Function CheckSoftware(strComputer, bolWriteHeader, ReportFile, objReg, Registry
                     End If
                 End If
             End If
-            If ((strDisplayVersionCleaned = "NULL") And (intReturnDI = 0) And (strDisplayIcon <> "")) Then
+            If ((strDisplayVersionCleaned = "NULL") And (intReturnDI = 0) And (strDisplayIcon <> "") And (strDisplayIcon <> """""")) Then
                 strIconFile = Replace(strDisplayIcon, """", "")
                 If (InStr(1, strInput, ",", vbTextCompare) = 0) Then
                     aryIconFile = Split(strIconFile, ",")
@@ -409,14 +409,16 @@ Function CheckSoftware(strComputer, bolWriteHeader, ReportFile, objReg, Registry
                 strUninstallFileNameWithPath = aryUninstallFile(0)
                 aryUninstallFileParts = Split(strUninstallFileNameWithPath, "\")
                 intUFcount = UBound(aryUninstallFileParts)
-                strUninstallFileName = aryUninstallFileParts(intUFcount)
-                strUninstallPath = Replace(strUninstallFileNameWithPath, strUninstallFileName, "")
-                strFileWithVersion = FileSearchToFileOutput(objFSO, strUninstallPath, ".exe", strUninstallFileName)
-                If (Not IsNull(strFileWithVersion)) Then
-                    strDisplayVersionCleaned = strVersionPrefix & objFSO.GetFileVersion(strFileWithVersion)
-                    If (strDateYMD = "NULL") Then
-                        Set objFile = objFSO.GetFile(strFileWithVersion)
-                        strDateYMD = ConvertDateToSqlFormat(objFile.DateCreated)
+                If intUFcount > 0 Then
+                    strUninstallFileName = aryUninstallFileParts(intUFcount)
+                    strUninstallPath = Replace(strUninstallFileNameWithPath, strUninstallFileName, "")
+                    strFileWithVersion = FileSearchToFileOutput(objFSO, strUninstallPath, ".exe", strUninstallFileName)
+                    If (Not IsNull(strFileWithVersion)) Then
+                        strDisplayVersionCleaned = strVersionPrefix & objFSO.GetFileVersion(strFileWithVersion)
+                        If (strDateYMD = "NULL") Then
+                            Set objFile = objFSO.GetFile(strFileWithVersion)
+                            strDateYMD = ConvertDateToSqlFormat(objFile.DateCreated)
+                        End If
                     End If
                 End If
             End If
