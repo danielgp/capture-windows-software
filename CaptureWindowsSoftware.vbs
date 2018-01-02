@@ -567,9 +567,10 @@ End Function
 Function CleanStringStartEnd(strFullStringToClean, strStartCleanSubString, strEndCleanSubString)
     intStartCleanPosition = InStr(1, strFullStringToClean, strStartCleanSubString, vbTextCompare)
     intEndCleanPosition = InStr(1, strFullStringToClean, strEndCleanSubString, vbTextCompare)
-    If ((intStartCleanPosition > 0) And (intEndCleanPosition > 0)) Then
-        strCleanedString = Trim(Replace(Left(strFullStringToClean, (intStartCleanPosition - 1)) & " " & Right(strFullStringToClean, (Len(strFullStringToClean) - intEndCleanPosition)), "  ", " "))
-        strCleanedString = CleanStringStartEnd(strCleanedString, strStartCleanSubString, strEndCleanSubString) ' to ensure if more then 1 occurence of identifiers is being taken care of
+    If ((Len(strFullStringToClean) > 3) And (intStartCleanPosition > 1) And (intEndCleanPosition > 2) And (Len(strFullStringToClean) > intEndCleanPosition)) Then
+        strCleanedString = Left(strFullStringToClean, (intStartCleanPosition - 1)) & " " & Right(strFullStringToClean, (Len(strFullStringToClean) - intEndCleanPosition))
+        strCleanedString = Trim(Replace(strFullStringToClean, "  ", " "))
+'        strCleanedString = CleanStringStartEnd(strCleanedString, strStartCleanSubString, strEndCleanSubString) ' to ensure if more then 1 occurence of identifiers is being taken care of
     Else
         strCleanedString = strFullStringToClean
     End If

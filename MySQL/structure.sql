@@ -435,6 +435,7 @@ ORDER BY `dd`.`DeviceParrentName`, `dd`.`DeviceName` */;
                     'Microsoft Visual C++ Debug Runtime',
                     'Microsoft Visual C++ Minimum Runtime',
                     'Microsoft Visual C++ Redistributable',
+                    'Microsoft VC++ redistributables repacked.',
                     'Microsoft Visual Studio Tools for Office Runtime',
                     'Mozilla Firefox',
                     'Office Click-to-Run Extensibility Component',
@@ -448,7 +449,8 @@ ORDER BY `dd`.`DeviceParrentName`, `dd`.`DeviceName` */;
                     JSON_EXTRACT(`vd`.`FullVersionParts`, '$.Major')
             WHEN
                 (`sd`.`SoftwareName` IN(
-                    'Microsoft .NET Framework Multi-Targeting Pack'
+                    'Microsoft .NET Framework Multi-Targeting Pack',
+                    'Microsoft .NET Framework SDK'
                     )
                 )
                 THEN
@@ -479,32 +481,33 @@ ORDER BY `dd`.`DeviceParrentName`, `dd`.`DeviceName` */;
                         WHEN
                             ((JSON_EXTRACT(`vd`.`FullVersionParts`, '$.Major') = 0)
                                 AND (JSON_EXTRACT(`vd`.`FullVersionParts`, '$.Minor') = 9))
-                        THEN
-                            '0.9.x'
+                            THEN
+                                '0.9.x'
                         WHEN
                             ((JSON_EXTRACT(`vd`.`FullVersionParts`, '$.Major') = 1)
                                 AND (JSON_EXTRACT(`vd`.`FullVersionParts`, '$.Minor') = 0)
                                 AND (JSON_EXTRACT(`vd`.`FullVersionParts`, '$.Build') = 0))
-                        THEN
-                            '1.0.0.x'
+                            THEN
+                                '1.0.0.x'
                         WHEN
                             ((JSON_EXTRACT(`vd`.`FullVersionParts`, '$.Major') = 1)
                                 AND (JSON_EXTRACT(`vd`.`FullVersionParts`, '$.Minor') = 0)
                                 AND (JSON_EXTRACT(`vd`.`FullVersionParts`, '$.Build') = 1))
-                        THEN
-                            '1.0.1.x'
+                            THEN
+                                '1.0.1.x'
                         WHEN
                             ((JSON_EXTRACT(`vd`.`FullVersionParts`, '$.Major') = 1)
                                 AND (JSON_EXTRACT(`vd`.`FullVersionParts`, '$.Minor') = 0)
                                 AND (JSON_EXTRACT(`vd`.`FullVersionParts`, '$.Build') = 2))
-                        THEN
-                            '1.0.2.x'
+                            THEN
+                                '1.0.2.x'
                         WHEN
                             ((JSON_EXTRACT(`vd`.`FullVersionParts`, '$.Major') = 1)
                                 AND (JSON_EXTRACT(`vd`.`FullVersionParts`, '$.Minor') = 1))
-                        THEN
-                            '1.1.x'
-                        ELSE NULL
+                            THEN
+                                '1.1.x'
+                        ELSE 
+                            NULL
                     END) USING UTF8MB4)
             ELSE NULL
         END) AS `RelevantMajorVersion`,
